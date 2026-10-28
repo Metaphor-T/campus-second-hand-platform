@@ -1,0 +1,189 @@
+@use './variables' as *;
+
+// ========================================
+// 校园交易平台校园电商 — 全局样式
+// ========================================
+
+// ----- CSS 变量（可在组件中用 var() 引用） -----
+:root {
+    --color-primary: #{$color-primary};
+    --color-accent: #{$color-accent};
+    --color-cta: #{$color-cta};
+    --color-bg: #{$color-bg};
+    --color-surface: #{$color-surface};
+    --color-text: #{$color-text};
+    --color-text-secondary: #{$color-text-secondary};
+    --color-border: #{$color-border};
+    --navbar-height: #{$navbar-height};
+    --content-max-width: #{$content-max-width};
+}
+
+// ----- 基础重置 -----
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    color: $color-text;
+    background: $color-bg;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+img {
+    max-width: 100%;
+    vertical-align: middle;
+}
+
+// ----- 滚动条美化 -----
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.25);
+    }
+}
+
+// ========================================
+// Element Plus 主题覆盖
+// ========================================
+
+// ----- 按钮 -----
+.el-button {
+    font-family: inherit;
+
+    &--primary {
+        --el-button-bg-color: #{$color-primary};
+        --el-button-border-color: #{$color-primary};
+        --el-button-hover-bg-color: #{$color-primary-light};
+        --el-button-hover-border-color: #{$color-primary-light};
+        --el-button-active-bg-color: #{$color-primary-dark};
+        --el-button-active-border-color: #{$color-primary-dark};
+    }
+
+    &--warning {
+        --el-button-bg-color: #{$color-accent};
+        --el-button-border-color: #{$color-accent};
+        --el-button-hover-bg-color: #{$color-accent-light};
+        --el-button-hover-border-color: #{$color-accent-light};
+        --el-button-active-bg-color: #{$color-accent-dark};
+        --el-button-active-border-color: #{$color-accent-dark};
+        --el-button-text-color: #{$color-text-white};
+        --el-button-hover-text-color: #{$color-text-white};
+    }
+
+    &--danger {
+        --el-button-bg-color: #{$color-cta};
+        --el-button-border-color: #{$color-cta};
+    }
+}
+
+// ----- 标签页 -----
+.el-tabs {
+    .el-tabs__item {
+        font-size: $font-size-base;
+        font-weight: 500;
+
+        &:hover {
+            color: $color-primary;
+        }
+
+        &.is-active {
+            color: $color-primary;
+        }
+    }
+
+    .el-tabs__active-bar {
+        background-color: $color-primary;
+    }
+}
+
+// ----- 分页 -----
+.el-pagination {
+    .el-pager li {
+        &.active {
+            background-color: $color-primary;
+            border-color: $color-primary;
+        }
+    }
+}
+
+// ----- 卡片 -----
+.el-card {
+    border-radius: $card-radius;
+    border: none;
+    box-shadow: $shadow-card;
+}
+
+// ----- 弹窗 -----
+.el-dialog {
+    border-radius: $radius-lg;
+    --el-dialog-border-radius: #{$radius-lg};
+}
+
+// ----- 下拉菜单 -----
+.el-dropdown-menu {
+    border: none;
+    box-shadow: $shadow-lg;
+    border-radius: $radius-md;
+    padding: 6px;
+
+    .el-dropdown-menu__item {
+        border-radius: $radius-sm;
+        font-size: $font-size-sm;
+        padding: 7px 12px;
+
+        &:hover {
+            background: rgba($color-primary, 0.06);
+            color: $color-primary;
+        }
+
+        &.is-divided {
+            border-top-color: $color-border-light;
+        }
+    }
+}
+
+// ----- 标签 -----
+.el-tag {
+    border-radius: 4px;
+}
+
+// ----- 消息提示 -----
+.el-message {
+    border-radius: $radius-md;
+    border: none;
+    box-shadow: $shadow-lg;
+}
+
+// ----- 加载骨架 -----
+.el-skeleton {
+    --el-skeleton-color: #e8e8ed;
+    --el-skeleton-to-color: #f2f2f7;
+}
+
+// ----- 继承原有 style.css 内容 -----
+.el-dropdown-link:focus-visible,
+.el-dropdown__trigger:focus-visible {
+    outline: unset !important;
+}

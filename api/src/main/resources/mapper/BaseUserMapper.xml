@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace：必须与对应的 Mapper 接口的全限定名保持一致 -->
+<mapper namespace="com.example.mapper.BaseUserMapper">
+
+    <resultMap id="resultMap" type="com.example.pojo.vo.BaseUserVO">
+        <id property="id" column="id"/>
+        <result property="account" column="account"/>
+        <result property="avatar" column="avatar"/>
+        <result property="username" column="username"/>
+        <result property="gender" column="gender"/>
+        <result property="phone" column="phone"/>
+        <result property="loginStatus" column="login_status"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <select id="listPage" resultMap="resultMap">
+        SELECT
+        id,
+        account,
+        password,
+        avatar,
+        username,
+        gender,
+        phone,
+        login_status,
+        create_time
+        FROM base_user bu
+        <where>
+            <if test="id != null">
+                AND bu.id = #{id}
+            </if>
+            <if test="ids != null and ids.size() &gt; 0">
+                AND bu.id IN
+                <foreach collection="ids" item="itemId" separator="," open="(" close=")" index="index">
+                    #{itemId}
+                </foreach>
+            </if>
+            <if test="account != null and account != ''">
+                AND bu.account LIKE concat('%',#{account},'%')
+            </if>
+            <if test="username != null and username != ''">
+                AND bu.username LIKE concat('%',#{username},'%')
+            </if>
+            <if test="gender != null">
+                AND bu.gender = #{gender}
+            </if>
+            <if test="phone != null and phone != ''">
+                AND bu.phone LIKE concat('%',#{phone},'%')
+            </if>
+            <if test="loginStatus != null">
+                AND bu.login_status = #{loginStatus}
+            </if>
+        </where>
+        <if test="current != null and size != null">
+            LIMIT #{current},#{size}
+        </if>
+
+    </select>
+
+
+    <select id="listPageCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM base_user bu
+        <where>
+            <if test="id != null">
+                AND bu.id = #{id}
+            </if>
+            <if test="ids != null and ids.size() &gt; 0">
+                AND bu.id IN
+                <foreach collection="ids" item="itemId" separator="," open="(" close=")" index="index">
+                    #{itemId}
+                </foreach>
+            </if>
+            <if test="account != null and account != ''">
+                AND bu.account LIKE concat('%',#{account},'%')
+            </if>
+            <if test="username != null and username != ''">
+                AND bu.username LIKE concat('%',#{username},'%')
+            </if>
+            <if test="gender != null">
+                AND bu.gender = #{gender}
+            </if>
+            <if test="phone != null and phone != ''">
+                AND bu.phone LIKE concat('%',#{phone},'%')
+            </if>
+            <if test="loginStatus != null">
+                AND bu.login_status = #{loginStatus}
+            </if>
+        </where>
+
+    </select>
+</mapper>

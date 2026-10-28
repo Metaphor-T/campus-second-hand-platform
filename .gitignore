@@ -1,0 +1,12 @@
+view/node_modules/
+view/dist/
+api/target/
+api/file/*
+.idea/
+.vscode/
+*.iml
+*.log
+.env
+.env.*
+.DS_Store
+Thumbs.db

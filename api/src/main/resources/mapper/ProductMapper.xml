@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ProductMapper">
+
+    <!-- ========== 通用 ResultMap（联表字段） ========== -->
+    <resultMap id="resultMap" type="com.example.pojo.vo.ProductVO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="userAvatar" column="user_avatar"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="price" column="price"/>
+        <result property="originalPrice" column="original_price"/>
+        <result property="condition" column="condition"/>
+        <result property="tradeType" column="trade_type"/>
+        <result property="status" column="status"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="wantCount" column="want_count"/>
+        <result property="favoriteCount" column="favorite_count"/>
+        <result property="reviewCount" column="review_count"/>
+        <result property="rating" column="rating"/>
+        <result property="stock" column="stock"/>
+        <result property="version" column="version"/>
+        <result property="auditRemark" column="audit_remark"/>
+        <result property="auditTime" column="audit_time"/>
+        <result property="auditorId" column="auditor_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!--
+        分页查询商品列表
+        - LEFT JOIN base_user 获取发布者信息
+        - LEFT JOIN category 获取分类名称
+        - 支持按标题模糊、分类、状态、新旧程度、交易方式、价格区间等筛选
+    -->
+    <select id="listPage" resultMap="resultMap">
+        SELECT
+            p.id,
+            p.user_id,
+            u.username,
+            u.avatar AS user_avatar,
+            p.category_id,
+            c.name AS category_name,
+            p.title,
+            p.description,
+            p.price,
+            p.original_price,
+            p.`condition`,
+            p.trade_type,
+            p.status,
+            p.view_count,
+            p.want_count,
+            p.favorite_count,
+            p.review_count,
+            p.rating,
+            p.stock,
+            p.version,
+            p.audit_remark,
+            p.audit_time,
+            p.auditor_id,
+            p.create_time,
+            p.update_time
+        FROM product p
+        LEFT JOIN base_user u ON p.user_id = u.id
+        LEFT JOIN category c ON p.category_id = c.id
+        <where>
+            <if test="userId != null">
+                AND p.user_id = #{userId}
+            </if>
+            <if test="categoryId != null">
+                AND p.category_id = #{categoryId}
+            </if>
+            <if test="title != null and title != ''">
+                AND p.title LIKE concat('%', #{title}, '%')
+            </if>
+            <if test="status != null">
+                AND p.status = #{status}
+            </if>
+            <if test="condition != null">
+                AND p.`condition` = #{condition}
+            </if>
+            <if test="tradeType != null">
+                AND p.trade_type = #{tradeType}
+            </if>
+            <if test="minPrice != null">
+                AND p.price &gt;= #{minPrice}
+            </if>
+            <if test="maxPrice != null">
+                AND p.price &lt;= #{maxPrice}
+            </if>
+        </where>
+        ORDER BY p.create_time DESC
+        <if test="current != null and size != null">
+            LIMIT #{current}, #{size}
+        </if>
+    </select>
+
+    <!-- 查询商品总数（配合分页） -->
+    <select id="listPageCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM product p
+        <where>
+            <if test="userId != null">
+                AND p.user_id = #{userId}
+            </if>
+            <if test="categoryId != null">
+                AND p.category_id = #{categoryId}
+            </if>
+            <if test="title != null and title != ''">
+                AND p.title LIKE concat('%', #{title}, '%')
+            </if>
+            <if test="status != null">
+                AND p.status = #{status}
+            </if>
+            <if test="condition != null">
+                AND p.`condition` = #{condition}
+            </if>
+            <if test="tradeType != null">
+                AND p.trade_type = #{tradeType}
+            </if>
+            <if test="minPrice != null">
+                AND p.price &gt;= #{minPrice}
+            </if>
+            <if test="maxPrice != null">
+                AND p.price &lt;= #{maxPrice}
+            </if>
+        </where>
+    </select>
+
+    <!-- 查询单个商品详情（联表 user、category） -->
+    <select id="getDetail" resultMap="resultMap">
+        SELECT
+            p.id,
+            p.user_id,
+            u.username,
+            u.avatar AS user_avatar,
+            p.category_id,
+            c.name AS category_name,
+            p.title,
+            p.description,
+            p.price,
+            p.original_price,
+            p.`condition`,
+            p.trade_type,
+            p.status,
+            p.view_count,
+            p.want_count,
+            p.favorite_count,
+            p.review_count,
+            p.rating,
+            p.stock,
+            p.version,
+            p.audit_remark,
+            p.audit_time,
+            p.auditor_id,
+            p.create_time,
+            p.update_time
+        FROM product p
+        LEFT JOIN base_user u ON p.user_id = u.id
+        LEFT JOIN category c ON p.category_id = c.id
+        WHERE p.id = #{id}
+    </select>
+
+    <!-- ========== 热门商品查询 ========== -->
+
+    <!--
+        查询热门商品TOP 5
+        热度评分规则（根据各行为权重加权求和）：
+        - 浏览量权重 1（浏览成本最低）
+        - 想要数权重 3（用户有兴趣）
+        - 收藏数权重 5（用户购买意向强烈）
+        - 评价数权重 2（购买后有反馈意愿）
+        - 评分权重 10（高评分代表商品质量好）
+    -->
+    <select id="listHotProducts" resultMap="resultMap">
+        SELECT
+            p.id,
+            p.user_id,
+            u.username,
+            u.avatar AS user_avatar,
+            p.category_id,
+            c.name AS category_name,
+            p.title,
+            p.description,
+            p.price,
+            p.original_price,
+            p.`condition`,
+            p.trade_type,
+            p.status,
+            p.view_count,
+            p.want_count,
+            p.favorite_count,
+            p.review_count,
+            p.rating,
+            p.stock,
+            p.version,
+            p.audit_remark,
+            p.audit_time,
+            p.auditor_id,
+            p.create_time,
+            p.update_time
+        FROM product p
+        LEFT JOIN base_user u ON p.user_id = u.id
+        LEFT JOIN category c ON p.category_id = c.id
+        WHERE p.status = 1
+        ORDER BY (p.view_count * 1 + p.want_count * 3 + p.favorite_count * 5 + p.review_count * 2 + p.rating * 10) DESC
+        LIMIT 5
+    </select>
+
+    <!-- ========== 库存操作（乐观锁防超卖） ========== -->
+
+    <!-- 扣减库存（乐观锁：version 一致性校验，防止并发超卖）
+         库存为 0 时不扣减（0 表示不限库存）
+         扣减后库存 ≤ 0 且商品状态为 1（上架中）时自动下架 -->
+    <update id="deductStock">
+        UPDATE product
+        SET stock = stock - #{quantity},
+            `version` = `version` + 1,
+            status = IF(status = 1 AND stock - #{quantity} &lt;= 0, 3, status)
+        WHERE id = #{id} AND stock &gt;= #{quantity} AND `version` = #{version}
+    </update>
+
+    <!-- 归还库存（订单取消/退款时回滚） -->
+    <update id="restoreStock">
+        UPDATE product
+        SET stock = stock + #{quantity},
+            `version` = `version` + 1
+        WHERE id = #{id}
+    </update>
+
+</mapper>
