@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.RecommendMapper">
+
+    <!--
+        查询单个用户的所有行为记录
+        - 收藏: behavior_type=3, score=1
+        - 想要: behavior_type=2, score=1
+        - 评价: behavior_type=4, score=rating (1~5)
+        - 下单: behavior_type=5, score=1
+        每种行为仅保留 status=1(审核通过) 的商品
+    -->
+    <select id="selectUserBehaviors" resultType="com.example.pojo.vo.UserBehaviorVO">
+        <!-- 收藏行为 -->
+        SELECT
+            pf.user_id    AS userId,
+            pf.product_id AS productId,
+            3             AS behaviorType,
+            1             AS score
+        FROM product_favorite pf
+        JOIN product p ON p.id = pf.product_id AND p.status = 1
+        WHERE pf.user_id = #{userId}
+
+        UNION ALL
+
+        <!-- 想要行为 -->
+        SELECT
+            pw.user_id    AS userId,
+            pw.product_id AS productId,
+            2             AS behaviorType,
+            1             AS score
+        FROM product_want pw
+        JOIN product p ON p.id = pw.product_id AND p.status = 1
+        WHERE pw.user_id = #{userId}
+
+        UNION ALL
+
+        <!-- 评价行为（携带评分） -->
+        SELECT
+            pr.buyer_id   AS userId,
+            pr.product_id AS productId,
+            4             AS behaviorType,
+            pr.rating     AS score
+        FROM product_review pr
+        JOIN product p ON p.id = pr.product_id AND p.status = 1
+        WHERE pr.buyer_id = #{userId}
+          AND pr.status = 1
+
+        UNION ALL
+
+        <!-- 下单行为（仅已完成订单） -->
+        SELECT
+            o.buyer_id    AS userId,
+            o.product_id  AS productId,
+            5             AS behaviorType,
+            1             AS score
+        FROM `order` o
+        JOIN product p ON p.id = o.product_id AND p.status = 1
+        WHERE o.buyer_id = #{userId}
+          AND o.order_status = 3
+    </select>
+
+    <!--
+        查询所有用户的所有有效行为记录（排除浏览，仅保留强信号行为）
+        用于定时任务全量重算物品相似度矩阵
+    -->
+    <select id="selectAllBehaviors" resultType="com.example.pojo.vo.UserBehaviorVO">
+        SELECT
+            pf.user_id    AS userId,
+            pf.product_id AS productId,
+            3             AS behaviorType,
+            1             AS score
+        FROM product_favorite pf
+        JOIN product p ON p.id = pf.product_id AND p.status = 1
+
+        UNION ALL
+
+        SELECT
+            pw.user_id    AS userId,
+            pw.product_id AS productId,
+            2             AS behaviorType,
+            1             AS score
+        FROM product_want pw
+        JOIN product p ON p.id = pw.product_id AND p.status = 1
+
+        UNION ALL
+
+        SELECT
+            pr.buyer_id   AS userId,
+            pr.product_id AS productId,
+            4             AS behaviorType,
+            pr.rating     AS score
+        FROM product_review pr
+        JOIN product p ON p.id = pr.product_id AND p.status = 1
+        WHERE pr.status = 1
+
+        UNION ALL
+
+        SELECT
+            o.buyer_id    AS userId,
+            o.product_id  AS productId,
+            5             AS behaviorType,
+            1             AS score
+        FROM `order` o
+        JOIN product p ON p.id = o.product_id AND p.status = 1
+        WHERE o.order_status = 3
+    </select>
+
+</mapper>

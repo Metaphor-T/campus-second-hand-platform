@@ -1,0 +1,78 @@
+// ========================================
+// 校园交易平台校园电商 — 主题变量
+// 品牌色源自校园交易平台 UI 设计语言
+// ========================================
+
+// ----- 品牌色（橘红主题）-----
+$color-primary: #e85d3a;          // 橘红 — 品牌主色
+$color-primary-light: #ff7a4a;    // 浅橘红 — hover/渐变
+$color-primary-dark: #c9442a;     // 深橘红 — active
+
+$color-accent: #ff6b35;           // 活力橙 — 价格/点缀/高亮
+$color-accent-light: #ff8c5a;     // 浅橙 — hover
+$color-accent-dark: #e05525;      // 深橙
+
+$color-cta: #ff5722;              // 深橙红 — 购买/行动按钮
+
+// ----- 中性色 -----
+$color-bg: #ffffff;               // 页面背景
+$color-surface: #ffffff;          // 卡片/内容区背景
+$color-border: #e5e5ea;           // 边框/分割线
+$color-border-light: #f0f0f4;     // 更淡的边框
+
+// ----- 文字色 -----
+$color-text: #1d1d1f;             // 主文字
+$color-text-secondary: #86868b;   // 副文字
+$color-text-light: #aeaeb2;       // 轻量文字/占位符
+$color-text-white: #ffffff;       // 深色背景上文字
+
+// ----- 阴影 -----
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+$shadow-card: 0 2px 8px rgba(0, 0, 0, 0.05);
+$shadow-card-hover: 0 8px 24px rgba(232, 93, 58, 0.15);
+
+// ----- 圆角 -----
+$radius-sm: 6px;
+$radius-md: 10px;
+$radius-lg: 14px;
+$radius-xl: 20px;
+$radius-round: 50%;
+
+// ----- 间距 -----
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-2xl: 48px;
+
+// ----- 字体 -----
+$font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', 'Segoe UI', 'Helvetica Neue', sans-serif;
+$font-size-xs: 11px;
+$font-size-sm: 13px;
+$font-size-base: 14px;
+$font-size-md: 15px;
+$font-size-lg: 18px;
+$font-size-xl: 22px;
+$font-size-2xl: 28px;
+
+// ----- 导航栏 -----
+$navbar-height: 60px;
+$navbar-bg: #ffffff;
+$navbar-border: $color-border-light;
+$navbar-shadow: $shadow-sm;
+
+// ----- 商品卡片 -----
+$card-radius: $radius-md;
+$card-bg: #ffffff;
+
+// ----- 响应式断点 -----
+$breakpoint-mobile: 640px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+$breakpoint-wide: 1280px;
+
+// ----- 内容最大宽度 -----
+$content-max-width: 1200px;

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.StatisticsMapper">
+
+    <!-- ========== 概览统计 ========== -->
+
+    <select id="selectTotalUsers" resultType="integer">
+        SELECT COUNT(*)
+        FROM base_user
+    </select>
+
+    <select id="selectTodayNewUsers" resultType="integer">
+        SELECT COUNT(*)
+        FROM base_user
+        WHERE DATE(create_time) = CURDATE()
+    </select>
+
+    <select id="selectTotalProducts" resultType="integer">
+        SELECT COUNT(*)
+        FROM product
+    </select>
+
+    <select id="selectPendingReviewProducts" resultType="integer">
+        SELECT COUNT(*)
+        FROM product
+        WHERE `status` = 0
+    </select>
+
+    <select id="selectTotalOrders" resultType="integer">
+        SELECT COUNT(*)
+        FROM `order`
+    </select>
+
+    <select id="selectTodayNewOrders" resultType="integer">
+        SELECT COUNT(*)
+        FROM `order`
+        WHERE DATE(create_time) = CURDATE()
+    </select>
+
+    <select id="selectTotalRevenue" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(pay_amount), 0)
+        FROM `order`
+        WHERE order_status = 3
+    </select>
+
+    <select id="selectPendingRefundOrders" resultType="integer">
+        SELECT COUNT(*)
+        FROM `order`
+        WHERE order_status = 5
+    </select>
+
+    <!-- ========== 趋势图数据 ========== -->
+
+    <select id="selectDailyNewUsers" resultType="java.util.Map">
+        SELECT
+            DATE(create_time) AS `date`,
+            COUNT(*) AS `count`
+        FROM base_user
+        WHERE create_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        GROUP BY DATE(create_time)
+        ORDER BY `date` ASC
+    </select>
+
+    <select id="selectDailyNewOrders" resultType="java.util.Map">
+        SELECT
+            DATE(create_time) AS `date`,
+            COUNT(*) AS `count`
+        FROM `order`
+        WHERE create_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        GROUP BY DATE(create_time)
+        ORDER BY `date` ASC
+    </select>
+
+    <!-- ========== 分类销量排行 ========== -->
+
+    <select id="selectCategorySales" resultType="java.util.Map">
+        SELECT
+            c.name AS `name`,
+            COUNT(*) AS `count`
+        FROM `order` o
+        INNER JOIN product p ON o.product_id = p.id
+        INNER JOIN category c ON p.category_id = c.id
+        WHERE o.order_status IN (1, 2, 3)
+        GROUP BY c.id, c.name, c.sort
+        ORDER BY `count` DESC, c.sort ASC
+        LIMIT 10
+    </select>
+
+    <!-- ========== 订单状态分布 ========== -->
+
+    <select id="selectOrderStatusCount" resultType="java.util.Map">
+        SELECT
+            CAST(order_status AS SIGNED) AS `status`,
+            COUNT(*) AS `count`
+        FROM `order`
+        GROUP BY order_status
+        ORDER BY order_status ASC
+    </select>
+
+    <!-- ========== 雷达图指标 ========== -->
+
+    <select id="selectAverageRating" resultType="java.math.BigDecimal">
+        SELECT COALESCE(AVG(rating), 0)
+        FROM product
+        WHERE `status` = 1
+    </select>
+
+    <select id="selectActiveUserCount" resultType="integer">
+        SELECT COUNT(DISTINCT buyer_id)
+        FROM `order`
+    </select>
+
+    <select id="selectProductPublisherCount" resultType="integer">
+        SELECT COUNT(DISTINCT user_id)
+        FROM product
+    </select>
+
+    <select id="selectHighRatedProductCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM product
+        WHERE rating >= 4.0
+    </select>
+
+    <select id="selectReviewedOrderCount" resultType="integer">
+        SELECT COUNT(DISTINCT order_id)
+        FROM product_review
+    </select>
+
+</mapper>

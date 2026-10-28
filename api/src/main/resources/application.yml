@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: api
+  # Mysql datasource
+  datasource:
+    url: jdbc:mysql://localhost:3306/project_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
+    username: root
+    password: 20060608TangX
+    driver-class-name: com.mysql.cj.jdbc.Driver
+server:
+  port: 21090
+# Mybatis Plus config
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true # 驼峰
+  #    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto #主键ID自增
+  mapper-locations: classpath*:/mapper/**/*.xml # mapper映射
+file:
+  upload-dir: file
