@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace：必须与对应的 Mapper 接口的全限定名保持一致 -->
+<mapper namespace="com.example.mapper.CategoryMapper">
+
+    <!-- ========== 通用 ResultMap ========== -->
+    <resultMap id="resultMap" type="com.example.pojo.vo.CategoryVO">
+        <id property="id" column="id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="name" column="name"/>
+        <result property="sort" column="sort"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <!--
+        分页查询商品分类列表
+        - 支持按名称模糊搜索、按父分类筛选、按状态筛选
+        - 支持按排序权重降序排列
+    -->
+    <select id="listPage" resultMap="resultMap">
+        SELECT
+            id,
+            parent_id,
+            name,
+            sort,
+            status,
+            create_time
+        FROM category c
+        <where>
+            <if test="id != null">
+                AND c.id = #{id}
+            </if>
+            <if test="ids != null and ids.size() &gt; 0">
+                AND c.id IN
+                <foreach collection="ids" item="itemId" separator="," open="(" close=")" index="index">
+                    #{itemId}
+                </foreach>
+            </if>
+            <if test="name != null and name != ''">
+                AND c.name LIKE concat('%', #{name}, '%')
+            </if>
+            <if test="parentId != null">
+                AND c.parent_id = #{parentId}
+            </if>
+            <if test="status != null">
+                AND c.status = #{status}
+            </if>
+        </where>
+        ORDER BY c.sort DESC, c.id ASC
+        <if test="current != null and size != null">
+            LIMIT #{current}, #{size}
+        </if>
+    </select>
+
+    <!--
+        查询商品分类总数（配合分页）
+    -->
+    <select id="listPageCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM category c
+        <where>
+            <if test="id != null">
+                AND c.id = #{id}
+            </if>
+            <if test="ids != null and ids.size() &gt; 0">
+                AND c.id IN
+                <foreach collection="ids" item="itemId" separator="," open="(" close=")" index="index">
+                    #{itemId}
+                </foreach>
+            </if>
+            <if test="name != null and name != ''">
+                AND c.name LIKE concat('%', #{name}, '%')
+            </if>
+            <if test="parentId != null">
+                AND c.parent_id = #{parentId}
+            </if>
+            <if test="status != null">
+                AND c.status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <!--
+        查询所有商品分类（扁平列表，不分页，用于前端构建树形结构）
+    -->
+    <select id="listAll" resultMap="resultMap">
+        SELECT
+            id,
+            parent_id,
+            name,
+            sort,
+            status,
+            create_time
+        FROM category
+        ORDER BY sort DESC, id ASC
+    </select>
+
+</mapper>

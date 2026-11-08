@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OrderMapper">
+
+    <!-- ========== 通用 ResultMap（联表字段） ========== -->
+    <resultMap id="resultMap" type="com.example.pojo.vo.OrderVO">
+        <id property="id" column="id"/>
+        <result property="orderNo" column="order_no"/>
+        <result property="productId" column="product_id"/>
+        <result property="productTitle" column="product_title"/>
+        <result property="productImage" column="product_image"/>
+        <result property="buyerId" column="buyer_id"/>
+        <result property="buyerName" column="buyer_name"/>
+        <result property="sellerId" column="seller_id"/>
+        <result property="sellerName" column="seller_name"/>
+        <result property="addressId" column="address_id"/>
+        <result property="receiverName" column="receiver_name"/>
+        <result property="receiverPhone" column="receiver_phone"/>
+        <result property="fullAddress" column="full_address"/>
+        <result property="quantity" column="quantity"/>
+        <result property="unitPrice" column="unit_price"/>
+        <result property="totalAmount" column="total_amount"/>
+        <result property="shippingFee" column="shipping_fee"/>
+        <result property="payAmount" column="pay_amount"/>
+        <result property="payMethod" column="pay_method"/>
+        <result property="payTime" column="pay_time"/>
+        <result property="orderStatus" column="order_status"/>
+        <result property="shipTime" column="ship_time"/>
+        <result property="receiveTime" column="receive_time"/>
+        <result property="cancelTime" column="cancel_time"/>
+        <result property="cancelReason" column="cancel_reason"/>
+        <result property="buyerRemark" column="buyer_remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 公共查询字段片段 -->
+    <sql id="baseColumns">
+        o.id,
+        o.order_no,
+        o.product_id,
+        p.title AS product_title,
+        (SELECT pi.image_url FROM product_image pi WHERE pi.product_id = o.product_id ORDER BY pi.is_cover DESC, pi.id ASC LIMIT 1) AS product_image,
+        o.buyer_id,
+        bu.username AS buyer_name,
+        o.seller_id,
+        su.username AS seller_name,
+        o.address_id,
+        a.receiver_name,
+        a.receiver_phone,
+        CONCAT_WS(' ', a.province, a.city, a.district, a.detail_address) AS full_address,
+        o.quantity,
+        o.unit_price,
+        o.total_amount,
+        o.shipping_fee,
+        o.pay_amount,
+        o.pay_method,
+        o.pay_time,
+        o.order_status,
+        o.ship_time,
+        o.receive_time,
+        o.cancel_time,
+        o.cancel_reason,
+        o.buyer_remark,
+        o.create_time,
+        o.update_time
+    </sql>
+
+    <!-- 买家订单列表（分页） -->
+    <select id="listBuyerOrders" resultMap="resultMap">
+        SELECT
+        <include refid="baseColumns"/>
+        FROM `order` o
+        LEFT JOIN product p ON o.product_id = p.id
+        LEFT JOIN base_user bu ON o.buyer_id = bu.id
+        LEFT JOIN base_user su ON o.seller_id = su.id
+        LEFT JOIN address a ON o.address_id = a.id
+        <where>
+            o.buyer_id = #{buyerId}
+            <if test="query.orderStatus != null">
+                AND o.order_status = #{query.orderStatus}
+            </if>
+            <if test="query.keyword != null and query.keyword != ''">
+                AND o.order_no LIKE concat('%', #{query.keyword}, '%')
+            </if>
+        </where>
+        ORDER BY o.create_time DESC
+        <if test="query.current != null and query.size != null">
+            LIMIT #{query.current}, #{query.size}
+        </if>
+    </select>
+
+    <!-- 买家订单总数 -->
+    <select id="listBuyerOrdersCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM `order` o
+        <where>
+            o.buyer_id = #{buyerId}
+            <if test="query.orderStatus != null">
+                AND o.order_status = #{query.orderStatus}
+            </if>
+            <if test="query.keyword != null and query.keyword != ''">
+                AND o.order_no LIKE concat('%', #{query.keyword}, '%')
+            </if>
+        </where>
+    </select>
+
+    <!-- 卖家订单列表（分页） -->
+    <select id="listSellerOrders" resultMap="resultMap">
+        SELECT
+        <include refid="baseColumns"/>
+        FROM `order` o
+        LEFT JOIN product p ON o.product_id = p.id
+        LEFT JOIN base_user bu ON o.buyer_id = bu.id
+        LEFT JOIN base_user su ON o.seller_id = su.id
+        LEFT JOIN address a ON o.address_id = a.id
+        <where>
+            o.seller_id = #{sellerId}
+            <if test="query.orderStatus != null">
+                AND o.order_status = #{query.orderStatus}
+            </if>
+            <if test="query.keyword != null and query.keyword != ''">
+                AND o.order_no LIKE concat('%', #{query.keyword}, '%')
+            </if>
+        </where>
+        ORDER BY o.create_time DESC
+        <if test="query.current != null and query.size != null">
+            LIMIT #{query.current}, #{query.size}
+        </if>
+    </select>
+
+    <!-- 卖家订单总数 -->
+    <select id="listSellerOrdersCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM `order` o
+        <where>
+            o.seller_id = #{sellerId}
+            <if test="query.orderStatus != null">
+                AND o.order_status = #{query.orderStatus}
+            </if>
+            <if test="query.keyword != null and query.keyword != ''">
+                AND o.order_no LIKE concat('%', #{query.keyword}, '%')
+            </if>
+        </where>
+    </select>
+
+    <!-- 查询单个订单详情 -->
+    <select id="getDetail" resultMap="resultMap">
+        SELECT
+        <include refid="baseColumns"/>
+        FROM `order` o
+        LEFT JOIN product p ON o.product_id = p.id
+        LEFT JOIN base_user bu ON o.buyer_id = bu.id
+        LEFT JOIN base_user su ON o.seller_id = su.id
+        LEFT JOIN address a ON o.address_id = a.id
+        WHERE o.id = #{id}
+    </select>
+
+    <!-- 管理员查询全部订单（分页） -->
+    <select id="listAllOrders" resultMap="resultMap">
+        SELECT
+        <include refid="baseColumns"/>
+        FROM `order` o
+        LEFT JOIN product p ON o.product_id = p.id
+        LEFT JOIN base_user bu ON o.buyer_id = bu.id
+        LEFT JOIN base_user su ON o.seller_id = su.id
+        LEFT JOIN address a ON o.address_id = a.id
+        <where>
+            <if test="query.orderStatus != null">
+                AND o.order_status = #{query.orderStatus}
+            </if>
+            <if test="query.keyword != null and query.keyword != ''">
+                AND (o.order_no LIKE concat('%', #{query.keyword}, '%')
+                OR p.title LIKE concat('%', #{query.keyword}, '%')
+                OR bu.username LIKE concat('%', #{query.keyword}, '%')
+                OR su.username LIKE concat('%', #{query.keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY o.create_time DESC
+        <if test="query.current != null and query.size != null">
+            LIMIT #{query.current}, #{query.size}
+        </if>
+    </select>
+
+    <!-- 管理员查询全部订单总数 -->
+    <select id="listAllOrdersCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM `order` o
+        LEFT JOIN product p ON o.product_id = p.id
+        LEFT JOIN base_user bu ON o.buyer_id = bu.id
+        LEFT JOIN base_user su ON o.seller_id = su.id
+        <where>
+            <if test="query.orderStatus != null">
+                AND o.order_status = #{query.orderStatus}
+            </if>
+            <if test="query.keyword != null and query.keyword != ''">
+                AND (o.order_no LIKE concat('%', #{query.keyword}, '%')
+                OR p.title LIKE concat('%', #{query.keyword}, '%')
+                OR bu.username LIKE concat('%', #{query.keyword}, '%')
+                OR su.username LIKE concat('%', #{query.keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <!-- 买家各状态订单数量统计（按 order_status 分组） -->
+    <select id="countBuyerOrdersByStatus" resultType="java.util.Map">
+        SELECT
+            CAST(order_status AS SIGNED) AS `status`,
+            COUNT(*) AS `count`
+        FROM `order` o
+        WHERE o.buyer_id = #{buyerId}
+        GROUP BY o.order_status
+    </select>
+
+    <!-- 卖家各状态订单数量统计（按 order_status 分组） -->
+    <select id="countSellerOrdersByStatus" resultType="java.util.Map">
+        SELECT
+            CAST(order_status AS SIGNED) AS `status`,
+            COUNT(*) AS `count`
+        FROM `order` o
+        WHERE o.seller_id = #{sellerId}
+        GROUP BY o.order_status
+    </select>
+
+</mapper>
