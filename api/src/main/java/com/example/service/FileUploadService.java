@@ -45,7 +45,7 @@ public class FileUploadService {
         // 创建目录
         File directory = new File(fullPath.toString());
         if (!directory.exists()) {
-            directory.mkdirs  ();
+            directory.mkdirs();
         }
 
         // 生成唯一文件名

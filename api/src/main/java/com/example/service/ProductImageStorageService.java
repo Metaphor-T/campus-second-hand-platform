@@ -1,7 +1,6 @@
 package com.example.service;
 
 import com.example.exception.BusinessException;
-import com.example.utils.ProductRules;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -25,36 +24,42 @@ public class ProductImageStorageService {
         root = (configured.isAbsolute() ? configured : Path.of(System.getProperty("user.dir")).resolve(configured)).toAbsolutePath().normalize();
     }
     public String store(Integer userId, MultipartFile file) {
-        ProductRules.require(userId != null && userId > 0, "请先登录再上传商品图片");
-        ProductRules.require(file != null && !file.isEmpty(), "请选择有效图片");
-        ProductRules.require(file.getSize() <= MAX_BYTES, "单张图片不能超过2MB");
+        if (userId == null || userId <= 0) throw new BusinessException("请先登录再上传商品图片", 400);
+        if (file == null || file.isEmpty()) throw new BusinessException("请选择有效图片", 400);
+        if (file.getSize() > MAX_BYTES) throw new BusinessException("单张图片不能超过2MB", 400);
         String name = Optional.ofNullable(file.getOriginalFilename()).orElse("").toLowerCase(Locale.ROOT);
-        ProductRules.require(name.matches(".*\\.(png|jpe?g)$"), "仅支持JPG/PNG图片");
-        ProductRules.require(Set.of("image/png", "image/jpeg", "image/jpg").contains(Optional.ofNullable(file.getContentType()).orElse("")), "图片类型无效，请选择JPG/PNG");
+        if (!name.matches(".*\\.(png|jpe?g)$")) throw new BusinessException("仅支持JPG/PNG图片", 400);
+        if (!Set.of("image/png", "image/jpeg", "image/jpg").contains(Optional.ofNullable(file.getContentType()).orElse(""))) {
+            throw new BusinessException("图片类型无效，请选择JPG/PNG", 400);
+        }
         Path written = null;
         try (ImageInputStream input = ImageIO.createImageInputStream(file.getInputStream())) {
             Iterator<ImageReader> readers = input == null ? Collections.emptyIterator() : ImageIO.getImageReaders(input);
-            ProductRules.require(readers.hasNext(), "文件内容不是有效图片");
+            if (!readers.hasNext()) throw new BusinessException("文件内容不是有效图片", 400);
             ImageReader reader = readers.next();
             BufferedImage image;
             String format;
             try {
                 reader.setInput(input, true, true);
                 format = reader.getFormatName().toLowerCase(Locale.ROOT);
-                ProductRules.require(Set.of("png", "jpeg", "jpg").contains(format), "文件内容必须是JPG/PNG图片");
+                if (!Set.of("png", "jpeg", "jpg").contains(format)) throw new BusinessException("文件内容必须是JPG/PNG图片", 400);
                 boolean png = format.equals("png");
-                ProductRules.require(png == name.endsWith(".png"), "图片扩展名与实际内容不一致");
+                if (png != name.endsWith(".png")) throw new BusinessException("图片扩展名与实际内容不一致", 400);
                 int width = reader.getWidth(0), height = reader.getHeight(0);
-                ProductRules.require(width > 0 && height > 0 && width <= 4096 && height <= 4096 && (long) width * height <= 16000000L, "图片边长最多4096像素、总像素最多1600万，请缩小后上传");
+                if (width <= 0 || height <= 0 || width > 4096 || height > 4096 || (long) width * height > 16000000L) {
+                    throw new BusinessException("图片边长最多4096像素、总像素最多1600万，请缩小后上传", 400);
+                }
                 image = reader.read(0);
-                ProductRules.require(image != null, "图片已损坏，请重新选择");
+                if (image == null) throw new BusinessException("图片已损坏，请重新选择", 400);
             } finally { reader.dispose(); }
             Path directory = root.resolve("products").resolve(userId.toString()).normalize();
             Files.createDirectories(directory);
-            ProductRules.require(directory.toRealPath().startsWith(root.toRealPath()), "图片存储目录无效");
+            if (!directory.toRealPath().startsWith(root.toRealPath())) throw new BusinessException("图片存储目录无效", 400);
             String filename = UUID.randomUUID() + (format.equals("png") ? ".png" : ".jpg");
             written = directory.resolve(filename);
-            ProductRules.require(ImageIO.write(image, format.equals("png") ? "png" : "jpeg", written.toFile()), "图片转换失败，请重新选择");
+            if (!ImageIO.write(image, format.equals("png") ? "png" : "jpeg", written.toFile())) {
+                throw new BusinessException("图片转换失败，请重新选择", 400);
+            }
             return "/files/products/" + userId + "/" + filename;
         } catch (BusinessException e) {
             cleanup(written);

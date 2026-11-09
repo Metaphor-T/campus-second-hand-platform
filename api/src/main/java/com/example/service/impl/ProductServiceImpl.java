@@ -10,7 +10,6 @@ import com.example.mapper.CategoryMapper;
 import com.example.mapper.OrderMapper;
 import com.example.pojo.entity.Category;
 import com.example.pojo.entity.Order;
-import com.example.utils.ProductRules;
 import com.example.pojo.dto.ProductAddDTO;
 import com.example.pojo.dto.ProductAuditDTO;
 import com.example.pojo.dto.ProductImageDTO;
@@ -21,6 +20,7 @@ import com.example.pojo.entity.ProductImage;
 import com.example.pojo.vo.ProductImageVO;
 import com.example.pojo.vo.ProductVO;
 import com.example.service.ProductService;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +41,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     private final ProductImageMapper productImageMapper;
     private final CategoryMapper categoryMapper;
     private final OrderMapper orderMapper;
+    private final Validator validator;
 
     /** 审核状态常量 */
     private static final int STATUS_PENDING = 0;
@@ -53,7 +54,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      */
     @Override
     public List<ProductVO> listPage(ProductQueryDTO queryDTO) {
-        ProductRules.query(queryDTO);
+        normalizeQuery(queryDTO);
         List<ProductVO> list = productMapper.listPage(queryDTO);
         if (list == null || list.isEmpty()) {
             return list;
@@ -102,7 +103,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      */
     @Override
     public Integer listPageCount(ProductQueryDTO queryDTO) {
-        ProductRules.query(queryDTO);
+        normalizeQuery(queryDTO);
         return productMapper.listPageCount(queryDTO);
     }
 
@@ -131,15 +132,14 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .favoriteCount(0)
                 .createTime(LocalDateTime.now())
                 .build();
-        ProductRules.require(userId != null, "请先登录再发布商品");
-        ProductRules.validate(product);
+        if (userId == null) throw new BusinessException("请先登录再发布商品", 400);
         requireEnabledCategory(product.getCategoryId());
-        List<ProductImageDTO> images = ProductRules.images(addDTO.getImages(), userId);
+        List<ProductImageDTO> images = validateAndNormalizeImages(addDTO.getImages(), userId);
         product.setTitle(product.getTitle().trim());
         if (!this.save(product)) throw new BusinessException("发布失败，请稍后重试", 409);
 
         // 保存图册
-        saveProductImages(product.getId(), images, true);
+        saveProductImages(product.getId(), images);
     }
 
     /**
@@ -172,8 +172,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (updateDTO.getCondition() != null) product.setCondition(updateDTO.getCondition());
         if (updateDTO.getTradeType() != null) product.setTradeType(updateDTO.getTradeType());
         if (updateDTO.getStock() != null) product.setStock(updateDTO.getStock());
-        ProductRules.validate(product);
-        List<ProductImageDTO> images = updateDTO.getImages() == null ? null : ProductRules.images(updateDTO.getImages(), userId);
+        validateMergedProduct(product);
+        List<ProductImageDTO> images = updateDTO.getImages() == null ? null : validateAndNormalizeImages(updateDTO.getImages(), userId);
 
         // 内容修改后重新审核；已下架商品保持下架，明确上架时再提交审核。
         int nextStatus = Objects.equals(product.getStatus(), STATUS_DOWN) ? STATUS_DOWN : STATUS_PENDING;
@@ -191,7 +191,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (!this.update(wrapper)) throw new BusinessException("商品已变化，请刷新后重新编辑", 409);
         if (images != null) {
             productImageMapper.delete(new LambdaQueryWrapper<ProductImage>().eq(ProductImage::getProductId, product.getId()));
-            saveProductImages(product.getId(), images, false);
+            saveProductImages(product.getId(), images);
         }
     }
 
@@ -419,6 +419,65 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         productMapper.restoreStock(productId, quantity);
     }
 
+    /** 请求字段约束由 Controller 的 @Valid 执行；这里仅整理搜索词。 */
+    private void normalizeQuery(ProductQueryDTO queryDTO) {
+        if (queryDTO.getTitle() != null) queryDTO.setTitle(queryDTO.getTitle().trim());
+    }
+
+    /** 局部编辑合并后，复用发布 DTO 的字段约束检查完整商品，不另写一套金额/长度规则。 */
+    private void validateMergedProduct(Product product) {
+        validateProductField("title", product.getTitle());
+        validateProductField("description", product.getDescription());
+        validateProductField("price", product.getPrice());
+        validateProductField("originalPrice", product.getOriginalPrice());
+        validateProductField("categoryId", product.getCategoryId());
+        validateProductField("condition", product.getCondition());
+        validateProductField("tradeType", product.getTradeType());
+        validateProductField("stock", product.getStock());
+    }
+
+    private void validateProductField(String field, Object value) {
+        validator.validateValue(ProductAddDTO.class, field, value).stream()
+                .map(violation -> violation.getMessage()).sorted().findFirst()
+                .ifPresent(message -> { throw new BusinessException(message, 400); });
+    }
+
+    /** 发布和编辑复用：检查图册组合规则，返回统一封面和顺序的新列表。 */
+    private List<ProductImageDTO> validateAndNormalizeImages(List<ProductImageDTO> input, Integer userId) {
+        // 保留结构保护，避免内部调用遇到空列表/空元素时产生空指针异常。
+        if (input == null || input.isEmpty() || input.size() > 9) {
+            throw new BusinessException("请保留1至9张商品图片", 400);
+        }
+        Set<String> urls = new HashSet<>();
+        int cover = -1;
+        List<ProductImageDTO> result = new ArrayList<>();
+        for (int i = 0; i < input.size(); i++) {
+            ProductImageDTO image = input.get(i);
+            if (image == null || image.getImageUrl() == null) {
+                throw new BusinessException("图片地址不能为空", 400);
+            }
+            String url = image.getImageUrl().trim();
+            if (!url.matches("(?i)^/files/(?:products/[1-9][0-9]*/)?[a-z0-9_-]+\\.(png|jpe?g)$")) {
+                throw new BusinessException("请使用本站上传的JPG/PNG图片", 400);
+            }
+            if (url.startsWith("/files/products/")
+                    && (userId == null || !url.startsWith("/files/products/" + userId + "/"))) {
+                throw new BusinessException("不能使用其他用户上传的商品图片", 400);
+            }
+            if (!urls.add(url)) throw new BusinessException("请勿重复添加同一张图片", 400);
+            if (image.getIsCover() != null && image.getIsCover() != 0 && image.getIsCover() != 1) {
+                throw new BusinessException("封面标记无效", 400);
+            }
+            if (Objects.equals(image.getIsCover(), 1)) {
+                if (cover != -1) throw new BusinessException("只能设置一张封面图片", 400);
+                cover = i;
+            }
+            result.add(ProductImageDTO.builder().imageUrl(url).sort(i).isCover(0).build());
+        }
+        result.get(cover == -1 ? 0 : cover).setIsCover(1);
+        return result;
+    }
+
     private void requireEnabledCategory(Integer categoryId) {
         Category category = categoryMapper.selectById(categoryId);
         if (category == null || !Integer.valueOf(1).equals(category.getStatus())) {
@@ -433,9 +492,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      *
      * @param productId 商品ID
      * @param imageDTOs 图片DTO列表
-     * @param isNew     是否为新发布（新发布时若无封面，默认第一张为封面）
      */
-    private void saveProductImages(Integer productId, List<ProductImageDTO> imageDTOs, boolean isNew) {
+    private void saveProductImages(Integer productId, List<ProductImageDTO> imageDTOs) {
         List<ProductImage> images = imageDTOs.stream().map(dto ->
                 ProductImage.builder()
                         .productId(productId)
@@ -445,11 +503,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                         .createTime(LocalDateTime.now())
                         .build()
         ).collect(Collectors.toList());
-
-        // 新发布且没有指定封面 → 默认第一张为封面
-        if (!images.isEmpty() && images.stream().noneMatch(i -> i.getIsCover() == 1)) {
-            images.get(0).setIsCover(1);
-        }
 
         // MyBatis Plus 逐条插入
         images.forEach(productImageMapper::insert);
