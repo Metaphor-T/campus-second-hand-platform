@@ -51,15 +51,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 1. 校验商品是否存在且已审核通过
         Product product = productService.getById(createDTO.getProductId());
         if (product == null) {
-            throw new BusinessException("商品不存在");
+            throw new BusinessException("商品不存在", 404);
         }
         if (product.getStatus() == null || product.getStatus() != 1) {
-            throw new BusinessException("商品暂未上架或审核未通过");
+            throw new BusinessException("商品暂未上架或审核未通过", 400);
         }
 
         // 2. 不能购买自己的商品
         if (Objects.equals(product.getUserId(), buyerId)) {
-            throw new BusinessException("不能购买自己发布的商品");
+            throw new BusinessException("不能购买自己发布的商品", 400);
         }
 
         // 3. 校验交易方式下地址必填
@@ -72,12 +72,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 交易方式：2-邮寄时需要地址和运费；1-自提、3-两者皆可不需要地址
         if (tradeType == 2) {
             if (createDTO.getAddressId() == null) {
-                throw new BusinessException("该商品需要邮寄，请选择收货地址");
+                throw new BusinessException("该商品需要邮寄，请选择收货地址", 400);
             }
             // 邮寄场景可设置少量运费（示例固定6元）
             shippingFee = new BigDecimal("6.00");
         }
 
+        int stockDeductedQuantity = 0;
         // 3.5 库存校验与扣减（乐观锁防超卖）
         if (product.getStock() != null && product.getStock() > 0) {
             // 限库存商品：校验库存充足
@@ -87,8 +88,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             // 乐观锁扣减库存（传入当前版本号）
             boolean deducted = productService.deductStock(product.getId(), quantity, product.getVersion());
             if (!deducted) {
-                throw new BusinessException("库存扣减失败，请稍后重试");
+                throw new BusinessException("库存扣减失败，请稍后重试", 409);
             }
+            stockDeductedQuantity = quantity;
         }
         // stock == 0 表示不限库存，无需扣减
 
@@ -102,6 +104,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 .sellerId(product.getUserId())
                 .addressId(createDTO.getAddressId())
                 .quantity(quantity)
+                .stockDeductedQuantity(stockDeductedQuantity)
                 .unitPrice(unitPrice)
                 .totalAmount(totalAmount)
                 .shippingFee(shippingFee)
@@ -151,10 +154,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
      * 查询订单详情
      */
     @Override
-    public OrderVO getDetail(Integer orderId) {
+    public OrderVO getDetail(Integer orderId, Integer userId) {
         OrderVO vo = orderMapper.getDetail(orderId);
         if (vo == null) {
-            throw new BusinessException("订单不存在");
+            throw new BusinessException("订单不存在", 404);
+        }
+        if (userId == null || (!Objects.equals(vo.getBuyerId(), userId) && !Objects.equals(vo.getSellerId(), userId))) {
+            throw new BusinessException("无权查看该订单", 403);
         }
         return vo;
     }
@@ -165,23 +171,22 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void cancelOrder(Integer buyerId, Integer orderId, String reason) {
-        Order order = this.getById(orderId);
+        Order order = orderMapper.selectForUpdate(orderId);
         if (order == null) {
-            throw new BusinessException("订单不存在");
+            throw new BusinessException("订单不存在", 404);
         }
         if (!Objects.equals(order.getBuyerId(), buyerId)) {
-            throw new BusinessException("只能取消自己的订单");
+            throw new BusinessException("只能取消自己的订单", 403);
         }
         if (order.getOrderStatus() != 0) {
-            throw new BusinessException("当前订单状态不允许取消");
+            throw new BusinessException("当前订单状态不允许取消", 409);
         }
+        restoreDeductedStock(order);
         order.setOrderStatus(4); // 已取消
         order.setCancelTime(LocalDateTime.now());
         order.setCancelReason(reason);
         this.updateById(order);
 
-        // 归还库存（订单创建时若已扣减，则回滚）
-        productService.restoreStock(order.getProductId(), order.getQuantity());
     }
 
     /**
@@ -190,19 +195,19 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void payOrder(Integer buyerId, Integer orderId, Integer payMethod) {
-        Order order = this.getById(orderId);
+        Order order = orderMapper.selectForUpdate(orderId);
         if (order == null) {
-            throw new BusinessException("订单不存在");
+            throw new BusinessException("订单不存在", 404);
         }
         if (!Objects.equals(order.getBuyerId(), buyerId)) {
-            throw new BusinessException("只能支付自己的订单");
+            throw new BusinessException("只能支付自己的订单", 403);
         }
         if (order.getOrderStatus() != 0) {
-            throw new BusinessException("当前订单状态不允许支付");
+            throw new BusinessException("当前订单状态不允许支付", 409);
         }
         // 校验支付方式
         if (payMethod == null || payMethod < 1 || payMethod > 3) {
-            throw new BusinessException("无效的支付方式");
+            throw new BusinessException("无效的支付方式", 400);
         }
         order.setOrderStatus(1); // 待发货
         order.setPayMethod(payMethod);
@@ -216,15 +221,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void shipOrder(Integer sellerId, Integer orderId) {
-        Order order = this.getById(orderId);
+        Order order = orderMapper.selectForUpdate(orderId);
         if (order == null) {
-            throw new BusinessException("订单不存在");
+            throw new BusinessException("订单不存在", 404);
         }
         if (!Objects.equals(order.getSellerId(), sellerId)) {
-            throw new BusinessException("只能操作自己的订单");
+            throw new BusinessException("只能操作自己的订单", 403);
         }
         if (order.getOrderStatus() != 1) {
-            throw new BusinessException("当前订单状态不允许发货");
+            throw new BusinessException("当前订单状态不允许发货", 409);
         }
         order.setOrderStatus(2); // 待收货
         order.setShipTime(LocalDateTime.now());
@@ -237,15 +242,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void receiveOrder(Integer buyerId, Integer orderId) {
-        Order order = this.getById(orderId);
+        Order order = orderMapper.selectForUpdate(orderId);
         if (order == null) {
-            throw new BusinessException("订单不存在");
+            throw new BusinessException("订单不存在", 404);
         }
         if (!Objects.equals(order.getBuyerId(), buyerId)) {
-            throw new BusinessException("只能确认自己的收货");
+            throw new BusinessException("只能确认自己的收货", 403);
         }
         if (order.getOrderStatus() != 2) {
-            throw new BusinessException("当前订单状态不允许确认收货");
+            throw new BusinessException("当前订单状态不允许确认收货", 409);
         }
         order.setOrderStatus(3); // 已完成
         order.setReceiveTime(LocalDateTime.now());
@@ -258,23 +263,22 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void agreeRefundOrder(Integer sellerId, Integer orderId) {
-        Order order = this.getById(orderId);
+        Order order = orderMapper.selectForUpdate(orderId);
         if (order == null) {
-            throw new BusinessException("订单不存在");
+            throw new BusinessException("订单不存在", 404);
         }
         if (!Objects.equals(order.getSellerId(), sellerId)) {
-            throw new BusinessException("只能操作自己的订单");
+            throw new BusinessException("只能操作自己的订单", 403);
         }
         if (order.getOrderStatus() != 5) {
-            throw new BusinessException("当前订单状态不允许同意退款");
+            throw new BusinessException("当前订单状态不允许同意退款", 409);
         }
+        restoreDeductedStock(order);
         order.setOrderStatus(4); // 已取消
         order.setCancelTime(LocalDateTime.now());
         order.setCancelReason("卖家同意退款");
         this.updateById(order);
 
-        // 归还库存（退款成功，库存回滚）
-        productService.restoreStock(order.getProductId(), order.getQuantity());
     }
 
     /**
@@ -283,16 +287,16 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void refundOrder(Integer buyerId, Integer orderId) {
-        Order order = this.getById(orderId);
+        Order order = orderMapper.selectForUpdate(orderId);
         if (order == null) {
-            throw new BusinessException("订单不存在");
+            throw new BusinessException("订单不存在", 404);
         }
         if (!Objects.equals(order.getBuyerId(), buyerId)) {
-            throw new BusinessException("只能申请退款自己的订单");
+            throw new BusinessException("只能申请退款自己的订单", 403);
         }
         // 已发货、已收货状态可申请退款
         if (order.getOrderStatus() != 2 && order.getOrderStatus() != 3) {
-            throw new BusinessException("当前订单状态不允许申请退款");
+            throw new BusinessException("当前订单状态不允许申请退款", 409);
         }
         order.setOrderStatus(5); // 退款/售后
         this.updateById(order);
@@ -354,19 +358,27 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void adminAgreeRefundOrder(Integer adminId, Integer orderId) {
-        Order order = this.getById(orderId);
+        Order order = orderMapper.selectForUpdate(orderId);
         if (order == null) {
-            throw new BusinessException("订单不存在");
+            throw new BusinessException("订单不存在", 404);
         }
         if (order.getOrderStatus() != 5) {
-            throw new BusinessException("当前订单状态不允许同意退款");
+            throw new BusinessException("当前订单状态不允许同意退款", 409);
         }
+        restoreDeductedStock(order);
         order.setOrderStatus(4); // 已取消
         order.setCancelTime(LocalDateTime.now());
         order.setCancelReason("管理员同意退款");
         this.updateById(order);
 
-        // 归还库存（退款成功，库存回滚）
-        productService.restoreStock(order.getProductId(), order.getQuantity());
     }
+    private void restoreDeductedStock(Order order) {
+        Integer deducted = order.getStockDeductedQuantity();
+        if (deducted == null) {
+            throw new BusinessException("历史订单缺少库存扣减记录，请先核对后处理", 409);
+        }
+        if (deducted > 0) productService.restoreStock(order.getProductId(), deducted);
+        order.setStockDeductedQuantity(0);
+    }
+
 }

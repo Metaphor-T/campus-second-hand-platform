@@ -65,7 +65,7 @@ public interface OrderService extends IService<Order> {
      * @param orderId 订单ID
      * @return 订单VO
      */
-    OrderVO getDetail(Integer orderId);
+    OrderVO getDetail(Integer orderId, Integer userId);
 
     /**
      * 买家取消订单（仅待付款状态可取消）

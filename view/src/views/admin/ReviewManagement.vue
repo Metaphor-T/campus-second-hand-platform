@@ -83,7 +83,7 @@
 
         <!-- 分页 -->
         <div class="pagination-bar" v-if="totalCount > 0">
-            <el-pagination
+            <el-pagination v-accessible-pagination
                 v-model:current-page="currentPage"
                 :page-size="pageSize"
                 :total="totalCount"
@@ -200,7 +200,7 @@ loadReviews()
     }
 
     .product-title {
-        font-size: 13px;
+        font-size: 0.928571rem;
         color: $color-text;
         white-space: nowrap;
         overflow: hidden;
@@ -214,16 +214,16 @@ loadReviews()
     text-overflow: ellipsis;
     white-space: nowrap;
     color: $color-text-secondary;
-    font-size: 13px;
+    font-size: 0.928571rem;
 }
 
 .reply-text {
-    font-size: 13px;
+    font-size: 0.928571rem;
     color: $color-text-secondary;
 }
 
 .no-reply {
-    font-size: 12px;
+    font-size: 0.857143rem;
     color: $color-text-light;
 }
 

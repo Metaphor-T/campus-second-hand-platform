@@ -1,6 +1,7 @@
 package com.example.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.example.exception.BusinessException;
 import com.example.mapper.ProductFavoriteMapper;
 import com.example.mapper.ProductImageMapper;
 import com.example.mapper.ProductMapper;
@@ -58,11 +59,12 @@ public class UserInteractionServiceImpl implements UserInteractionService {
             if (product != null && product.getFavoriteCount() != null && product.getFavoriteCount() > 0) {
                 productService.lambdaUpdate()
                         .eq(Product::getId, productId)
-                        .set(Product::getFavoriteCount, product.getFavoriteCount() - 1)
+                        .setSql("favorite_count = GREATEST(COALESCE(favorite_count, 0) - 1, 0)")
                         .update();
             }
             return false;
         } else {
+            requireAvailableProduct(productId);
             // 未收藏 → 添加收藏
             ProductFavorite favorite = ProductFavorite.builder()
                     .userId(userId)
@@ -73,10 +75,9 @@ public class UserInteractionServiceImpl implements UserInteractionService {
             // 更新商品收藏数（加1）
             Product product = productService.getById(productId);
             if (product != null) {
-                int count = (product.getFavoriteCount() != null ? product.getFavoriteCount() : 0) + 1;
                 productService.lambdaUpdate()
                         .eq(Product::getId, productId)
-                        .set(Product::getFavoriteCount, count)
+                        .setSql("favorite_count = COALESCE(favorite_count, 0) + 1")
                         .update();
             }
             return true;
@@ -89,6 +90,7 @@ public class UserInteractionServiceImpl implements UserInteractionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void addWant(Integer userId, Integer productId) {
+        requireAvailableProduct(productId);
         // 检查是否已想要
         Long count = productWantMapper.selectCount(
                 new LambdaQueryWrapper<ProductWant>()
@@ -111,10 +113,9 @@ public class UserInteractionServiceImpl implements UserInteractionService {
         // 更新商品想要数（加1）
         Product product = productService.getById(productId);
         if (product != null) {
-            int wantCount = (product.getWantCount() != null ? product.getWantCount() : 0) + 1;
             productService.lambdaUpdate()
                     .eq(Product::getId, productId)
-                    .set(Product::getWantCount, wantCount)
+                    .setSql("want_count = COALESCE(want_count, 0) + 1")
                     .update();
         }
     }
@@ -167,8 +168,9 @@ public class UserInteractionServiceImpl implements UserInteractionService {
                 .collect(Collectors.toList());
 
         // 手动分页
-        int fromIndex = current != null ? current : 0;
-        int pageSize = size != null ? size : 10;
+        int fromIndex = Math.max(0, current != null ? current : 0);
+        int pageSize = Math.max(1, Math.min(50, size != null ? size : 10));
+        if (fromIndex >= allProductIds.size()) return Collections.emptyList();
         int toIndex = Math.min(fromIndex + pageSize, allProductIds.size());
         List<Integer> pageIds = allProductIds.subList(fromIndex, toIndex);
 
@@ -250,6 +252,8 @@ public class UserInteractionServiceImpl implements UserInteractionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void recordView(Integer userId, Integer productId) {
+        Product available = productService.getById(productId);
+        if (available == null || !Integer.valueOf(1).equals(available.getStatus())) return;
         // 插入浏览记录
         ProductView view = ProductView.builder()
                 .userId(userId)
@@ -261,11 +265,16 @@ public class UserInteractionServiceImpl implements UserInteractionService {
         // 更新商品浏览数（加1）
         Product product = productService.getById(productId);
         if (product != null) {
-            int viewCount = (product.getViewCount() != null ? product.getViewCount() : 0) + 1;
             productService.lambdaUpdate()
                     .eq(Product::getId, productId)
-                    .set(Product::getViewCount, viewCount)
+                    .setSql("view_count = COALESCE(view_count, 0) + 1")
                     .update();
+        }
+    }
+    private void requireAvailableProduct(Integer productId) {
+        Product product = productService.getById(productId);
+        if (product == null || !Integer.valueOf(1).equals(product.getStatus())) {
+            throw new BusinessException("商品不存在或已下架", 404);
         }
     }
 }

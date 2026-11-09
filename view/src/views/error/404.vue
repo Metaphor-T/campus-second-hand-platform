@@ -26,7 +26,7 @@
 }
 
 .error-code {
-    font-size: 120px;
+    font-size: 8.571429rem;
     font-weight: 700;
     color: #409eff;
     margin: 0;
@@ -34,13 +34,13 @@
 }
 
 .error-title {
-    font-size: 24px;
+    font-size: 1.714286rem;
     color: #333;
     margin: 16px 0 8px;
 }
 
 .error-desc {
-    font-size: 14px;
+    font-size: 1rem;
     color: #999;
     margin-bottom: 32px;
 }

@@ -66,7 +66,7 @@
 
             <!-- 分页 -->
             <div class="pagination-wrapper">
-                <el-pagination
+                <el-pagination v-accessible-pagination
                     v-model:current-page="queryDTO.current"
                     v-model:page-size="queryDTO.size"
                     :page-sizes="[10, 20, 50, 100]"
@@ -276,11 +276,11 @@ onMounted(() => { fetchData() })
             }
         }
         .detail-field {
-            display: flex; align-items: flex-start; margin-bottom: 10px; font-size: 14px;
+            display: flex; align-items: flex-start; margin-bottom: 10px; font-size: 1rem;
             .dl { color: #909399; flex-shrink: 0; width: 80px; text-align: right; }
             .dv { color: #303133; }
             .price { color: #e6a23c; font-weight: 600; }
-            .original-price { text-decoration: line-through; color: #c0c4cc; margin-left: 8px; font-size: 13px; }
+            .original-price { text-decoration: line-through; color: #c0c4cc; margin-left: 8px; font-size: 0.928571rem; }
             .remark { color: #f56c6c; }
         }
     }

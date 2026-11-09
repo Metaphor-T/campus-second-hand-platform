@@ -152,7 +152,12 @@ public class RecommendServiceImpl implements RecommendService {
                 .collect(Collectors.toList());
 
         log.info("为用户{}推荐了{}个商品，候选池{}个", userId, recommendIds.size(), candidateScores.size());
-        return fillImages(buildProductVOs(recommendIds));
+        List<ProductVO> recommendations = buildProductVOs(recommendIds);
+        if (recommendations.isEmpty()) {
+            log.info("推荐候选均已失效（用户{}），降级返回热门商品", userId);
+            return fillImages(productService.listHotProducts());
+        }
+        return fillImages(recommendations);
     }
 
     @Override

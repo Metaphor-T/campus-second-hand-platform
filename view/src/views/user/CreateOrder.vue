@@ -1,7 +1,7 @@
 <template>
     <div class="create-order" v-loading="loading">
         <!-- 返回按钮 -->
-        <div class="back-bar" @click="goBack">
+        <div class="back-bar" @click="goBack" role="button" tabindex="0" @keydown.enter.self.prevent="goBack" @keydown.space.self.prevent="goBack">
             <el-icon :size="20"><ArrowLeft /></el-icon>
             <span>返回</span>
         </div>
@@ -97,7 +97,7 @@
                     <div
                         :class="['delivery-option', { active: selectedDeliveryMode === 'pickup' }]"
                         @click="selectedDeliveryMode = 'pickup'"
-                    >
+                     role="button" tabindex="0" @keydown.enter.self.prevent="selectedDeliveryMode = 'pickup'" @keydown.space.self.prevent="selectedDeliveryMode = 'pickup'">
                         <el-icon :size="28"><TakeawayBox /></el-icon>
                         <div class="option-text">
                             <span class="option-label">自提</span>
@@ -107,7 +107,7 @@
                     <div
                         :class="['delivery-option', { active: selectedDeliveryMode === 'shipping' }]"
                         @click="selectedDeliveryMode = 'shipping'"
-                    >
+                     role="button" tabindex="0" @keydown.enter.self.prevent="selectedDeliveryMode = 'shipping'" @keydown.space.self.prevent="selectedDeliveryMode = 'shipping'">
                         <el-icon :size="28"><Van /></el-icon>
                         <div class="option-text">
                             <span class="option-label">邮寄</span>
@@ -118,7 +118,7 @@
 
                 <!-- 邮寄模式 | 两者皆可选邮寄 -->
                 <template v-if="product.tradeType === 2 || (product.tradeType === 3 && selectedDeliveryMode === 'shipping')">
-                    <div v-if="selectedAddress" class="address-card address-selected" @click="selectAddress">
+                    <div v-if="selectedAddress" class="address-card address-selected" @click="selectAddress" role="button" tabindex="0" @keydown.enter.self.prevent="selectAddress" @keydown.space.self.prevent="selectAddress">
                         <div class="address-info">
                             <div class="address-header">
                                 <span class="receiver">{{ selectedAddress.receiverName }}</span>
@@ -131,7 +131,7 @@
                         </div>
                         <el-icon class="arrow-icon"><ArrowRight /></el-icon>
                     </div>
-                    <div v-else class="address-card address-empty" @click="selectAddress">
+                    <div v-else class="address-card address-empty" @click="selectAddress" role="button" tabindex="0" @keydown.enter.self.prevent="selectAddress" @keydown.space.self.prevent="selectAddress">
                         <el-icon :size="20"><Plus /></el-icon>
                         <span>请选择收货地址</span>
                     </div>
@@ -190,7 +190,7 @@
                     :key="addr.id"
                     :class="['address-item', { selected: tempSelectedAddress?.id === addr.id }]"
                     @click="chooseAddress(addr)"
-                >
+                 role="button" tabindex="0" @keydown.enter.self.prevent="chooseAddress(addr)" @keydown.space.self.prevent="chooseAddress(addr)">
                     <div class="addr-header">
                         <span class="addr-name">{{ addr.receiverName }}</span>
                         <span class="addr-phone">{{ addr.receiverPhone }}</span>
@@ -214,7 +214,7 @@
 <script lang="ts" setup>
 import { ref, computed, watch, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowRight, Picture, Plus, SuccessFilled, CircleCheck, TakeawayBox, Van } from '@element-plus/icons-vue'
 import { getProductDetailApi } from '@/api/product-api'
 import { listAddressApi } from '@/api/address-api'
@@ -231,7 +231,7 @@ const submitting = ref(false)
 const product = ref<ProductVO | null>(null)
 
 // 表单
-const form = reactive<OrderCreateDTO>({
+const form = reactive<OrderCreateDTO & { quantity: number }>({
     productId: undefined,
     addressId: undefined,
     quantity: 1,
@@ -434,7 +434,7 @@ onMounted(async () => {
     gap: 8px;
     padding: $spacing-lg 0;
     color: $color-text-secondary;
-    font-size: 15px;
+    font-size: 1.071429rem;
     cursor: pointer;
     user-select: none;
     transition: color 0.2s;
@@ -445,7 +445,7 @@ onMounted(async () => {
 }
 
 .page-title {
-    font-size: 24px;
+    font-size: 1.714286rem;
     font-weight: 700;
     color: $color-text;
     margin-bottom: $spacing-lg;
@@ -500,7 +500,7 @@ onMounted(async () => {
         gap: 10px;
 
         .product-title {
-            font-size: 16px;
+            font-size: 1.142857rem;
             font-weight: 600;
             color: $color-text;
             line-height: 1.5;
@@ -512,7 +512,7 @@ onMounted(async () => {
         }
 
         .product-price {
-            font-size: 22px;
+            font-size: 1.571429rem;
             font-weight: 700;
             color: $color-accent;
         }
@@ -529,7 +529,7 @@ onMounted(async () => {
     .form-label {
         width: 80px;
         flex-shrink: 0;
-        font-size: 15px;
+        font-size: 1.071429rem;
         color: $color-text-secondary;
         font-weight: 500;
     }
@@ -548,7 +548,7 @@ onMounted(async () => {
     background: #f0f9eb;
     border-radius: $radius-md;
     color: #606266;
-    font-size: 14px;
+    font-size: 1rem;
     line-height: 1.6;
 }
 
@@ -596,14 +596,14 @@ onMounted(async () => {
             gap: 4px;
 
             .option-label {
-                font-size: 16px;
+                font-size: 1.142857rem;
                 font-weight: 600;
                 color: $color-text;
                 transition: color 0.25s;
             }
 
             .option-desc {
-                font-size: 13px;
+                font-size: 0.928571rem;
                 color: $color-text-light;
             }
         }
@@ -655,17 +655,17 @@ onMounted(async () => {
         .receiver {
             font-weight: 600;
             color: $color-text;
-            font-size: 15px;
+            font-size: 1.071429rem;
         }
 
         .phone {
             color: $color-text-secondary;
-            font-size: 14px;
+            font-size: 1rem;
         }
     }
 
     .address-detail {
-        font-size: 14px;
+        font-size: 1rem;
         color: $color-text-secondary;
         line-height: 1.5;
     }
@@ -680,7 +680,7 @@ onMounted(async () => {
         align-items: center;
         gap: 8px;
         color: $color-text-light;
-        font-size: 15px;
+        font-size: 1.071429rem;
 
         &:hover {
             color: $color-primary;
@@ -694,7 +694,7 @@ onMounted(async () => {
     justify-content: space-between;
     align-items: center;
     padding: 10px 0;
-    font-size: 15px;
+    font-size: 1.071429rem;
     color: $color-text-secondary;
 
     .free {
@@ -705,13 +705,13 @@ onMounted(async () => {
         padding-top: 14px;
         margin-top: 10px;
         border-top: 1px solid $color-border-light;
-        font-size: 16px;
+        font-size: 1.142857rem;
         font-weight: 600;
         color: $color-text;
 
         .total-price {
             color: $color-accent;
-            font-size: 24px;
+            font-size: 1.714286rem;
             font-weight: 800;
         }
     }
@@ -726,7 +726,7 @@ onMounted(async () => {
     .el-button {
         width: 300px;
         height: 56px;
-        font-size: 18px;
+        font-size: 1.285714rem;
         font-weight: 600;
         padding: 14px 0;
         letter-spacing: 2px;
@@ -766,17 +766,17 @@ onMounted(async () => {
         .addr-name {
             font-weight: 600;
             color: $color-text;
-            font-size: 15px;
+            font-size: 1.071429rem;
         }
 
         .addr-phone {
             color: $color-text-secondary;
-            font-size: 14px;
+            font-size: 1rem;
         }
     }
 
     .addr-detail {
-        font-size: 14px;
+        font-size: 1rem;
         color: $color-text-secondary;
         line-height: 1.5;
         padding-right: 30px;
@@ -787,7 +787,7 @@ onMounted(async () => {
         right: 14px;
         top: 50%;
         transform: translateY(-50%);
-        font-size: 22px;
+        font-size: 1.571429rem;
     }
 }
 
@@ -801,7 +801,7 @@ onMounted(async () => {
     border-top: 1px solid $color-border-light;
 
     .stock-count {
-        font-size: 14px;
+        font-size: 1rem;
         color: $color-text-secondary;
     }
 }

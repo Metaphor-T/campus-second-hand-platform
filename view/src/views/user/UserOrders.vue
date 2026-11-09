@@ -8,7 +8,7 @@
                     :key="role.value"
                     :class="['tab-item', { active: activeRole === role.value }]"
                     @click="handleRoleSwitch(role.value as 'buyer' | 'seller')"
-                >
+                 role="button" tabindex="0" @keydown.enter.self.prevent="handleRoleSwitch(role.value as 'buyer' | 'seller')" @keydown.space.self.prevent="handleRoleSwitch(role.value as 'buyer' | 'seller')">
                     {{ role.label }}
                 </span>
             </div>
@@ -180,7 +180,7 @@
 
         <!-- 分页 -->
         <div class="pagination-bar" v-if="totalCount > 0">
-            <el-pagination
+            <el-pagination v-accessible-pagination
                 v-model:current-page="currentPage"
                 :page-size="pageSize"
                 :total="totalCount"
@@ -264,7 +264,7 @@
                     :key="method.value"
                     :class="['pay-method-item', { selected: selectedPayMethod === method.value }]"
                     @click="selectedPayMethod = method.value"
-                >
+                 role="button" tabindex="0" @keydown.enter.self.prevent="selectedPayMethod = method.value" @keydown.space.self.prevent="selectedPayMethod = method.value">
                     <span class="pay-icon">{{ method.icon }}</span>
                     <span class="pay-name">{{ method.label }}</span>
                     <el-icon v-if="selectedPayMethod === method.value" color="#409eff"><CircleCheck /></el-icon>
@@ -655,7 +655,7 @@ onMounted(() => {
                 gap: 5px;
                 padding: 6px 22px;
                 border-radius: 20px;
-                font-size: 14px;
+                font-size: 1rem;
                 font-weight: 500;
                 color: #666;
                 cursor: pointer;
@@ -697,7 +697,7 @@ onMounted(() => {
         :deep(.el-tabs__item) {
             height: 48px;
             line-height: 48px;
-            font-size: 15px;
+            font-size: 1.071429rem;
             font-weight: 500;
             color: #636366;
             padding: 0 10px;
@@ -746,7 +746,7 @@ onMounted(() => {
 
             .search-icon {
                 color: #aeaeb2;
-                font-size: 18px;
+                font-size: 1.285714rem;
                 flex-shrink: 0;
             }
 
@@ -760,7 +760,7 @@ onMounted(() => {
                 }
 
                 :deep(.el-input__inner) {
-                    font-size: 14px;
+                    font-size: 1rem;
                     border: none;
                     background: transparent;
                     color: #1a1a1a;
@@ -776,7 +776,7 @@ onMounted(() => {
                 height: 32px;
                 padding: 0 18px;
                 border-radius: 16px;
-                font-size: 13px;
+                font-size: 0.928571rem;
                 background: #1a1a1a;
                 color: #fff;
                 border: none;
@@ -814,7 +814,7 @@ onMounted(() => {
         background: #fafafa;
 
         .order-no {
-            font-size: 13px;
+            font-size: 0.928571rem;
             color: #999;
 
             .label { color: #bbb; }
@@ -862,7 +862,7 @@ onMounted(() => {
                 top: 0;
                 left: 0;
                 border-radius: 6px 0 6px 0;
-                font-size: 11px;
+                font-size: 0.785714rem;
                 height: 20px;
                 line-height: 20px;
                 padding: 0 8px;
@@ -874,7 +874,7 @@ onMounted(() => {
                 width: 100%;
                 margin-top: 6px;
                 text-align: center;
-                font-size: 11px;
+                font-size: 0.785714rem;
                 border: none;
                 background: transparent;
                 color: #999;
@@ -890,7 +890,7 @@ onMounted(() => {
             min-width: 0;
 
             .product-title {
-                font-size: 15px;
+                font-size: 1.071429rem;
                 font-weight: 600;
                 color: #222;
                 white-space: nowrap;
@@ -902,8 +902,8 @@ onMounted(() => {
                 display: flex;
                 gap: 10px;
                 align-items: center;
-                .price { font-size: 16px; color: #222; font-weight: 700; }
-                .quantity { font-size: 13px; color: #999; }
+                .price { font-size: 1.142857rem; color: #222; font-weight: 700; }
+                .quantity { font-size: 0.928571rem; color: #999; }
             }
 
             .trade-partner {
@@ -911,7 +911,7 @@ onMounted(() => {
                     height: 20px;
                     line-height: 20px;
                     padding: 0 6px;
-                    font-size: 11px;
+                    font-size: 0.785714rem;
                     border: none;
                     background: #f0f0f0;
                     color: #999;
@@ -933,12 +933,12 @@ onMounted(() => {
         .order-amount {
             text-align: right;
             .amount {
-                font-size: 18px;
+                font-size: 1.285714rem;
                 font-weight: 700;
                 color: #222;
             }
             .fee {
-                font-size: 12px;
+                font-size: 0.857143rem;
                 color: #bbb;
                 margin-top: 2px;
             }
@@ -952,7 +952,7 @@ onMounted(() => {
 
             :deep(.el-button) {
                 border-radius: 6px;
-                font-size: 13px;
+                font-size: 0.928571rem;
                 padding: 10px 16px;
                 height: auto;
                 line-height: 1.4;
@@ -993,7 +993,7 @@ onMounted(() => {
     .address-info {
         padding: 10px 18px;
         background: #fafafa;
-        font-size: 13px;
+        font-size: 0.928571rem;
         color: #666;
         line-height: 1.5;
         .address-text { color: #999; }
@@ -1002,7 +1002,7 @@ onMounted(() => {
     // 买家备注
     .remark-info {
         padding: 10px 18px;
-        font-size: 13px;
+        font-size: 0.928571rem;
         color: #666;
     }
 
@@ -1014,7 +1014,7 @@ onMounted(() => {
 
         :deep(.el-pagination) {
             button, .el-pager li {
-                font-size: 18px;
+                font-size: 1.285714rem;
                 min-width: 36px;
                 height: 36px;
                 line-height: 36px;
@@ -1022,7 +1022,7 @@ onMounted(() => {
             }
 
             .el-pager li.active {
-                font-size: 22px;
+                font-size: 1.571429rem;
                 font-weight: 700;
                 color: #000 !important;
                 background: transparent !important;
@@ -1058,14 +1058,14 @@ onMounted(() => {
             margin-bottom: 10px;
 
             .dialog-review-buyer {
-                font-size: 14px;
+                font-size: 1rem;
                 font-weight: 500;
                 color: #1a1a1a;
             }
         }
 
         .dialog-review-content {
-            font-size: 14px;
+            font-size: 1rem;
             color: #636366;
             line-height: 1.6;
             margin-bottom: 10px;
@@ -1092,7 +1092,7 @@ onMounted(() => {
             background: #f8f8fa;
             border-radius: 8px;
             padding: 10px 14px;
-            font-size: 13px;
+            font-size: 0.928571rem;
             color: #636366;
             line-height: 1.6;
 
@@ -1136,12 +1136,12 @@ onMounted(() => {
         }
 
         .pay-icon {
-            font-size: 24px;
+            font-size: 1.714286rem;
         }
 
         .pay-name {
             flex: 1;
-            font-size: 14px;
+            font-size: 1rem;
             font-weight: 500;
         }
     }

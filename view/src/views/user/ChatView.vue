@@ -12,7 +12,7 @@
           class="conversation-item"
           :class="{ active: activeConversation?.userId === conv.userId }"
           @click="switchConversation(conv)"
-        >
+         role="button" tabindex="0" @keydown.enter.self.prevent="switchConversation(conv)" @keydown.space.self.prevent="switchConversation(conv)">
           <el-avatar :size="44" v-if="conv.avatar" :src="getImageUrl(conv.avatar)" />
           <el-avatar :size="44" v-else>{{ (conv?.username ?? '?')[0] }}</el-avatar>
           <div class="conv-info">
@@ -89,7 +89,7 @@
                 <el-button text class="tool-btn" @click="emojiVisible = !emojiVisible">😊</el-button>
               </template>
               <div class="emoji-picker">
-                <span v-for="emoji in emojiList" :key="emoji" class="emoji-item" @click="insertEmoji(emoji)">{{ emoji }}</span>
+                <span v-for="emoji in emojiList" :key="emoji" class="emoji-item" @click="insertEmoji(emoji)" role="button" tabindex="0" @keydown.enter.self.prevent="insertEmoji(emoji)" @keydown.space.self.prevent="insertEmoji(emoji)">{{ emoji }}</span>
               </div>
             </el-popover>
           </el-tooltip>
@@ -261,7 +261,7 @@ const isNearBottom = computed(() => {
 })
 
 // ====== 工具函数 ======
-const getImageUrl = (filePath: string) => {
+const getImageUrl = (filePath?: string) => {
   if (!filePath) return ''
   if (filePath.startsWith('http')) return filePath
   return `${imageBaseUrl}${filePath}`
@@ -621,7 +621,7 @@ onUnmounted(() => {
 
     h3 {
       margin: 0;
-      font-size: 16px;
+      font-size: 1.142857rem;
       font-weight: 700;
       color: #1a1a1a;
       letter-spacing: 0.3px;
@@ -692,7 +692,7 @@ onUnmounted(() => {
     }
 
     .conv-name {
-      font-size: 14px;
+      font-size: 1rem;
       font-weight: 500;
       color: #1a1a1a;
       flex: 1;
@@ -702,7 +702,7 @@ onUnmounted(() => {
     }
 
     .conv-time {
-      font-size: 11px;
+      font-size: 0.785714rem;
       color: #bfbfbf;
       white-space: nowrap;
       flex-shrink: 0;
@@ -716,7 +716,7 @@ onUnmounted(() => {
     }
 
     .conv-preview {
-      font-size: 13px;
+      font-size: 0.928571rem;
       color: #8c8c8c;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -730,7 +730,7 @@ onUnmounted(() => {
       flex-shrink: 0;
       :deep(.el-badge__content) {
         border: none;
-        font-size: 11px;
+        font-size: 0.785714rem;
         padding: 0 5px;
         background: #1a1a1a;
         color: #fff;
@@ -752,7 +752,7 @@ onUnmounted(() => {
 
     p {
       margin: 0;
-      font-size: 14px;
+      font-size: 1rem;
     }
   }
 }
@@ -775,7 +775,7 @@ onUnmounted(() => {
   background: #fff;
 
   .chat-user-name {
-    font-size: 15px;
+    font-size: 1.071429rem;
     font-weight: 600;
     color: #1a1a1a;
     flex: 1;
@@ -800,7 +800,7 @@ onUnmounted(() => {
     text-align: center;
     padding: 12px;
     color: #8c8c8c;
-    font-size: 13px;
+    font-size: 0.928571rem;
   }
 
   .message-item {
@@ -846,7 +846,7 @@ onUnmounted(() => {
   }
 
   .message-sender {
-    font-size: 12px;
+    font-size: 0.857143rem;
     color: #8c8c8c;
     margin-bottom: 5px;
     padding: 0 2px;
@@ -855,7 +855,7 @@ onUnmounted(() => {
   .message-bubble {
     padding: 10px 16px;
     border-radius: 14px;
-    font-size: 14px;
+    font-size: 1rem;
     line-height: 1.55;
     word-break: break-word;
     letter-spacing: 0.2px;
@@ -880,12 +880,12 @@ onUnmounted(() => {
   }
 
   .msg-emoji {
-    font-size: 28px;
+    font-size: 2rem;
     line-height: 1;
   }
 
   .message-time {
-    font-size: 11px;
+    font-size: 0.785714rem;
     color: #bfbfbf;
     margin-top: 5px;
     padding: 0 2px;
@@ -897,7 +897,7 @@ onUnmounted(() => {
     align-items: center;
     height: 100%;
     color: #bfbfbf;
-    font-size: 14px;
+    font-size: 1rem;
   }
 }
 
@@ -916,7 +916,7 @@ onUnmounted(() => {
     box-shadow: none;
 
     .tool-btn {
-      font-size: 20px;
+      font-size: 1.428571rem;
       color: #8c8c8c;
       padding: 6px;
       flex-shrink: 0;
@@ -938,7 +938,7 @@ onUnmounted(() => {
 
         .el-input__inner {
           border: none;
-          font-size: 14px;
+          font-size: 1rem;
           color: #1a1a1a;
           height: 40px;
 
@@ -953,7 +953,7 @@ onUnmounted(() => {
       height: 36px;
       padding: 0 20px;
       flex-shrink: 0;
-      font-size: 14px;
+      font-size: 1rem;
       border-radius: 20px;
       background: #1a1a1a;
       border: none;
@@ -982,7 +982,7 @@ onUnmounted(() => {
   padding: 8px;
 
   .emoji-item {
-    font-size: 24px;
+    font-size: 1.714286rem;
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
@@ -1006,7 +1006,7 @@ onUnmounted(() => {
 
   p {
     margin: 0;
-    font-size: 15px;
+    font-size: 1.071429rem;
     color: #bfbfbf;
   }
 }
@@ -1019,7 +1019,7 @@ onUnmounted(() => {
     .el-dialog__headerbtn {
       top: 8px;
       right: 8px;
-      font-size: 18px;
+      font-size: 1.285714rem;
     }
   }
 

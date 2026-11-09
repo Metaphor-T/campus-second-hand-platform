@@ -6,6 +6,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.exception.BusinessException;
 import com.example.mapper.ProductImageMapper;
 import com.example.mapper.ProductMapper;
+import com.example.mapper.CategoryMapper;
+import com.example.mapper.OrderMapper;
+import com.example.pojo.entity.Category;
+import com.example.pojo.entity.Order;
 import com.example.pojo.dto.ProductAddDTO;
 import com.example.pojo.dto.ProductAuditDTO;
 import com.example.pojo.dto.ProductImageDTO;
@@ -16,6 +20,7 @@ import com.example.pojo.entity.ProductImage;
 import com.example.pojo.vo.ProductImageVO;
 import com.example.pojo.vo.ProductVO;
 import com.example.service.ProductService;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +39,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     private final ProductMapper productMapper;
     private final ProductImageMapper productImageMapper;
+    private final CategoryMapper categoryMapper;
+    private final OrderMapper orderMapper;
+    private final Validator validator;
 
     /** 审核状态常量 */
     private static final int STATUS_PENDING = 0;
@@ -46,6 +54,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      */
     @Override
     public List<ProductVO> listPage(ProductQueryDTO queryDTO) {
+        normalizeQuery(queryDTO);
         List<ProductVO> list = productMapper.listPage(queryDTO);
         if (list == null || list.isEmpty()) {
             return list;
@@ -94,6 +103,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      */
     @Override
     public Integer listPageCount(ProductQueryDTO queryDTO) {
+        normalizeQuery(queryDTO);
         return productMapper.listPageCount(queryDTO);
     }
 
@@ -122,12 +132,14 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .favoriteCount(0)
                 .createTime(LocalDateTime.now())
                 .build();
-        this.save(product);
+        if (userId == null) throw new BusinessException("请先登录再发布商品", 400);
+        requireEnabledCategory(product.getCategoryId());
+        List<ProductImageDTO> images = validateAndNormalizeImages(addDTO.getImages(), userId);
+        product.setTitle(product.getTitle().trim());
+        if (!this.save(product)) throw new BusinessException("发布失败，请稍后重试", 409);
 
         // 保存图册
-        if (addDTO.getImages() != null && !addDTO.getImages().isEmpty()) {
-            saveProductImages(product.getId(), addDTO.getImages(), true);
-        }
+        saveProductImages(product.getId(), images);
     }
 
     /**
@@ -139,44 +151,47 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public void update(Integer userId, ProductUpdateDTO updateDTO) {
         Product product = this.getById(updateDTO.getId());
         if (product == null) {
-            throw new BusinessException("商品不存在");
+            throw new BusinessException("商品不存在", 404);
         }
         if (!Objects.equals(product.getUserId(), userId)) {
-            throw new BusinessException("只能修改自己发布的商品");
+            throw new BusinessException("只能修改自己发布的商品", 403);
         }
 
-        // 使用 UpdateWrapper 仅更新非空字段
+        if (updateDTO.getVersion() != null && !Objects.equals(updateDTO.getVersion(), product.getVersion())) {
+            throw new BusinessException("商品已被其他操作更新，请刷新后重新编辑", 409);
+        }
+        if (updateDTO.getCategoryId() != null) {
+            requireEnabledCategory(updateDTO.getCategoryId());
+            product.setCategoryId(updateDTO.getCategoryId());
+        }
+        if (updateDTO.getTitle() != null) product.setTitle(updateDTO.getTitle().trim());
+        if (updateDTO.getDescription() != null) product.setDescription(updateDTO.getDescription());
+        if (updateDTO.getPrice() != null) product.setPrice(updateDTO.getPrice());
+        if (Boolean.TRUE.equals(updateDTO.getClearOriginalPrice())) product.setOriginalPrice(null);
+        else if (updateDTO.getOriginalPrice() != null) product.setOriginalPrice(updateDTO.getOriginalPrice());
+        if (updateDTO.getCondition() != null) product.setCondition(updateDTO.getCondition());
+        if (updateDTO.getTradeType() != null) product.setTradeType(updateDTO.getTradeType());
+        if (updateDTO.getStock() != null) product.setStock(updateDTO.getStock());
+        validateMergedProduct(product);
+        List<ProductImageDTO> images = updateDTO.getImages() == null ? null : validateAndNormalizeImages(updateDTO.getImages(), userId);
+
+        // 内容修改后重新审核；已下架商品保持下架，明确上架时再提交审核。
+        int nextStatus = Objects.equals(product.getStatus(), STATUS_DOWN) ? STATUS_DOWN : STATUS_PENDING;
+        int version = product.getVersion() == null ? 0 : product.getVersion();
         LambdaUpdateWrapper<Product> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(Product::getId, updateDTO.getId());
-        wrapper.eq(Product::getUserId, userId); // 双重校验归属
-
-        if (updateDTO.getCategoryId() != null) wrapper.set(Product::getCategoryId, updateDTO.getCategoryId());
-        if (StringUtils.hasText(updateDTO.getTitle())) wrapper.set(Product::getTitle, updateDTO.getTitle());
-        if (updateDTO.getDescription() != null) wrapper.set(Product::getDescription, updateDTO.getDescription());
-        if (updateDTO.getPrice() != null) wrapper.set(Product::getPrice, updateDTO.getPrice());
-        if (updateDTO.getOriginalPrice() != null) wrapper.set(Product::getOriginalPrice, updateDTO.getOriginalPrice());
-        if (updateDTO.getCondition() != null) wrapper.set(Product::getCondition, updateDTO.getCondition());
-        if (updateDTO.getTradeType() != null) wrapper.set(Product::getTradeType, updateDTO.getTradeType());
-        if (updateDTO.getStock() != null) wrapper.set(Product::getStock, updateDTO.getStock());
-
-        // 修改后状态重置为待审核（除非当前已是审核通过）
-        if (product.getStatus() != null && product.getStatus() != STATUS_APPROVED) {
-            wrapper.set(Product::getStatus, STATUS_PENDING);
-        }
-
-        this.update(wrapper);
-
-        // 图片全量替换
-        if (updateDTO.getImages() != null) {
-            // 删除旧图
-            productImageMapper.delete(
-                    new LambdaQueryWrapper<ProductImage>()
-                            .eq(ProductImage::getProductId, updateDTO.getId())
-            );
-            // 插入新图
-            if (!updateDTO.getImages().isEmpty()) {
-                saveProductImages(updateDTO.getId(), updateDTO.getImages(), false);
-            }
+        wrapper.eq(Product::getId, product.getId()).eq(Product::getUserId, userId)
+                .eq(Product::getVersion, version).eq(Product::getStatus, product.getStatus())
+                .set(Product::getCategoryId, product.getCategoryId())
+                .set(Product::getTitle, product.getTitle()).set(Product::getDescription, product.getDescription())
+                .set(Product::getPrice, product.getPrice()).set(Product::getOriginalPrice, product.getOriginalPrice())
+                .set(Product::getCondition, product.getCondition()).set(Product::getTradeType, product.getTradeType())
+                .set(Product::getStock, product.getStock()).set(Product::getStatus, nextStatus)
+                .set(Product::getAuditRemark, null).set(Product::getAuditTime, null).set(Product::getAuditorId, null)
+                .set(Product::getUpdateTime, LocalDateTime.now()).set(Product::getVersion, version + 1);
+        if (!this.update(wrapper)) throw new BusinessException("商品已变化，请刷新后重新编辑", 409);
+        if (images != null) {
+            productImageMapper.delete(new LambdaQueryWrapper<ProductImage>().eq(ProductImage::getProductId, product.getId()));
+            saveProductImages(product.getId(), images);
         }
     }
 
@@ -187,19 +202,23 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public void audit(Integer auditorId, ProductAuditDTO auditDTO) {
         Product product = this.getById(auditDTO.getId());
         if (product == null) {
-            throw new BusinessException("商品不存在");
+            throw new BusinessException("商品不存在", 404);
         }
         if (product.getStatus() != STATUS_PENDING) {
-            throw new BusinessException("该商品不是待审核状态，无需重复审核");
+            throw new BusinessException("该商品不是待审核状态，无需重复审核", 409);
         }
         if (auditDTO.getStatus() != STATUS_APPROVED && auditDTO.getStatus() != STATUS_REJECTED) {
-            throw new BusinessException("审核结果只能是 1-通过 或 2-拒绝");
+            throw new BusinessException("审核结果只能是 1-通过 或 2-拒绝", 400);
         }
 
         // 更新审核信息
         LambdaUpdateWrapper<Product> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(Product::getId, auditDTO.getId())
+                .eq(Product::getStatus, STATUS_PENDING)
+                .eq(product.getVersion() != null, Product::getVersion, product.getVersion())
+                .isNull(product.getVersion() == null, Product::getVersion)
                 .set(Product::getStatus, auditDTO.getStatus())
+                .set(Product::getVersion, product.getVersion() == null ? 1 : product.getVersion() + 1)
                 .set(Product::getAuditTime, LocalDateTime.now())
                 .set(Product::getAuditorId, auditorId);
 
@@ -208,7 +227,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             wrapper.set(Product::getAuditRemark, auditDTO.getAuditRemark());
         }
 
-        this.update(wrapper);
+        if (!this.update(wrapper)) throw new BusinessException("商品已变化，请刷新后重新审核", 409);
     }
 
     /**
@@ -218,20 +237,22 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public void down(Integer userId, Integer productId) {
         Product product = this.getById(productId);
         if (product == null) {
-            throw new BusinessException("商品不存在");
+            throw new BusinessException("商品不存在", 404);
         }
         if (!Objects.equals(product.getUserId(), userId)) {
-            throw new BusinessException("只能下架自己发布的商品");
+            throw new BusinessException("只能下架自己发布的商品", 403);
         }
         if (product.getStatus() == STATUS_DOWN) {
             throw new BusinessException("商品已下架");
         }
 
         LambdaUpdateWrapper<Product> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(Product::getId, productId)
-                .eq(Product::getUserId, userId)
-                .set(Product::getStatus, STATUS_DOWN);
-        this.update(wrapper);
+        int version = product.getVersion() == null ? 0 : product.getVersion();
+        wrapper.eq(Product::getId, productId).eq(Product::getUserId, userId)
+                .eq(Product::getVersion, version).eq(Product::getStatus, product.getStatus())
+                .set(Product::getStatus, STATUS_DOWN).set(Product::getVersion, version + 1)
+                .set(Product::getUpdateTime, LocalDateTime.now());
+        if (!this.update(wrapper)) throw new BusinessException("商品状态已变化，请刷新后重试", 409);
     }
 
     /**
@@ -242,23 +263,25 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public void up(Integer userId, Integer productId) {
         Product product = this.getById(productId);
         if (product == null) {
-            throw new BusinessException("商品不存在");
+            throw new BusinessException("商品不存在", 404);
         }
         if (!Objects.equals(product.getUserId(), userId)) {
-            throw new BusinessException("只能操作自己发布的商品");
+            throw new BusinessException("只能操作自己发布的商品", 403);
         }
         if (product.getStatus() != STATUS_DOWN) {
             throw new BusinessException("只有已下架的商品才能重新上架");
         }
 
         LambdaUpdateWrapper<Product> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(Product::getId, productId)
-                .eq(Product::getUserId, userId)
+        int version = product.getVersion() == null ? 0 : product.getVersion();
+        wrapper.eq(Product::getId, productId).eq(Product::getUserId, userId)
+                .eq(Product::getVersion, version).eq(Product::getStatus, STATUS_DOWN)
+                .set(Product::getVersion, version + 1).set(Product::getUpdateTime, LocalDateTime.now())
                 .set(Product::getStatus, STATUS_PENDING)
                 .set(Product::getAuditRemark, null)
                 .set(Product::getAuditTime, null)
                 .set(Product::getAuditorId, null);
-        this.update(wrapper);
+        if (!this.update(wrapper)) throw new BusinessException("商品状态已变化，请刷新后重试", 409);
     }
 
     /**
@@ -270,12 +293,16 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public void deleteById(Integer userId, Integer productId, boolean isAdmin) {
         Product product = this.getById(productId);
         if (product == null) {
-            throw new BusinessException("商品不存在");
+            throw new BusinessException("商品不存在", 404);
         }
         if (!isAdmin && !Objects.equals(product.getUserId(), userId)) {
-            throw new BusinessException("只能删除自己发布的商品");
+            throw new BusinessException("只能删除自己发布的商品", 403);
         }
 
+        // 订单模块拥有订单生命周期；商品模块只读检查，避免删除后订单详情断链。
+        if (orderMapper.selectCount(new LambdaQueryWrapper<Order>().eq(Order::getProductId, productId)) > 0) {
+            throw new BusinessException("该商品已有订单，请下架保留交易记录", 409);
+        }
         // 先删图册
         productImageMapper.delete(
                 new LambdaQueryWrapper<ProductImage>()
@@ -396,6 +423,72 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         productMapper.restoreStock(productId, quantity);
     }
 
+    /** 请求字段约束由 Controller 的 @Valid 执行；这里仅整理搜索词。 */
+    private void normalizeQuery(ProductQueryDTO queryDTO) {
+        if (queryDTO.getTitle() != null) queryDTO.setTitle(queryDTO.getTitle().trim());
+    }
+
+    /** 局部编辑合并后，复用发布 DTO 的字段约束检查完整商品，不另写一套金额/长度规则。 */
+    private void validateMergedProduct(Product product) {
+        validateProductField("title", product.getTitle());
+        validateProductField("description", product.getDescription());
+        validateProductField("price", product.getPrice());
+        validateProductField("originalPrice", product.getOriginalPrice());
+        validateProductField("categoryId", product.getCategoryId());
+        validateProductField("condition", product.getCondition());
+        validateProductField("tradeType", product.getTradeType());
+        validateProductField("stock", product.getStock());
+    }
+
+    private void validateProductField(String field, Object value) {
+        validator.validateValue(ProductAddDTO.class, field, value).stream()
+                .map(violation -> violation.getMessage()).sorted().findFirst()
+                .ifPresent(message -> { throw new BusinessException(message, 400); });
+    }
+
+    /** 发布和编辑复用：检查图册组合规则，返回统一封面和顺序的新列表。 */
+    private List<ProductImageDTO> validateAndNormalizeImages(List<ProductImageDTO> input, Integer userId) {
+        // 保留结构保护，避免内部调用遇到空列表/空元素时产生空指针异常。
+        if (input == null || input.isEmpty() || input.size() > 9) {
+            throw new BusinessException("请保留1至9张商品图片", 400);
+        }
+        Set<String> urls = new HashSet<>();
+        int cover = -1;
+        List<ProductImageDTO> result = new ArrayList<>();
+        for (int i = 0; i < input.size(); i++) {
+            ProductImageDTO image = input.get(i);
+            if (image == null || image.getImageUrl() == null) {
+                throw new BusinessException("图片地址不能为空", 400);
+            }
+            String url = image.getImageUrl().trim();
+            if (!url.matches("(?i)^/files/(?:products/[1-9][0-9]*/)?[a-z0-9_-]+\\.(png|jpe?g)$")) {
+                throw new BusinessException("请使用本站上传的JPG/PNG图片", 400);
+            }
+            if (url.startsWith("/files/products/")
+                    && (userId == null || !url.startsWith("/files/products/" + userId + "/"))) {
+                throw new BusinessException("不能使用其他用户上传的商品图片", 400);
+            }
+            if (!urls.add(url)) throw new BusinessException("请勿重复添加同一张图片", 400);
+            if (image.getIsCover() != null && image.getIsCover() != 0 && image.getIsCover() != 1) {
+                throw new BusinessException("封面标记无效", 400);
+            }
+            if (Objects.equals(image.getIsCover(), 1)) {
+                if (cover != -1) throw new BusinessException("只能设置一张封面图片", 400);
+                cover = i;
+            }
+            result.add(ProductImageDTO.builder().imageUrl(url).sort(i).isCover(0).build());
+        }
+        result.get(cover == -1 ? 0 : cover).setIsCover(1);
+        return result;
+    }
+
+    private void requireEnabledCategory(Integer categoryId) {
+        Category category = categoryMapper.selectById(categoryId);
+        if (category == null || !Integer.valueOf(1).equals(category.getStatus())) {
+            throw new BusinessException("分类不存在或已停用，请重新选择", 400);
+        }
+    }
+
     // ========== 私有辅助方法 ==========
 
     /**
@@ -403,9 +496,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      *
      * @param productId 商品ID
      * @param imageDTOs 图片DTO列表
-     * @param isNew     是否为新发布（新发布时若无封面，默认第一张为封面）
      */
-    private void saveProductImages(Integer productId, List<ProductImageDTO> imageDTOs, boolean isNew) {
+    private void saveProductImages(Integer productId, List<ProductImageDTO> imageDTOs) {
         List<ProductImage> images = imageDTOs.stream().map(dto ->
                 ProductImage.builder()
                         .productId(productId)
@@ -415,11 +507,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                         .createTime(LocalDateTime.now())
                         .build()
         ).collect(Collectors.toList());
-
-        // 新发布且没有指定封面 → 默认第一张为封面
-        if (isNew && !images.isEmpty() && images.stream().noneMatch(i -> i.getIsCover() == 1)) {
-            images.get(0).setIsCover(1);
-        }
 
         // MyBatis Plus 逐条插入
         images.forEach(productImageMapper::insert);

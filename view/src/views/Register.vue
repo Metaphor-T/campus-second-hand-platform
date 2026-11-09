@@ -2,6 +2,7 @@
   <div class="register-container">
     <!-- 左侧品牌区 -->
     <div class="hero-section">
+      <div class="auth-reading"><AccessibilitySettings appearance="glass" /></div>
       <div class="hero-overlay"></div>
       <div class="hero-content">
         <div class="brand">
@@ -36,12 +37,15 @@
         </div>
 
         <div class="input-group">
+          <p id="auth-help" class="sr-only">请填写以下信息，错误会在表单中提示。</p>
+          <p id="auth-error" class="auth-error" role="alert">{{ formError }}</p>
           <div class="input-field">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
               <circle cx="12" cy="7" r="4" />
             </svg>
-            <input v-model="account" type="text" placeholder="设置账号" class="custom-input" @keyup.enter="goRegister" />
+            <label class="auth-label" for="auth-account">账号</label>
+            <input id="auth-account" aria-describedby="auth-help auth-error" autocomplete="username" v-model="account" type="text" placeholder="设置账号" class="custom-input" @keyup.enter="goRegister" />
           </div>
 
           <div class="input-field">
@@ -49,7 +53,8 @@
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
               <circle cx="12" cy="7" r="4" />
             </svg>
-            <input v-model="username" type="text" placeholder="昵称" class="custom-input" @keyup.enter="goRegister" />
+            <label class="auth-label" for="auth-username">昵称</label>
+            <input id="auth-username" aria-describedby="auth-help auth-error" autocomplete="nickname" v-model="username" type="text" placeholder="昵称" class="custom-input" @keyup.enter="goRegister" />
           </div>
 
           <div class="input-field">
@@ -57,7 +62,8 @@
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
-            <input v-model="password" type="password" placeholder="设置密码" class="custom-input" @keyup.enter="goRegister" />
+            <label class="auth-label" for="auth-password">密码</label>
+            <input id="auth-password" aria-describedby="auth-help auth-error" autocomplete="new-password" v-model="password" type="password" placeholder="设置密码" class="custom-input" @keyup.enter="goRegister" />
           </div>
         </div>
 
@@ -69,7 +75,7 @@
 
         <div class="form-footer">
           <span>已有账号？</span>
-          <span class="link" @click="router.push('/login')">返回登录</span>
+          <router-link class="link" to="/login">返回登录</router-link>
         </div>
       </div>
     </div>
@@ -77,28 +83,34 @@
 </template>
 
 <script setup lang="ts">
+import AccessibilitySettings from '@/components/AccessibilitySettings.vue'
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { registerApi } from "@/api/user-api"
 
+const formError = ref('')
 const account = ref('')
 const password = ref('')
 const username = ref('')
 const router = useRouter()
 
 const goRegister = async () => {
+  formError.value = ''
   try {
     if (!account.value) {
-      ElMessage.warning('账号不能为空')
+      formError.value = '账号不能为空'
+      ElMessage.warning(formError.value)
       return
     }
     if (!username.value) {
-      ElMessage.warning('用户名不能为空')
+      formError.value = '用户名不能为空'
+      ElMessage.warning(formError.value)
       return
     }
     if (!password.value) {
-      ElMessage.warning('密码不能为空')
+      formError.value = '密码不能为空'
+      ElMessage.warning(formError.value)
       return
     }
     await registerApi({
@@ -109,7 +121,8 @@ const goRegister = async () => {
     ElMessage.success('注册成功，快去登录吧')
     router.push('/login')
   } catch (error: any) {
-    ElMessage.warning(`${error.message}`)
+    formError.value = error.message || '请求失败，请重试'
+    ElMessage.warning(formError.value)
   }
 }
 </script>

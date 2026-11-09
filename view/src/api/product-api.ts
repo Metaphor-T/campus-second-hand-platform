@@ -105,3 +105,10 @@ export const hotProductListApi = () => {
 export const recordViewApi = (productId: number) => {
     return request.post<Result<void>>(`/product/view/${productId}`)
 }
+
+/** 商品图片专用上传，复用请求拦截器传递当前登录凭证。 */
+export const uploadProductImageApi = (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return request.post<Result<{ filePath: string }>>('/product/images/upload', form)
+}

@@ -1,7 +1,7 @@
 <template>
     <div class="admin-layout">
         <!-- 左侧菜单 -->
-        <div class="sidebar" :style="{ width: sidebarWidth + 'px' }" :class="{ 'collapsed': isCollapsed }">
+        <div id="admin-sidebar" class="sidebar" :style="{ width: sidebarWidth + 'px', '--sidebar-base-width': sidebarWidth + 'px' }" :class="{ 'collapsed': isCollapsed }">
             <div class="sidebar-header">
                 <img style="width: 30px; height: 30px;" src="/logo.png" alt="">
                 <h2 v-if="!isCollapsed">校园交易平台</h2>
@@ -11,7 +11,7 @@
                     <template v-for="item in sidebarItems" :key="item.path">
                         <!-- 有子菜单的分组 -->
                         <li v-if="item.children" class="nav-group">
-                            <div class="nav-group-header" @click="toggleExpand(item.path)">
+                            <div class="nav-group-header" @click="toggleExpand(item.path)" role="button" tabindex="0" @keydown.enter.self.prevent="toggleExpand(item.path)" @keydown.space.self.prevent="toggleExpand(item.path)">
                                 <el-icon v-if="item.icon && getIconComponent(item.icon)">
                                     <component :is="getIconComponent(item.icon)" />
                                 </el-icon>
@@ -24,7 +24,7 @@
                                 <li v-for="child in item.children" :key="child.path"
                                     :class="{ active: currentRoute === child.path }"
                                     @click="$router.push(child.path)"
-                                    :title="isCollapsed ? child.name : undefined">
+                                    :title="isCollapsed ? child.name : undefined" role="button" tabindex="0" @keydown.enter.self.prevent="$router.push(child.path)" @keydown.space.self.prevent="$router.push(child.path)">
                                     <span>{{ child.name }}</span>
                                 </li>
                             </ul>
@@ -33,7 +33,7 @@
                         <li v-else
                             :class="{ active: currentRoute === item.path }"
                             @click="$router.push(item.path)"
-                            :title="isCollapsed ? (item.name as string) : undefined">
+                            :title="isCollapsed ? (item.name as string) : undefined" role="button" tabindex="0" @keydown.enter.self.prevent="$router.push(item.path)" @keydown.space.self.prevent="$router.push(item.path)">
                             <el-icon v-if="item.icon && getIconComponent(item.icon)">
                                 <component :is="getIconComponent(item.icon)" />
                             </el-icon>
@@ -52,6 +52,7 @@
             <!-- 顶部导航 -->
             <div class="header">
                 <div class="header-left">
+                    <button class="admin-sidebar-toggle" type="button" aria-controls="admin-sidebar" :aria-expanded="!isCollapsed" @click="toggleCollapse">{{ isCollapsed ? '展开菜单' : '收起菜单' }}</button>
                     <el-breadcrumb separator="">
                         <el-breadcrumb-item v-for="(item, index) in breadcrumbList" :key="item.path">
                             <span class="path-name" v-if="index === breadcrumbList.length - 1">
@@ -64,6 +65,7 @@
                     </el-breadcrumb>
                 </div>
                 <div class="header-right">
+                    <AccessibilitySettings />
                     <el-dropdown class="custom-dropdown">
                         <span class="user-info">
                             <el-avatar :size="32" v-if="baseUser.avatar" :src="getImageUrl(baseUser.avatar)" />
@@ -148,6 +150,7 @@
 </template>
 
 <script lang="ts" setup>
+import { fontScale } from '@/utils/accessibility'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { UploadProps } from 'element-plus'
 import type { Action } from 'element-plus'
@@ -252,8 +255,11 @@ const updatePassword = () => {
 
 // 退出登录
 const loginout = () => {
-    ElMessageBox.alert('您确定退出登录?', '操作确认', {
-        confirmButtonText: 'OK',
+    ElMessageBox.alert('确定退出登录吗？', '退出登录', {
+        customClass: 'logout-confirm',
+        showCancelButton: true,
+        cancelButtonText: '取消',
+        confirmButtonText: '退出登录',
         callback: (action: Action) => {
             if (action === 'confirm') {
                 clearRole()
@@ -323,7 +329,8 @@ const MIN_WIDTH = 80
 const MAX_WIDTH = 188
 
 const sidebarWidth = ref(getSidebarWidth() || DEFAULT_WIDTH)
-const isCollapsed = ref(getSidebarCollapsed() || false)
+const isCollapsed = ref(window.innerWidth <= 600 || getSidebarCollapsed() || false)
+if (isCollapsed.value) sidebarWidth.value = COLLAPSED_WIDTH
 const isDragging = ref(false)
 
 watch(isCollapsed, (newVal) => {
@@ -451,7 +458,7 @@ const startDrag = (e: MouseEvent) => {
     const doDrag = (moveEvent: MouseEvent) => {
         if (!isDragging.value) return
         const deltaX = moveEvent.clientX - startX
-        let newWidth = startWidth + deltaX
+        let newWidth = startWidth + deltaX / fontScale.value
         if (newWidth < MIN_WIDTH) newWidth = MIN_WIDTH
         if (newWidth > MAX_WIDTH) newWidth = MAX_WIDTH
         sidebarWidth.value = newWidth
@@ -510,7 +517,7 @@ onUnmounted(() => {
     margin: 0;
     padding: 0;
     list-style: none;
-    font-size: 14px;
+    font-size: 1rem;
 
     li {
         display: flex;
@@ -518,7 +525,7 @@ onUnmounted(() => {
         gap: 10px;
         padding: 0 20px;
         height: 50px;
-        font-size: 16px;
+        font-size: 1.142857rem;
         line-height: 50px;
         cursor: pointer;
         color: #333;
@@ -536,7 +543,7 @@ onUnmounted(() => {
         }
 
         .el-icon {
-            font-size: 20px;
+            font-size: 1.428571rem;
             flex-shrink: 0;
             transition: margin 0.2s ease;
         }
@@ -572,14 +579,14 @@ onUnmounted(() => {
         }
 
         .el-icon {
-            font-size: 20px;
+            font-size: 1.428571rem;
             flex-shrink: 0;
             transition: margin 0.2s ease;
         }
 
         .expand-icon {
             margin-left: auto;
-            font-size: 14px;
+            font-size: 1rem;
             transition: transform 0.25s ease;
 
             &.expanded {
@@ -599,7 +606,7 @@ onUnmounted(() => {
             gap: 10px;
             padding: 0 20px 0 50px;
             height: 42px;
-            font-size: 14px;
+            font-size: 1rem;
             line-height: 42px;
             cursor: pointer;
             color: #555;
@@ -685,7 +692,7 @@ onUnmounted(() => {
 }
 
 .path-name {
-    font-size: 26px;
+    font-size: 1.857143rem;
     font-weight: 600;
     padding-inline: 4px;
 }
@@ -722,7 +729,7 @@ onUnmounted(() => {
 
             h2 {
                 margin: 0;
-                font-size: 18px;
+                font-size: 1.285714rem;
                 color: #333;
                 transition: opacity 0.2s ease;
             }
@@ -768,7 +775,7 @@ onUnmounted(() => {
 
             .header-left {
                 .el-breadcrumb {
-                    font-size: 18px;
+                    font-size: 1.285714rem;
                 }
             }
 
@@ -802,7 +809,7 @@ onUnmounted(() => {
 
                     .username {
                         margin: 0 8px;
-                        font-size: 16px;
+                        font-size: 1.142857rem;
                         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                     }
                 }
@@ -845,7 +852,7 @@ onUnmounted(() => {
 }
 
 .el-icon.avatar-uploader-icon {
-    font-size: 28px;
+    font-size: 2rem;
     color: #0f56b9;
     width: 178px;
     height: 178px;

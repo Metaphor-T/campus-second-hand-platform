@@ -1,0 +1,236 @@
+/* 根字号驱动所有 rem，包含挂载到 body 的 Element Plus 浮层。 */
+:root {
+  --font-scale: 1;
+  --el-font-size-extra-small: .857143rem;
+  --el-font-size-small: .928571rem;
+  --el-font-size-base: 1rem;
+  --el-font-size-medium: 1.142857rem;
+  --el-font-size-large: 1.285714rem;
+  --el-font-size-extra-large: 1.428571rem;
+  --el-text-color-placeholder: #666;
+}
+html { font-size: calc(14px * var(--font-scale)); scroll-padding-top: 1rem; }
+body { font-size: 1rem; line-height: 1.6; }
+button, input, select, textarea { font: inherit; }
+:is(button, a, input, select, textarea, [tabindex], [role="button"]):focus-visible {
+  outline: 3px solid #075eac !important; outline-offset: 3px;
+}
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.skip-link { position:absolute; left:12px; top:-1000px; }
+.skip-link:focus { position:relative; top:auto; background:white; padding:12px; }
+.skip-link:focus { position:fixed; top:8px; left:8px; z-index:4000; }
+.reading-fallback { padding:12px 20px; }
+.reading-settings { display:inline-flex; flex-shrink:0; max-width:100%; }
+.reading-anchor { display:inline-flex; max-width:100%; }
+.accessibility-toggle { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:8px 12px; border:1px solid transparent; border-radius:24px; color:#49433e; background:transparent; font-size:1.142857rem; font-weight:600; cursor:pointer; line-height:1.5; text-align:left; }
+.accessibility-toggle:hover, .accessibility-toggle[aria-expanded="true"] { background:#fff1e9; border-color:#e6baa3; color:#853416; }
+.reading-icon { font-family:Georgia,serif; font-size:1.2em; font-weight:700; color:#9f421c; }
+.reading-settings--glass .accessibility-toggle { background:rgba(255,255,255,.94); border-color:rgba(255,255,255,.7); box-shadow:0 2px 12px #32180d1a; backdrop-filter:blur(12px); }
+html .reading-popover { max-width:calc(100vw - 24px); border-radius:16px; padding:20px; color:#35312e; }
+.reading-panel { min-width:0; color:#35312e; font-size:1rem; }
+.reading-current { margin:0 0 16px; color:#60564e; }
+.reading-current strong { color:#8e3517; }
+.reading-options { border:0; min-width:0; padding:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.reading-options legend { font-weight:600; margin-bottom:12px; }
+.reading-options label { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px; min-height:48px; border:1px solid #b4aaa0; border-radius:10px; cursor:pointer; color:#413a34; background:#fff; }
+.reading-options label.selected { border-color:#9f421c; background:#fff3eb; }
+.reading-options input { width:18px; height:18px; flex-shrink:0; accent-color:#9f421c; }
+.reading-preview { padding:14px; background:#f6f4f1; border-radius:10px; line-height:1.7; margin:16px 0; overflow-wrap:anywhere; }
+.reading-actions { display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.reading-actions button { border:1px solid #b4aaa0; border-radius:20px; min-height:44px; padding:8px 16px; background:#fff; color:#413a34; cursor:pointer; }
+.reading-actions button:last-child { background:#9f421c; border-color:#9f421c; color:white; }
+html .reading-dialog { border-radius:18px; }
+html .reading-dialog .el-dialog__body { max-height:calc(100dvh - 150px); }
+html .admin-layout .header-right { display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-width:0; }
+html .admin-layout .header { height:auto !important; min-height:60px; flex-wrap:wrap; gap:12px; padding-top:8px; padding-bottom:8px; }
+
+/* 背景与表单共享自适应网格，字号变化不再隐藏品牌图片。 */
+html :is(.login-container, .register-container) { display:grid !important; grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr) !important; align-items:stretch !important; }
+html :is(.login-container, .register-container) .hero-section { display:flex !important; min-width:0 !important; min-height:100vh !important; }
+html :is(.login-container, .register-container) .hero-overlay { background:linear-gradient(150deg,rgba(83,30,13,.85),rgba(89,33,13,.68),rgba(83,30,13,.85)) !important; }
+html :is(.login-container, .register-container) .hero-content { padding:6rem 24px 40px !important; width:100% !important; min-width:0 !important; overflow-wrap:anywhere !important; }
+html :is(.login-container, .register-container) .hero-content .sub-slogan { color:#fff !important; }
+html :is(.login-container, .register-container) .form-section { min-width:0 !important; padding:40px 24px !important; }
+.auth-reading { position:absolute !important; left:20px !important; top:20px !important; z-index:3 !important; max-width:calc(100% - 40px) !important; }
+@media (max-width:1200px) {
+  html:not([data-font-scale="1"]) :is(.login-container, .register-container) { grid-template-columns:minmax(0,1fr) !important; }
+  html:not([data-font-scale="1"]) :is(.login-container, .register-container) .hero-section { min-height:280px !important; }
+}
+@media (max-width:960px) {
+  html :is(.login-container, .register-container) { grid-template-columns:minmax(0,1fr) !important; }
+  html :is(.login-container, .register-container) .hero-section { min-height:260px !important; }
+  html :is(.login-container, .register-container) .hero-content { max-width:none !important; padding:calc(64px + 3rem) 20px 28px !important; }
+  html :is(.login-container, .register-container) .hero-content .brand { margin-bottom:12px !important; }
+  html :is(.login-container, .register-container) .hero-content :is(.slogan,.hero-features) { display:none !important; }
+  html :is(.login-container, .register-container) .hero-content .sub-slogan { margin:0 !important; letter-spacing:1px !important; }
+}
+@media (max-width:480px) {
+  .reading-options { grid-template-columns:minmax(0,1fr) !important; }
+  .auth-reading { left:16px !important; top:16px !important; max-width:calc(100% - 32px) !important; }
+}
+/* 文字与交互区域同时增大，不以裁剪或缩小字体换取空间。 */
+html .el-button { height:auto; min-height:44px; padding:10px 16px; white-space:normal; line-height:1.5; }
+html .el-button > span { white-space:normal; overflow-wrap:anywhere; }
+html :is(.el-input__wrapper, .el-select__wrapper) { min-height:max(44px, 2.8rem); height:auto; }
+html :is(.el-input__inner, .el-textarea__inner, .el-select__placeholder, .el-select-dropdown__item, .el-dropdown-menu__item, .el-radio__label, .el-checkbox__label, .el-pagination, .el-message__content) { font-size:1rem; }
+html .el-input__inner { height:auto; min-height:2rem; line-height:1.6; }
+html :is(.el-select-dropdown__item, .el-dropdown-menu__item) { height:auto; min-height:44px; line-height:1.6; padding-top:8px; padding-bottom:8px; white-space:normal; }
+html .el-form-item__label { height:auto; min-height:2rem; line-height:1.6; overflow-wrap:anywhere; }
+html .el-form-item__error { position:static; font-size:.928571rem; line-height:1.5; }
+html .el-form-item { margin-bottom:1.5rem; }
+html .el-form-item__content { min-width:0; line-height:1.6; }
+html :is(.el-checkbox, .el-radio) { height:auto; min-height:44px; white-space:normal; }
+html :is(.el-checkbox__label, .el-radio__label) { white-space:normal; }
+html .el-table { font-size:1rem; }
+html .el-table .cell { line-height:1.6; overflow-wrap:anywhere; }
+html .el-pagination { flex-wrap:wrap; height:auto; gap:8px; }
+html .el-pager li { font-size:1rem; min-width:44px; height:auto; min-height:44px; }
+html .el-dialog { max-width:calc(100vw - 24px); }
+html .el-message-box { max-width:min(var(--el-messagebox-width, 420px), calc(100vw - 32px)); }
+html .logout-confirm { --el-messagebox-width:440px; padding:20px; border-radius:12px; max-height:calc(100dvh - 32px); overflow:auto; }
+html .logout-confirm .el-message-box__header { padding-right:32px; }
+html .logout-confirm .el-message-box__message { line-height:1.6; }
+html .el-dialog__body { overflow:auto; max-height:65vh; overflow-wrap:anywhere; }
+html :is(.el-dialog__title, .el-message-box__title) { font-size:1.285714rem; line-height:1.6; }
+html :is(.el-dialog__headerbtn, .el-message-box__headerbtn) { width:44px; height:44px; }
+html .el-message { max-width:calc(100vw - 24px); }
+html :is(.el-dialog__footer, .el-message-box__btns) { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+
+html :is(.navbar-inner, .navbar-left, .navbar-right, .nav-secondary-inner) { height:auto !important; min-height:68px; flex-wrap:wrap; gap:12px; }
+html .navbar-inner { padding-top:12px; padding-bottom:12px; }
+html .navbar-left { min-width:0; flex:1 1 360px; }
+html .navbar-search { min-width:0; flex:1 1 220px; }
+html .search-wrapper { min-width:0; }
+html .nav-secondary-inner { min-height:44px; }
+html :is(.nav-link, .msg-link, .user-trigger) { min-height:44px; height:auto; display:inline-flex; align-items:center; white-space:normal; }
+html .navbar :is(.username, .brand) { white-space:normal !important; max-width:none !important; overflow:visible !important; }
+html :is(.card-title, .product-title, .desc-content) { overflow-wrap:anywhere; }
+html .card-title { height:auto; max-height:none; -webkit-line-clamp:unset; white-space:normal; }
+.hot-detail-link { color:inherit; font:inherit; background:transparent; border:0; text-align:left; cursor:pointer; min-height:44px; }
+html :is(.card-meta, .meta-user, .card-stats, .meta-time, .empty-conversations > p, .chat-placeholder > p) { color:#50545b !important; }
+html .card-meta .username { color:#50545b !important; }
+html :is(.original-price, .card-stats .stat-item) { color:#50545b !important; }
+html :is(.card-price .price, .price-text) { color:#a93816 !important; }
+html .el-button--primary:not(.is-text):not(.is-link):not(.is-disabled) { background:#a63b20 !important; border-color:#a63b20 !important; color:#fff !important; }
+html .el-button.is-link:not(.is-disabled) { color:#075eac !important; }
+html .el-button.is-link.el-button--danger:not(.is-disabled) { color:#a61b1b !important; }
+html:not([data-font-scale="1"]) .el-table__cell.is-fixed-column--right { position:static !important; }
+
+/* 登录注册的可见标签不与原输入图标重叠。 */
+html :is(.login-container, .register-container) { overflow:visible; }
+html :is(.login-container, .register-container) .form-panel { width:100%; max-width:36rem; min-width:0; }
+html :is(.login-container, .register-container) .input-field { display:flex; flex-direction:column; min-width:0; }
+html :is(.login-container, .register-container) .input-icon { display:none; }
+html :is(.login-container, .register-container) .custom-input { width:100%; height:auto !important; min-height:52px; padding:12px 16px !important; line-height:1.6; }
+.auth-label { display:block; color:#30343b; font-size:1rem; margin-bottom:6px; font-weight:600; }
+.auth-error { color:#a61b1b; font-size:1rem; line-height:1.6; }
+html :is(.login-btn, .register-btn) { height:auto !important; min-height:52px; padding:12px; }
+html .item-role { font:inherit; border:0; cursor:pointer; min-height:44px; }
+html :is(.login-container, .register-container) :is(.sub-slogan, .form-header p, .form-footer) { color:#595959; }
+
+/* 所有字号都吸顶，使用实际导航高度为锚点和键盘焦点留出空间。 */
+html { scroll-padding-top:calc(var(--site-nav-height, 0px) + 12px); }
+:is(a, button, input, select, textarea, [tabindex]) { scroll-margin-top:calc(var(--site-nav-height, 0px) + 12px); }
+
+
+html:not([data-font-scale="1"]) .el-form-item { flex-direction:column; align-items:stretch; }
+html:not([data-font-scale="1"]) .el-form-item__label { width:auto !important; justify-content:flex-start; }
+html:not([data-font-scale="1"]) .el-form-item__content { margin-left:0 !important; }
+html:not([data-font-scale="1"]) .el-dialog .el-col { flex:0 0 100%; max-width:100%; }
+html:not([data-font-scale="1"]) .hot-overlay-title { display:block; -webkit-line-clamp:unset; overflow:visible; }
+html:not([data-font-scale="1"]) .hot-main-overlay { position:relative !important; background:#24272c; padding:16px; }
+html:not([data-font-scale="1"]) .hot-main-carousel { height:auto !important; }
+html:not([data-font-scale="1"]) .admin-layout .header { height:auto; flex-wrap:wrap; padding:12px; }
+html:not([data-font-scale="1"]) .admin-layout :is(.nav-group-header, .nav-list li, .nav-children li) { height:auto; min-height:44px; line-height:1.6; white-space:normal; padding:12px; overflow:visible; }
+html:not([data-font-scale="1"]) .masonry-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap:16px; height:auto !important; }
+html:not([data-font-scale="1"]) .masonry-item { position:static !important; width:auto !important; height:auto !important; transform:none !important; opacity:1; min-width:0; }
+html:not([data-font-scale="1"]) :is(.hero-section, .hot-section, .market-header, .filter-bar) { height:auto; min-width:0; flex-wrap:wrap; }
+@media (max-width: 640px) {
+  html .navbar-inner { display:flex; }
+  html :is(.navbar-left, .navbar-right, .navbar-search) { flex-basis:100%; max-width:100%; }
+  html .navbar-right { justify-content:flex-start; }
+
+  html :is(.login-container, .register-container) .form-section { padding:24px 12px; }
+  html .el-form--inline .el-form-item { display:flex; margin-right:0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+}
+
+/* 导航独立分区，避免放大时各块自由换行而相互错位。 */
+html :is(.user-layout, .guest-layout) > .navbar {
+  position:sticky !important; top:0; z-index:100; margin:0 !important;
+  background:#fff; box-shadow:0 2px 12px #0000000d;
+  max-height:60dvh; overflow:auto;
+}
+html .navbar .navbar-inner {
+  display:grid !important; grid-template-columns:auto auto minmax(180px,1fr) auto;
+  align-items:center; gap:16px; max-width:1800px !important; width:100%;
+  height:auto !important; min-height:0; padding:12px 24px;
+}
+html .navbar .navbar-left { display:contents !important; }
+html .navbar .navbar-search { width:100%; max-width:none; min-width:0; grid-column:auto !important; grid-row:auto !important; }
+html .navbar .navbar-right { display:flex; flex-wrap:nowrap; min-width:0; min-height:0; gap:12px; grid-column:auto !important; grid-row:auto !important; }
+html .navbar .brand-link { grid-column:auto !important; grid-row:auto !important; }
+html .navbar :is(.brand-link,.msg-link) { white-space:nowrap; }
+html .navbar .search-input { min-width:0; }
+html .navbar .search-wrapper { width:100%; }
+html .navbar .user-trigger { min-width:0; }
+html .navbar .user-trigger .username { overflow-wrap:anywhere; }
+html .navbar .nav-secondary { overflow-x:auto; overscroll-behavior-x:contain; }
+html .navbar .nav-secondary-inner {
+  display:flex; flex-wrap:nowrap; justify-content:flex-start; gap:8px;
+  max-width:1800px !important; width:100%; min-height:0; padding:10px 16px;
+}
+html .navbar .nav-link { flex:0 0 auto; white-space:nowrap !important; padding:10px 12px !important; }
+/* 空间充足时整体居中；内容超宽时自动外边距归零，保留首尾菜单可滚动访问。 */
+html .navbar .nav-link:first-child { margin-inline-start:auto; }
+html .navbar .nav-link:last-child { margin-inline-end:auto; }
+@media (max-width:1399px) {
+  html .navbar .navbar-inner { grid-template-columns:minmax(0,1fr) auto; }
+  html .navbar .reading-settings { grid-row:1 !important; grid-column:1 !important; }
+  html .navbar .brand-link { grid-row:1 !important; grid-column:2 !important; }
+  html .navbar .navbar-search { grid-row:2 !important; grid-column:1 !important; }
+  html .navbar .navbar-right { grid-row:2 !important; grid-column:2 !important; }
+}
+@media (max-width:900px) {
+  html .navbar .navbar-inner { padding:10px 12px; gap:10px; }
+  html .navbar .brand-text { display:none !important; }
+  html .navbar .brand-link .logo { width:44px; height:44px; }
+  html .navbar .navbar-search { grid-row:2 !important; grid-column:1 / -1 !important; }
+  html .navbar .navbar-right { grid-row:3 !important; grid-column:1 / -1 !important; flex-wrap:wrap; }
+  html .navbar .reading-settings { min-width:0; }
+  html .navbar .accessibility-toggle { max-width:100%; padding:8px; }
+  html .navbar .navbar-right .el-dropdown { min-width:0; max-width:100%; }
+  html .navbar .user-trigger .username { max-width:12ch !important; }
+}
+
+/* 管理端始终保持标准的左右结构，各区域在自身容器内滚动。 */
+html .admin-layout { height:100dvh !important; min-height:0; flex-wrap:nowrap !important; overflow:hidden !important; }
+html .admin-layout > .sidebar { min-height:0; max-width:40vw; overflow:hidden; }
+html .admin-layout > .sidebar:not(.collapsed) { width:clamp(188px, calc(var(--sidebar-base-width, 188px) * var(--font-scale)), 320px) !important; max-width:30vw; }
+html .admin-layout .sidebar-menu { min-height:0; overflow-y:auto; }
+html .admin-layout > .main-content { flex:1 1 0%; width:0; min-width:0; min-height:0; overflow:hidden; }
+html .admin-layout .content { min-width:0; min-height:0; overflow:auto; overscroll-behavior:contain; }
+html .admin-layout .header { min-width:0; flex-shrink:0; max-height:40dvh; overflow:auto; }
+html .admin-layout .header-left { display:flex; flex-wrap:wrap; align-items:center; gap:12px; min-width:0; }
+html .admin-layout .header-right { max-width:100%; }
+html .admin-layout .user-info { flex-wrap:wrap; }
+html .admin-layout .sidebar-header { flex-wrap:nowrap; min-width:0; }
+html .admin-layout .sidebar-header h2 { min-width:0; overflow-wrap:anywhere; }
+html .admin-layout .sidebar-header img { flex-shrink:0; }
+html .admin-sidebar-toggle { min-height:44px; padding:8px 12px; background:#fff6ef; color:#853416; border:1px solid #d7b39c; border-radius:8px; font:inherit; cursor:pointer; }
+html:not([data-font-scale="1"]) .admin-layout .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr)); gap:16px; margin-inline:0 !important; }
+html:not([data-font-scale="1"]) .admin-layout .stats-row > .el-col { width:100%; max-width:100%; padding:0 !important; }
+html:not([data-font-scale="1"]) .admin-layout .stat-card { height:auto !important; min-height:105px; }
+html:not([data-font-scale="1"]) .admin-layout .stat-value { white-space:normal !important; overflow:visible !important; overflow-wrap:anywhere; text-overflow:clip !important; }
+html:not([data-font-scale="1"]) .admin-layout .stat-label { line-height:1.5; }
+html .admin-layout .chart-header { flex-wrap:wrap; gap:12px; }
+@media (max-width:600px) {
+  html .admin-layout > .sidebar { max-width:40vw; }
+  html .admin-layout > .sidebar:not(.collapsed) { max-width:40vw; }
+  html .admin-layout .content { padding:12px 8px; }
+  html .admin-layout .header { padding:8px; }
+  html .admin-layout .charts-row > .el-col { flex:0 0 100%; max-width:100%; }
+  html .admin-layout .stats-row > .el-col { flex:0 0 100%; max-width:100%; }
+}

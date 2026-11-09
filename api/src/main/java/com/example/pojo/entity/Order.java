@@ -44,6 +44,9 @@ public class Order {
     /** 购买数量 */
     private Integer quantity;
 
+    /** 本单实际扣减数量：0 为未扣减；NULL 为待核对的迁移前历史订单。 */
+    private Integer stockDeductedQuantity;
+
     /** 成交单价（下单时价格快照） */
     private BigDecimal unitPrice;
 

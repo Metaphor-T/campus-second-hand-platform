@@ -89,7 +89,7 @@
 
             <!-- 分页 -->
             <div class="pagination-wrapper">
-                <el-pagination
+                <el-pagination v-accessible-pagination
                     v-model:current-page="queryDTO.current"
                     v-model:page-size="queryDTO.size"
                     :page-sizes="[10, 20, 50, 100]"
@@ -274,7 +274,7 @@ onMounted(() => {
         justify-content: center;
 
         span {
-            font-size: 13px;
+            font-size: 0.928571rem;
         }
     }
 
@@ -283,17 +283,17 @@ onMounted(() => {
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-        font-size: 13px;
+        font-size: 0.928571rem;
         color: #333;
     }
 
     .emoji-msg {
-        font-size: 22px;
+        font-size: 1.571429rem;
     }
 
     .image-msg {
         color: #409eff;
-        font-size: 13px;
+        font-size: 0.928571rem;
     }
 
     .detail-image {

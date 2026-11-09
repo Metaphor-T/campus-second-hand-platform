@@ -1,14 +1,15 @@
 <template>
-    <div class="user-market">
+    <div class="user-market product-module" :class="{ 'product-large-text': largeText }">
+        <ProductExperienceToolbar />
         <!-- ====== 🔥 热门推荐（在分类导航上方） ====== -->
         <div v-if="hotProducts.length > 0" class="hot-section">
             <div class="hot-content">
                 <!-- 轮播图区域：占据 50%，所有信息悬浮在图片上 -->
-                <div class="hot-main" @click="handleProductClick(currentHotProduct)">
+                <div class="hot-main">
                     <div class="hot-main-carousel">
-                        <el-carousel height="100%" indicator-position="none" arrow="never" :interval="5000" ref="carouselRef" @change="onHotCarouselChange">
+                        <el-carousel :autoplay="false" height="100%" indicator-position="none" arrow="never" :interval="5000" ref="carouselRef" @change="onHotCarouselChange">
                             <el-carousel-item v-for="(product, i) in hotProducts" :key="i">
-                                <img :src="getImageUrl(coverImage(product))" @error="onHotImgError($event)" />
+                                <img :src="getImageUrl(coverImage(product))" :alt="product.title || '商品图片'" @error="onHotImgError($event)" />
                             </el-carousel-item>
                         </el-carousel>
 
@@ -19,7 +20,7 @@
 
                         <!-- 商品信息：底部左悬浮 -->
                         <div class="hot-main-overlay">
-                            <h3 class="hot-overlay-title">{{ currentHotProduct?.title }}</h3>
+                            <h3 class="hot-overlay-title"><button type="button" class="hot-detail-link" @click="handleProductClick(currentHotProduct)">{{ currentHotProduct?.title }}</button></h3>
                             <div class="hot-overlay-price">
                                 <span class="hop-symbol">¥</span>
                                 <span class="hop-value">{{ currentHotProduct?.price }}</span>
@@ -38,8 +39,8 @@
                                 class="hot-thumb"
                                 :class="{ active: idx === activeHotIndex }"
                                 @click.stop="switchHot(idx)"
-                            >
-                                <img :src="getImageUrl(coverImage(item))" @error="onHotImgError($event)" />
+                             role="button" tabindex="0" @keydown.enter.self.prevent="switchHot(idx)" @keydown.space.self.prevent="switchHot(idx)">
+                                <img :src="getImageUrl(coverImage(item))" :alt="item.title || '商品图片'" @error="onHotImgError($event)" />
                                 <span class="hot-thumb-rank" :class="'rank-' + (idx + 1)">{{ idx + 1 }}</span>
                             </div>
                         </div>
@@ -49,9 +50,9 @@
                 <!-- 🤖 猜你喜欢 — 右侧 50%（与左侧使用完全一致的类名） -->
                 <div v-if="recommendProducts.length > 0" class="hot-main" @click="handleProductClick(currentRecommendProduct)">
                     <div class="hot-main-carousel">
-                        <el-carousel height="100%" indicator-position="none" arrow="never" :interval="5000" ref="recCarouselRef" @change="onRecCarouselChange">
+                        <el-carousel :autoplay="false" height="100%" indicator-position="none" arrow="never" :interval="5000" ref="recCarouselRef" @change="onRecCarouselChange">
                             <el-carousel-item v-for="(product, i) in recommendProducts" :key="i">
-                                <img :src="getImageUrl(coverImage(product))" @error="onHotImgError($event)" />
+                                <img :src="getImageUrl(coverImage(product))" :alt="product.title || '商品图片'" @error="onHotImgError($event)" />
                             </el-carousel-item>
                         </el-carousel>
 
@@ -62,7 +63,7 @@
 
                         <!-- 商品信息：底部左悬浮 -->
                         <div class="hot-main-overlay">
-                            <h3 class="hot-overlay-title">{{ currentRecommendProduct?.title }}</h3>
+                            <h3 class="hot-overlay-title"><button type="button" class="hot-detail-link" @click="handleProductClick(currentRecommendProduct)">{{ currentRecommendProduct?.title }}</button></h3>
                             <div class="hot-overlay-price">
                                 <span class="hop-symbol">¥</span>
                                 <span class="hop-value">{{ currentRecommendProduct?.price }}</span>
@@ -81,8 +82,8 @@
                                 class="hot-thumb"
                                 :class="{ active: idx === activeRecommendIndex }"
                                 @click.stop="switchRecommend(idx)"
-                            >
-                                <img :src="getImageUrl(coverImage(item))" @error="onHotImgError($event)" />
+                             role="button" tabindex="0" @keydown.enter.self.prevent="switchRecommend(idx)" @keydown.space.self.prevent="switchRecommend(idx)">
+                                <img :src="getImageUrl(coverImage(item))" :alt="item.title || '商品图片'" @error="onHotImgError($event)" />
                                 <span class="hot-thumb-rank" :class="'rank-' + (idx + 1)">{{ idx + 1 }}</span>
                             </div>
                         </div>
@@ -96,7 +97,7 @@
             <span
                 :class="['filter-item', { active: activeCategoryId === undefined }]"
                 :style="activeCategoryId === undefined ? { borderColor: '#1a1a1a' } : {}"
-                @click="switchCategory(undefined)"
+                @click="switchCategory(undefined)" role="button" tabindex="0" :aria-pressed="activeCategoryId === undefined" @keydown.enter="switchCategory(undefined)" @keydown.space.prevent="switchCategory(undefined)"
             >
                 <el-icon class="fi-icon"><Grid /></el-icon>全部
             </span>
@@ -105,12 +106,20 @@
                 :key="cat.id"
                 :class="['filter-item', { active: activeCategoryId === cat.id }]"
                 :style="activeCategoryId === cat.id ? { borderColor: catColor(cat.id) } : {}"
-                @click="switchCategory(cat.id)"
+                @click="switchCategory(cat.id)" role="button" tabindex="0" :aria-pressed="activeCategoryId === cat.id" @keydown.enter="switchCategory(cat.id)" @keydown.space.prevent="switchCategory(cat.id)"
             >
                 <span class="fi-dot" :style="{ background: catColor(cat.id) }"></span>
                 {{ cat.name }}
             </span>
         </div>
+
+        <ProductFilters :model-value="marketFilters" :keyword="searchKeyword" @apply="applyFilters" />
+        <div v-if="categoryLoadFailed" role="status" class="product-request-error">分类暂不可用，仍可搜索商品。<el-button @click="loadCategories">重试分类</el-button></div>
+        <div v-if="feedError" role="alert" class="product-request-error">
+            {{ productErrorMessage(feedError, '加载失败，请检查网络后重试') }}。已有结果会保留，重试后更新。
+            <el-button @click="retryProducts">重新加载</el-button>
+        </div>
+        <el-empty v-if="!loading && !feedError && productList.length === 0" description="没有符合条件的商品，请调整筛选条件" />
 
         <!-- ====== 📦 商品瀑布流 Masonry ====== -->
         <div class="masonry-wrap" v-loading="loading && productList.length === 0">
@@ -143,17 +152,17 @@
                     class="masonry-item"
                     :class="{ 'is-visible': item._visible }"
                     :style="getItemStyle(item)"
-                    @click="handleProductClick(item)"
+                    @click="handleProductClick(item)" role="link" tabindex="0" :aria-label="'查看商品：' + item.title" @keydown.enter="handleProductClick(item)"
                 >
                     <div class="product-card">
                         <!-- 商品图片 -->
                         <div class="card-image">
                             <img
-                                :src="getImageUrl(coverImage(item))"
+                                :src="getImageUrl(coverImage(item))" :alt="item.title || '商品图片'"
                                 class="card-img"
                                 loading="lazy"
                                 @load="onImageLoad(item)"
-                                @error="onImageError(item)"
+                                @error="onImageError(item, $event)"
                             />
                             <!-- 新旧程度标签 -->
                             <span class="condition-tag" :class="'cond-' + (item.condition ?? 1)">
@@ -189,8 +198,8 @@
                             </div>
                             <div class="card-meta">
                                 <span class="meta-user">
-                                    <el-avatar :size="16" v-if="item.userAvatar" :src="getImageUrl(item.userAvatar)" />
-                                    <el-avatar :size="16" v-else>{{ (item.username ?? '?')[0] }}</el-avatar>
+                                    <el-avatar alt="用户头像" :size="16" v-if="item.userAvatar" :src="getImageUrl(item.userAvatar)" />
+                                    <el-avatar alt="用户头像" :size="16" v-else>{{ (item.username ?? '?')[0] }}</el-avatar>
                                     <span class="username">{{ item.username }}</span>
                                 </span>
                                 <span class="meta-time">{{ formatTime(item.createTime) }}</span>
@@ -204,13 +213,13 @@
         <!-- ====== 🔄 加载更多哨兵 ====== -->
         <div ref="sentinelRef" class="load-more">
             <el-icon v-if="loadingMore" class="is-loading"><Loading /></el-icon>
-            <span v-else-if="hasMore" class="load-hint">下拉加载更多</span>
-            <span v-else class="no-more">— 已经到底了 —</span>
+            <el-button v-else-if="hasMore && !feedError" @click="loadMore">加载更多商品</el-button>
+            <span v-else-if="!feedError && productList.length" class="no-more">已经到底了</span>
         </div>
 
         <!-- ====== ⬆️ 回到顶部 ====== -->
         <transition name="fade">
-            <button v-if="showScrollTop" class="scroll-top" @click="scrollToTop">
+            <button v-if="showScrollTop" class="scroll-top" aria-label="返回页面顶部" @click="scrollToTop">
                 <el-icon><Top /></el-icon>
             </button>
         </transition>
@@ -220,7 +229,11 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import ProductFilters from '@/components/ProductFilters.vue'
+import ProductExperienceToolbar from '@/components/ProductExperienceToolbar.vue'
+import { useProductFeed } from '@/composables/useProductFeed'
+import { productImageUrl, imageFallback, productErrorMessage, useProductReadability, type ProductFilterValues } from '@/utils/product-experience'
+
 import { Loading, Grid, View, Star, ShoppingCart, Top } from '@element-plus/icons-vue'
 import { publicProductListApi } from '@/api/product-api'
 import { hotProductListApi } from '@/api/product-api'
@@ -246,7 +259,14 @@ const router = useRouter()
 const route = useRoute()
 
 // ====== 数据状态 ======
-const productList = ref<MasonryItem[]>([])
+const largeText = useProductReadability()
+const marketFilters = ref<ProductFilterValues>({ sortBy: 'latest' })
+const categoryLoadFailed = ref(false)
+const feed = useProductFeed<MasonryItem>(async (page, query) => {
+    const res = await publicProductListApi({ ...query, current: page, size: PAGE_SIZE })
+    return { items: (res.data ?? []).map(item => ({ ...item, _imgLoaded: false, _visible: false })), total: res.count ?? 0 }
+})
+const { items: productList, loading, loadingMore, hasMore, currentPage, error: feedError } = feed
 const hotProducts = ref<MasonryItem[]>([])
 const recommendProducts = ref<ProductVO[]>([])
 const activeHotIndex = ref(0)
@@ -261,20 +281,15 @@ const currentRecommendProduct = computed(() => recommendProducts.value[activeRec
 const activeCategoryId = ref<number | undefined>(undefined)
 const categories = ref<CategoryVO[]>([])
 
-const loading = ref(false)
-const loadingMore = ref(false)
-const hasMore = ref(true)
-const currentPage = ref(1)
 const PAGE_SIZE = 12
 
 // ====== 搜索 ======
-const searchKeyword = ref('')
+const searchKeyword = ref(typeof route.query.search === 'string' ? route.query.search : '')
 
 // 读取 URL 参数中的搜索
 watch(() => route.query.search, (val) => {
     searchKeyword.value = (val && typeof val === 'string') ? val : ''
     activeCategoryId.value = undefined
-    resetPagination()
     fetchProducts(1, false, (val && typeof val === 'string') ? val : undefined)
 })
 
@@ -310,7 +325,7 @@ const doLayout = () => {
     // 收集每列高度
     const colHeights = new Array(columnCount.value).fill(0)
 
-    productList.value.forEach((item, idx) => {
+    productList.value.forEach((item) => {
         // 小红书式"错乱有序"列选择
         const col = pickColumn(colHeights)
         item._col = col
@@ -323,51 +338,18 @@ const doLayout = () => {
         colHeights[col] += measuredH + gap
 
         // 延迟显示动画 — 不是顺序排队，而是带随机偏移的"绽放"
-        const delay = 40 + idx * 18 + Math.random() * 60
-        setTimeout(() => { item._visible = true }, delay)
+        item._visible = true
     })
 
-    masonryHeight.value = Math.max(...colHeights)
+    masonryHeight.value = Math.max(0, ...colHeights)
 }
 
 /**
  * 预估卡片高度 — 模拟不同比例的图片使初始布局更有层次感
  * 使用各不相同的宽高比来营造"错落"效果
  */
-const estimateCardHeight = (): number => {
-    // 模拟多样的宽高比：0.5(超长图) ~ 1.2(近似方图)
-    const ratios = [0.55, 0.7, 0.85, 0.6, 1.0, 0.5, 0.75, 0.9, 0.65, 1.1, 0.58, 0.78]
-    const idx = Math.floor(Math.random() * ratios.length)
-    const imgH = columnWidth.value / ratios[idx]
-    const infoH = 130 + Math.floor(Math.random() * 24) // 信息区也略微变化
-    return imgH + infoH
-}
-
-/**
- * 小红书式"错乱有序"列选择算法
- * 核心思想：不是无脑选最短列，而是在一定容差范围内随机选择，
- * 让相邻卡片的高低差更自然，避免整齐划一的水泥墙效果
- */
-const pickColumn = (colHeights: number[]): number => {
-    const min = Math.min(...colHeights)
-    const max = Math.max(...colHeights)
-    const range = max - min
-
-    // 容差阈值：列高差在阈值内时引入随机，让布局"活"起来
-    const tolerance = 80
-
-    if (range <= tolerance) {
-        // 各列高度接近 → 随机选，制造自然落差
-        const candidates = colHeights
-            .map((h, i) => ({ h, i }))
-            .filter(({ h }) => h <= min + tolerance)
-        const pick = candidates[Math.floor(Math.random() * candidates.length)]
-        return pick.i
-    } else {
-        // 高度差距大 → 选最短的，保证整体不偏不倚
-        return colHeights.indexOf(min)
-    }
-}
+const estimateCardHeight = (): number => columnWidth.value * 0.8 + (largeText.value ? 220 : 170)
+const pickColumn = (heights: number[]): number => heights.indexOf(Math.min(...heights))
 
 const getItemStyle = (item: MasonryItem) => {
     return {
@@ -397,23 +379,7 @@ const onImageLoad = (item: MasonryItem) => {
     })
 }
 
-const onImageError = (item: MasonryItem) => {
-    item._imgLoaded = true
-    nextTick(() => {
-        if (masonryRef.value) {
-            const idx = productList.value.indexOf(item)
-            if (idx !== -1) {
-                const children = masonryRef.value.children
-                const el = children[idx] as HTMLElement | undefined
-                if (el) {
-                    const card = el.querySelector('.product-card') as HTMLElement | null
-                    item._height = card?.getBoundingClientRect().height ?? estimateCardHeight()
-                }
-            }
-        }
-        doLayout()
-    })
-}
+const onImageError = (item: MasonryItem, event: Event) => { imageFallback(event); onImageLoad(item) }
 
 // ====== 滚动触发回顶部按钮（节流） ======
 const showScrollTop = ref(false)
@@ -440,11 +406,7 @@ const sentinelRef = ref<HTMLElement | null>(null)
 let observer: IntersectionObserver | null = null
 
 // ====== 工具函数 ======
-const getImageUrl = (path?: string) => {
-    if (!path) return ''
-    if (path.startsWith('http://') || path.startsWith('https://')) return path
-    return `${import.meta.env.VITE_API_BASE_URL}${path}`
-}
+const getImageUrl = productImageUrl
 
 const coverImage = (item: ProductVO) => {
     const cover = item.images?.find(i => i.isCover === 1)
@@ -483,44 +445,16 @@ const catColor = (id?: number) => {
 
 // ====== 数据加载 ======
 const fetchProducts = async (page: number, append: boolean, search?: string) => {
-    try {
-        if (!append) {
-            productList.value = []
-            masonryHeight.value = 0
-        }
-
-        const res = await publicProductListApi({
-            current: page,
-            size: PAGE_SIZE,
-            categoryId: activeCategoryId.value,
-            title: search
-        })
-
-        const list: MasonryItem[] = (res?.data ?? []).map(item => ({
-            ...item,
-            _imgLoaded: false,
-            _visible: false
-        }))
-        const total = res?.count ?? 0
-
-        if (append) {
-            productList.value.push(...list)
-        } else {
-            productList.value = list
-        }
-
-        hasMore.value = productList.value.length < total
-
-        // 布局
-        await nextTick()
-        doLayout()
-    } catch (e: any) {
-        ElMessage.error(e.message || '加载商品失败')
-    } finally {
-        loading.value = false
-        loadingMore.value = false
-    }
+    if (search !== undefined) searchKeyword.value = search
+    const updated = await feed.request(page, append, { ...marketFilters.value, categoryId: activeCategoryId.value, title: searchKeyword.value.trim() || undefined })
+    if (updated) { await nextTick(); doLayout() }
 }
+const applyFilters = (filters: ProductFilterValues) => {
+    marketFilters.value = filters
+    searchKeyword.value = filters.title || ''
+    fetchProducts(1, false)
+}
+const retryProducts = async () => { if (await feed.retry()) { await nextTick(); doLayout() } }
 
 /** 加载热门商品 */
 const fetchHotProducts = async () => {
@@ -535,12 +469,7 @@ const fetchHotProducts = async () => {
 }
 
 /** 热门商品图片加载失败时的降级处理 */
-const onHotImgError = (e: Event) => {
-    const img = e.target as HTMLImageElement
-    if (img) {
-        img.style.display = 'none'
-    }
-}
+const onHotImgError = imageFallback
 
 /** 切换热门商品（点击小图） */
 const switchHot = (idx: number) => {
@@ -569,108 +498,65 @@ const onRecCarouselChange = (currentIndex: number) => {
 }
 
 const loadCategories = async () => {
-    try {
-        const res = await categoryListAllApi()
-        categories.value = (res?.data ?? []).filter(c => c.status !== 0)
-    } catch { /* 静默 */ }
+    try { const res = await categoryListAllApi(); categories.value = (res.data ?? []).filter(c => c.status !== 0); categoryLoadFailed.value = false }
+    catch { categoryLoadFailed.value = true }
 }
 
 // ====== 分类切换 ======
 const switchCategory = (id: number | undefined) => {
     if (activeCategoryId.value === id) return
     activeCategoryId.value = id
-    searchKeyword.value = ''
-    resetPagination()
     fetchProducts(1, false)
 }
-
-// ====== 加载更多（同步锁 + 防重） ======
-let loadMorePending = false
-
 const loadMore = () => {
-    if (loadMorePending || loadingMore.value || !hasMore.value) return
-    loadMorePending = true
-    loadingMore.value = true
-    currentPage.value += 1
-    fetchProducts(currentPage.value, true).finally(() => {
-        loadMorePending = false
-    })
-}
-
-// 立即重置分页状态（分类切换等场景）
-const resetPagination = () => {
-    currentPage.value = 1
-    hasMore.value = true
-    loading.value = true
-    loadMorePending = false
+    if (loading.value || loadingMore.value || feedError.value || !hasMore.value) return
+    fetchProducts(currentPage.value + 1, true)
 }
 
 // ====== 商品点击 ======
-const handleProductClick = (item: MasonryItem) => {
-    if (item.id) {
+const handleProductClick = (item?: MasonryItem | null) => {
+    if (item?.id) {
         router.push(`/user-home/product-detail/${item.id}`)
     }
 }
 
 // ====== 生命周期 ======
+const fetchRecommendations = async () => {
+    try { const res = await recommendListApi(5); recommendProducts.value = res.data ?? [] }
+    catch { recommendProducts.value = [] }
+}
+const onResize = () => {
+    if (resizeTimer) clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(updateColumnCount, 200)
+}
+watch(largeText, async () => {
+    await nextTick()
+    productList.value.forEach((item, index) => {
+        const card = masonryRef.value?.children[index]?.querySelector('.product-card')
+        if (card) item._height = card.getBoundingClientRect().height
+    })
+    doLayout()
+})
 onMounted(async () => {
     updateColumnCount()
-    window.addEventListener('resize', () => {
-        if (resizeTimer) clearTimeout(resizeTimer)
-        resizeTimer = setTimeout(() => {
-            updateColumnCount()
-        }, 200)
-    })
+    window.addEventListener('resize', onResize)
     window.addEventListener('scroll', onScroll, { passive: true })
-
-    // 先加载热门商品（非关键数据，独立 try-catch）
-    await fetchHotProducts()
-
-    // 加载协同过滤推荐（"猜你喜欢"，冷启动时自动降级为热门）
-    try {
-        console.log('[推荐] 开始请求推荐接口')
-        const recRes = await recommendListApi(5)
-        console.log('[推荐] API 返回结果:', recRes)
-        const data = recRes?.data ?? []
-        console.log('[推荐] 推荐数据数量:', data.length, data)
-        recommendProducts.value = data
-    } catch (e: any) {
-        console.warn('[推荐] 加载推荐失败:', e?.message ?? e)
-    }
-
-    await loadCategories()
-    await fetchProducts(1, false)
-
-    // 检查 URL 参数
-    if (route.query.search && typeof route.query.search === 'string') {
-        searchKeyword.value = route.query.search
-    }
-
-    // IntersectionObserver 作为后备
+    await Promise.allSettled([fetchProducts(1, false), fetchHotProducts(), loadCategories(), fetchRecommendations()])
     await nextTick()
-    if (sentinelRef.value) {
-        observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting) {
-                    loadMore()
-                }
-            },
-            { rootMargin: '200px' }
-        )
+    if (sentinelRef.value && typeof IntersectionObserver !== 'undefined') {
+        observer = new IntersectionObserver(entries => { if (entries[0]?.isIntersecting) loadMore() }, { rootMargin:'200px' })
         observer.observe(sentinelRef.value)
     }
 })
-
 onUnmounted(() => {
-    if (observer) {
-        observer.disconnect()
-        observer = null
-    }
+    feed.dispose()
+    observer?.disconnect()
     window.removeEventListener('scroll', onScroll)
+    window.removeEventListener('resize', onResize)
     if (resizeTimer) clearTimeout(resizeTimer)
     if (scrollThrottleTimer) clearTimeout(scrollThrottleTimer)
-    window.removeEventListener('resize', () => {})
 })
+
 </script>
 
 <style scoped lang="scss">
@@ -750,7 +636,7 @@ onUnmounted(() => {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 13px;
+        font-size: 0.928571rem;
         font-weight: 800;
         color: #fff;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -775,7 +661,7 @@ onUnmounted(() => {
 
         .hot-overlay-title {
             margin: 0 0 8px;
-            font-size: 24px;
+            font-size: 1.714286rem;
             font-weight: 600;
             color: #fff;
             line-height: 1.4;
@@ -793,12 +679,12 @@ onUnmounted(() => {
             margin-bottom: 8px;
 
             .hop-symbol {
-                font-size: 16px;
+                font-size: 1.142857rem;
                 font-weight: 600;
                 color: #ffd700;
             }
             .hop-value {
-                font-size: 28px;
+                font-size: 2rem;
                 font-weight: 800;
                 color: #ffd700;
                 letter-spacing: -0.5px;
@@ -814,11 +700,11 @@ onUnmounted(() => {
                 display: inline-flex;
                 align-items: center;
                 gap: 4px;
-                font-size: 15px;
+                font-size: 1.071429rem;
                 color: rgba(255, 255, 255, 0.85);
                 text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 
-                .el-icon { font-size: 16px; }
+                .el-icon { font-size: 1.142857rem; }
             }
         }
     }
@@ -872,7 +758,7 @@ onUnmounted(() => {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8px;
+            font-size: 0.571429rem;
             font-weight: 700;
             color: #fff;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -901,10 +787,10 @@ onUnmounted(() => {
         aspect-ratio: 4 / 3;
     }
     .hot-main-overlay .hot-overlay-title {
-        font-size: 13px;
+        font-size: 0.928571rem;
     }
     .hot-main-overlay .hop-value {
-        font-size: 17px;
+        font-size: 1.214286rem;
     }
     .hot-thumb {
         width: 34px;
@@ -927,7 +813,7 @@ onUnmounted(() => {
         align-items: center;
         gap: 5px;
         padding: 6px 16px;
-        font-size: 13px;
+        font-size: 0.928571rem;
         color: #636366;
         border: 1px solid transparent;
         border-radius: 20px;
@@ -936,7 +822,7 @@ onUnmounted(() => {
         user-select: none;
         font-weight: 500;
 
-        .fi-icon { font-size: 15px; }
+        .fi-icon { font-size: 1.071429rem; }
 
         .fi-dot {
             width: 7px;
@@ -1047,7 +933,7 @@ onUnmounted(() => {
     top: 8px;
     left: 8px;
     padding: 2px 12px;
-    font-size: 11px;
+    font-size: 0.785714rem;
     color: #fff;
     border-radius: 999px;
     font-weight: 600;
@@ -1065,7 +951,7 @@ onUnmounted(() => {
     top: 8px;
     right: 8px;
     padding: 2px 10px;
-    font-size: 10px;
+    font-size: 0.714286rem;
     color: #fff;
     background: rgba($color-accent, 0.8);
     border-radius: 999px;
@@ -1079,7 +965,7 @@ onUnmounted(() => {
 
 .card-title {
     margin: 0 0 8px;
-    font-size: 14px;
+    font-size: 1rem;
     font-weight: 500;
     color: #1d1d1f;
     line-height: 1.45;
@@ -1097,20 +983,20 @@ onUnmounted(() => {
     margin-bottom: 8px;
 
     .price {
-        font-size: 18px;
+        font-size: 1.285714rem;
         font-weight: 700;
         color: $color-accent;
         letter-spacing: -0.3px;
     }
 
     .price-symbol {
-        font-size: 13px;
+        font-size: 0.928571rem;
         font-weight: 600;
         color: $color-accent;
     }
 
     .original-price {
-        font-size: 11px;
+        font-size: 0.785714rem;
         color: #aeaeb2;
         text-decoration: line-through;
     }
@@ -1126,10 +1012,10 @@ onUnmounted(() => {
         display: inline-flex;
         align-items: center;
         gap: 3px;
-        font-size: 11px;
+        font-size: 0.785714rem;
         color: #aeaeb2;
 
-        .el-icon { font-size: 12px; }
+        .el-icon { font-size: 0.857143rem; }
     }
 }
 
@@ -1153,7 +1039,7 @@ onUnmounted(() => {
         }
 
         .username {
-            font-size: 11px;
+            font-size: 0.785714rem;
             color: #86868b;
             max-width: 70px;
             overflow: hidden;
@@ -1163,7 +1049,7 @@ onUnmounted(() => {
     }
 
     .meta-time {
-        font-size: 11px;
+        font-size: 0.785714rem;
         color: #aeaeb2;
         flex-shrink: 0;
     }
@@ -1220,11 +1106,11 @@ onUnmounted(() => {
     align-items: center;
     justify-content: center;
     padding: 32px 0;
-    font-size: 13px;
+    font-size: 0.928571rem;
     color: #86868b;
 
     .is-loading {
-        font-size: 20px;
+        font-size: 1.428571rem;
         color: $color-primary;
         animation: rotating 1s linear infinite;
     }
@@ -1252,7 +1138,7 @@ onUnmounted(() => {
     border: none;
     background: $color-primary;
     color: #fff;
-    font-size: 18px;
+    font-size: 1.285714rem;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1280,7 +1166,7 @@ onUnmounted(() => {
 // =====================================================
 @media (max-width: 640px) {
     .filter-bar { padding: 10px 12px; }
-    .filter-bar .filter-item { padding: 5px 12px; font-size: 12px; }
+    .filter-bar .filter-item { padding: 5px 12px; font-size: 0.857143rem; }
     .skeleton-card { width: calc((100% - 14px) / 2); }
 }
 </style>

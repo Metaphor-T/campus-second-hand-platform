@@ -2,6 +2,7 @@
   <div class="login-container">
     <!-- 左侧品牌区 -->
     <div class="hero-section">
+      <div class="auth-reading"><AccessibilitySettings appearance="glass" /></div>
       <div class="hero-overlay"></div>
       <div class="hero-content">
         <div class="brand">
@@ -37,31 +38,35 @@
 
         <div class="role-container">
           <div class="role-panel">
-            <div
+            <button type="button"
               v-for="role in roleList"
-              :key="`idx-${role}`"
+              :key="`idx-${role}`" :aria-pressed="roleActive === role"
               :class="['item-role', { active: roleActive === role }]"
               @click="roleChoose(role)"
             >
               {{ role }}
-            </div>
+            </button>
           </div>
         </div>
 
         <div class="input-group">
+          <p id="auth-help" class="sr-only">请填写以下信息，错误会在表单中提示。</p>
+          <p id="auth-error" class="auth-error" role="alert">{{ formError }}</p>
           <div class="input-field">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
               <circle cx="12" cy="7" r="4" />
             </svg>
-            <input v-model="account" type="text" placeholder="登录账号" class="custom-input" @keyup.enter="goLogin" />
+            <label class="auth-label" for="auth-account">账号</label>
+            <input id="auth-account" aria-describedby="auth-help auth-error" autocomplete="username" v-model="account" type="text" placeholder="登录账号" class="custom-input" @keyup.enter="goLogin" />
           </div>
           <div class="input-field">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
-            <input v-model="password" type="password" placeholder="密码" class="custom-input" @keyup.enter="goLogin" />
+            <label class="auth-label" for="auth-password">密码</label>
+            <input id="auth-password" aria-describedby="auth-help auth-error" autocomplete="current-password" v-model="password" type="password" placeholder="密码" class="custom-input" @keyup.enter="goLogin" />
           </div>
         </div>
 
@@ -73,7 +78,7 @@
 
         <div class="form-footer">
           <span>还没有账号？</span>
-          <span class="link" @click="router.push('/register')">立即注册</span>
+          <router-link class="link" to="/register">立即注册</router-link>
         </div>
       </div>
     </div>
@@ -81,6 +86,7 @@
 </template>
 
 <script setup lang="ts">
+import AccessibilitySettings from '@/components/AccessibilitySettings.vue'
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
@@ -88,6 +94,7 @@ import { setRole, setToken, setUserInfo, clearUserInfo } from '@/utils/localStor
 import { userLoginApi, userTokenAuthApi } from "@/api/user-api"
 import { loginApi } from "@/api/admin-api"
 
+const formError = ref('')
 const account = ref('')
 const password = ref('')
 const router = useRouter()
@@ -116,13 +123,16 @@ const loginSuccess = async (role: string, token: string, path: string) => {
 }
 
 const goLogin = async () => {
+  formError.value = ''
   try {
     if (!account.value) {
-      ElMessage.warning('账号不能为空')
+      formError.value = '账号不能为空'
+      ElMessage.warning(formError.value)
       return
     }
     if (!password.value) {
-      ElMessage.warning('密码不能为空')
+      formError.value = '密码不能为空'
+      ElMessage.warning(formError.value)
       return
     }
     const userLoginDTO = {
@@ -137,7 +147,8 @@ const goLogin = async () => {
       loginSuccess(data?.role ?? '', data?.token ?? '', '/user-home')
     }
   } catch (error: any) {
-    ElMessage.warning(`${error.message}`)
+    formError.value = error.message || '请求失败，请重试'
+    ElMessage.warning(formError.value)
   }
 }
 </script>

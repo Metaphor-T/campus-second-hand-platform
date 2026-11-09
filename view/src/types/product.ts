@@ -56,6 +56,7 @@ export interface ProductVO {
  * 商品查询参数
  */
 export interface ProductQueryDTO extends QueryDTO {
+    sortBy?: 'latest' | 'priceAsc' | 'priceDesc' | 'hot'
     userId?: number    // 用户ID
     categoryId?: number // 分类ID
     title?: string     // 标题模糊搜索
@@ -85,6 +86,8 @@ export interface ProductAddDTO {
  * 修改商品参数
  */
 export interface ProductUpdateDTO {
+    version?: number          // 编辑版本，检测并发覆盖
+    clearOriginalPrice?: boolean // 显式清空选填原价
     id?: number               // 商品ID
     categoryId?: number       // 分类ID
     title?: string            // 商品标题

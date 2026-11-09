@@ -10,3 +10,7 @@ api/file/*
 .env.*
 .DS_Store
 Thumbs.db
+.local-backups/
+view/*.tsbuildinfo
+view/vite.config.d.ts
+api/src/main/resources/application-local.yml

@@ -68,7 +68,7 @@
 
             <!-- 分页 -->
             <div class="pagination-wrapper">
-                <el-pagination
+                <el-pagination v-accessible-pagination
                     v-model:current-page="queryDTO.current"
                     v-model:page-size="queryDTO.size"
                     :page-sizes="[10, 20, 50, 100]"

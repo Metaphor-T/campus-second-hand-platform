@@ -1,7 +1,9 @@
 <template>
-    <div class="product-detail" v-loading="loading">
+    <div class="product-detail product-module" :class="{ 'product-large-text': largeText }" v-loading="loading">
+        <ProductExperienceToolbar />
+        <div v-if="detailError" class="product-request-error" role="alert">{{ detailError }}<el-button @click="loadProductData">重试加载</el-button></div>
         <!-- 返回按钮 -->
-        <div class="back-bar" @click="goBack">
+        <div class="back-bar" @click="goBack" role="button" tabindex="0" aria-label="返回商品列表" @keydown.enter="goBack" @keydown.space.prevent="goBack">
             <el-icon :size="20"><ArrowLeft /></el-icon>
             <span>{{ product?.title ?? '商品' }}详情</span>
         </div>
@@ -165,7 +167,7 @@
                         :key="tab.key"
                         :class="['tab-item', { active: activeTab === tab.key }]"
                         @click="activeTab = tab.key"
-                    >
+                     role="button" tabindex="0" @keydown.enter.self.prevent="activeTab = tab.key" @keydown.space.self.prevent="activeTab = tab.key">
                         <el-icon :size="16"><component :is="tab.icon" /></el-icon>
                         {{ tab.label }}
                     </div>
@@ -180,7 +182,7 @@
                         :key="index"
                         class="thumbnail-item"
                         @click="openPreview(index)"
-                    >
+                     role="button" tabindex="0" @keydown.enter.self.prevent="openPreview(index)" @keydown.space.self.prevent="openPreview(index)">
                         <el-image
                             :src="getImageUrl(img.imageUrl)"
                             fit="cover"
@@ -231,7 +233,7 @@
                         :key="index"
                         :class="['preview-thumb-item', { active: activeImageIndex === index }]"
                         @click="switchPreviewImage(index)"
-                    >
+                     role="button" tabindex="0" @keydown.enter.self.prevent="switchPreviewImage(index)" @keydown.space.self.prevent="switchPreviewImage(index)">
                         <el-image
                             :src="getImageUrl(img.imageUrl)"
                             fit="cover"
@@ -295,7 +297,7 @@
 
                     <!-- 分页 -->
                     <div class="review-pagination" v-if="reviewTotal > pageSize">
-                        <el-pagination
+                        <el-pagination v-accessible-pagination
                             v-model:current-page="reviewPage"
                             :page-size="pageSize"
                             :total="reviewTotal"
@@ -317,7 +319,7 @@
                         :key="item.id"
                         class="seller-product-item"
                         @click="goProduct(item)"
-                    >
+                     role="button" tabindex="0" @keydown.enter.self.prevent="goProduct(item)" @keydown.space.self.prevent="goProduct(item)">
                         <div class="product-card">
                             <div class="card-image">
                                 <img :src="getImageUrl(coverImage(item))" class="card-img" loading="lazy" />
@@ -346,11 +348,11 @@
         </template>
 
         <!-- 商品不存在提示 -->
-        <el-empty v-else-if="!loading" description="商品不存在或已下架" />
+        <el-empty v-else-if="!loading && !detailError" description="商品不存在或已下架" />
 
         <!-- ====== 返回顶部 ====== -->
         <transition name="fade">
-            <div v-if="showBackTop" class="back-to-top" @click="scrollToTop">
+            <div v-if="showBackTop" class="back-to-top" @click="scrollToTop" role="button" tabindex="0" @keydown.enter.self.prevent="scrollToTop" @keydown.space.self.prevent="scrollToTop">
                 <el-icon :size="22"><ArrowUp /></el-icon>
             </div>
         </transition>
@@ -361,6 +363,8 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import ProductExperienceToolbar from '@/components/ProductExperienceToolbar.vue'
+import { useProductReadability, productImageUrl, productErrorMessage } from '@/utils/product-experience'
 import { ArrowLeft, ArrowUp, Picture, View, Star, ChatDotSquare, ChatLineSquare, ShoppingCart, WarningFilled, CircleCheckFilled, Medal, Van, Collection, Document } from '@element-plus/icons-vue'
 import { userTokenAuthApi } from '@/api/user-api'
 import { getProductDetailApi, toggleFavoriteApi, addWantApi, getInteractStatusApi, recordViewApi, publicProductListApi } from '@/api/product-api'
@@ -371,6 +375,8 @@ import type { ProductReviewVO } from '@/types/review'
 const route = useRoute()
 const router = useRouter()
 
+const largeText = useProductReadability()
+const detailError = ref('')
 const product = ref<ProductVO | null>(null)
 const loading = ref(false)
 const activeImageIndex = ref(0)
@@ -452,11 +458,8 @@ const tabList: TabItem[] = [
 ]
 
 // ====== 工具函数 ======
-const getImageUrl = (path?: string) => {
-    if (!path) return ''
-    if (path.startsWith('http://') || path.startsWith('https://')) return path
-    return `${import.meta.env.VITE_API_BASE_URL}${path}`
-}
+const getImageUrl = productImageUrl
+
 
 const conditionLabel = (v?: number) => {
     const map: Record<number, string> = { 1: '全新', 2: '几乎全新', 3: '有使用痕迹', 4: '老旧' }
@@ -574,26 +577,32 @@ const handleWant = async () => {
 }
 
 // ====== 加载评价 ======
+let reviewRequest = 0
 const loadReviews = async () => {
+    const generation = detailGeneration
+    const request = ++reviewRequest
     const id = Number(route.params.id)
     if (!id) return
     reviewLoading.value = true
     try {
         const res = await publicReviewListApi({ productId: id, current: reviewPage.value, size: pageSize })
+        if (generation !== detailGeneration || request !== reviewRequest) return
         reviewList.value = res?.data ?? []
         reviewTotal.value = res?.count ?? 0
     } catch {
         // 评价加载失败不影响主体
     } finally {
-        reviewLoading.value = false
+        if (generation === detailGeneration && request === reviewRequest) reviewLoading.value = false
     }
 }
 
 const loadReviewStats = async () => {
+    const generation = detailGeneration
     const id = Number(route.params.id)
     if (!id) return
     try {
         const res = await getReviewStatsApi(id)
+        if (generation !== detailGeneration) return
         reviewStats.value = res?.data ?? null
     } catch {
         // 静默失败
@@ -602,26 +611,35 @@ const loadReviewStats = async () => {
 
 // ====== 加载发布者在售商品 ======
 const loadSellerProducts = async () => {
+    const generation = detailGeneration
     const userId = product.value?.userId
     if (!userId) return
     sellerLoading.value = true
     try {
         const res = await publicProductListApi({ userId, current: 1, size: 8 })
+        if (generation !== detailGeneration) return
         // 排除当前商品
         const currentId = Number(route.params.id)
         sellerProducts.value = (res?.data ?? []).filter((p: ProductVO) => p.id !== currentId)
     } catch {
-        sellerProducts.value = []
+        if (generation === detailGeneration) sellerProducts.value = []
     } finally {
-        sellerLoading.value = false
+        if (generation === detailGeneration) sellerLoading.value = false
     }
 }
 
 // ====== 加载数据 ======
+let detailGeneration = 0
 const loadProductData = async () => {
+    const generation = ++detailGeneration
+    detailError.value = ''
+    reviewLoading.value = false
+    product.value = null
+    activeImageIndex.value = 0
     const id = Number(route.params.id)
-    if (!id || isNaN(id)) {
-        ElMessage.error('商品ID无效')
+    if (!Number.isSafeInteger(id) || id <= 0) {
+        loading.value = false
+        detailError.value = '商品编号无效，请返回列表重新选择'
         return
     }
     loading.value = true
@@ -636,6 +654,7 @@ const loadProductData = async () => {
     sellerProducts.value = []
     try {
         const res = await getProductDetailApi(id)
+        if (generation !== detailGeneration) return
         product.value = res?.data ?? null
         // 找到封面图的索引
         const coverIndex = imageList.value.findIndex(img => img.isCover === 1)
@@ -646,6 +665,7 @@ const loadProductData = async () => {
         // 加载交互状态
         try {
             const statusRes = await getInteractStatusApi(id)
+            if (generation !== detailGeneration) return
             if (statusRes?.data) {
                 favorited.value = statusRes.data.favorited
                 wanted.value = statusRes.data.wanted
@@ -657,6 +677,7 @@ const loadProductData = async () => {
         // 获取当前用户信息（直接调用API，避免localStorage缓存污染导致误判自营）
         try {
             const authResp = await userTokenAuthApi()
+            if (generation !== detailGeneration) return
             const authData = authResp?.data as any
             if (authData?.id) {
                 currentUserId.value = authData.id
@@ -665,6 +686,7 @@ const loadProductData = async () => {
             // 忽略
         }
 
+        if (generation !== detailGeneration) return
         // 加载评价
         loadReviews()
         loadReviewStats()
@@ -674,17 +696,13 @@ const loadProductData = async () => {
 
         // 记录浏览（不阻塞主流程）
         recordViewApi(id).then(() => {
-            if (product.value) {
+            if (generation === detailGeneration && product.value?.id === id) {
                 product.value.viewCount = (product.value.viewCount ?? 0) + 1
             }
         }).catch(() => {
             // 浏览记录失败不影响主体显示
         })
-    } catch (e: any) {
-        ElMessage.error(e.message || '加载商品详情失败')
-    } finally {
-        loading.value = false
-    }
+    } catch (e) { if (generation === detailGeneration) detailError.value = productErrorMessage(e, '商品加载失败') } finally { if (generation === detailGeneration) loading.value = false }
 }
 
 // 监听路由参数变化，仅在当前仍为商品详情页且 id 有效时才重新加载
@@ -701,6 +719,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+    ++detailGeneration
     window.removeEventListener('scroll', handleScroll)
 })
 </script>
@@ -749,7 +768,7 @@ onBeforeUnmount(() => {
             gap: 6px;
             padding: 5px 18px;
             border-radius: 20px;
-            font-size: 14px;
+            font-size: 1rem;
             font-weight: 500;
             color: #666;
             cursor: pointer;
@@ -757,7 +776,7 @@ onBeforeUnmount(() => {
             user-select: none;
 
             .el-icon {
-                font-size: 16px;
+                font-size: 1.142857rem;
             }
 
             &.active {
@@ -870,7 +889,7 @@ onBeforeUnmount(() => {
         align-items: center;
         gap: 8px;
         color: #bbb;
-        font-size: 13px;
+        font-size: 0.928571rem;
     }
 }
 
@@ -920,7 +939,7 @@ onBeforeUnmount(() => {
         padding: 4px 14px;
         background: #f0f2f5;
         border-radius: 20px;
-        font-size: 12px;
+        font-size: 0.857143rem;
         color: $color-text-secondary;
         font-weight: 500;
         letter-spacing: 0.3px;
@@ -942,7 +961,7 @@ onBeforeUnmount(() => {
 }
 
 .product-title {
-    font-size: 38px;
+    font-size: 2.714286rem;
     font-weight: 700;
     color: #1a1a2e;
     line-height: 1.4;
@@ -963,13 +982,13 @@ onBeforeUnmount(() => {
         gap: 2px;
 
         .price-symbol {
-            font-size: 18px;
+            font-size: 1.285714rem;
             font-weight: 700;
             color: $color-accent;
         }
 
         .price {
-            font-size: 32px;
+            font-size: 2.285714rem;
             font-weight: 800;
             color: $color-accent;
             letter-spacing: -1px;
@@ -977,7 +996,7 @@ onBeforeUnmount(() => {
     }
 
     .original-price {
-        font-size: 14px;
+        font-size: 1rem;
         color: #999;
         text-decoration: line-through;
     }
@@ -996,12 +1015,12 @@ onBeforeUnmount(() => {
         gap: 5px;
         padding: 5px 14px;
         border-radius: 20px;
-        font-size: 13px;
+        font-size: 0.928571rem;
         font-weight: 500;
         transition: all 0.2s;
 
         .el-icon {
-            font-size: 14px;
+            font-size: 1rem;
         }
 
         &.tag-success {
@@ -1052,7 +1071,7 @@ onBeforeUnmount(() => {
     color: $color-text-secondary;
 
     .el-icon {
-        font-size: 18px;
+        font-size: 1.285714rem;
         color: $color-text-light;
     }
 }
@@ -1067,7 +1086,7 @@ onBeforeUnmount(() => {
 
     .el-button {
         height: 40px;
-        font-size: 15px;
+        font-size: 1.071429rem;
         font-weight: 600;
         border-radius: 20px;
         padding: 0 24px;
@@ -1135,7 +1154,7 @@ onBeforeUnmount(() => {
         margin-left: 5px;
         border-radius: 11px;
         background: rgba(255, 255, 255, 0.3);
-        font-size: 12px;
+        font-size: 0.857143rem;
         font-weight: 700;
         line-height: 1;
     }
@@ -1218,11 +1237,11 @@ onBeforeUnmount(() => {
         }
 
         .stock-text {
-            font-size: 15px;
+            font-size: 1.071429rem;
             line-height: 1.4;
 
             strong {
-                font-size: 20px;
+                font-size: 1.428571rem;
                 font-weight: 700;
             }
         }
@@ -1264,14 +1283,14 @@ onBeforeUnmount(() => {
             gap: 12px;
 
             .seller-name {
-                font-size: 15px;
+                font-size: 1.071429rem;
                 font-weight: 700;
                 color: #1a1a1a;
             }
         }
 
         .seller-time {
-            font-size: 13px;
+            font-size: 0.928571rem;
             color: #999;
         }
     }
@@ -1282,7 +1301,7 @@ onBeforeUnmount(() => {
         background: #fff;
         font-weight: 600;
         height: 32px;
-        font-size: 13px;
+        font-size: 0.928571rem;
         padding: 0 16px;
         transition: all 0.25s;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -1332,7 +1351,7 @@ onBeforeUnmount(() => {
         align-items: center;
         gap: 10px;
         margin-left: 14px;
-        font-size: 14px;
+        font-size: 1rem;
         font-weight: 400;
         color: $color-text-secondary;
         vertical-align: middle;
@@ -1354,7 +1373,7 @@ onBeforeUnmount(() => {
             margin-bottom: 10px;
 
         .review-buyer {
-            font-size: 15px;
+            font-size: 1.071429rem;
             font-weight: 500;
             color: $color-text;
         }
@@ -1365,13 +1384,13 @@ onBeforeUnmount(() => {
 
         .review-time {
             margin-left: auto;
-            font-size: 13px;
+            font-size: 0.928571rem;
             color: $color-text-light;
         }
         }
 
         .review-content {
-            font-size: 14px;
+            font-size: 1rem;
             color: $color-text-secondary;
             line-height: 1.6;
             margin-bottom: 10px;
@@ -1404,7 +1423,7 @@ onBeforeUnmount(() => {
             background: #f5f7fa;
             border-radius: 8px;
             padding: 10px 14px;
-            font-size: 13px;
+            font-size: 0.928571rem;
             color: $color-text-secondary;
             line-height: 1.6;
 
@@ -1416,7 +1435,7 @@ onBeforeUnmount(() => {
             .reply-time {
                 display: inline-block;
                 margin-left: 8px;
-                font-size: 11px;
+                font-size: 0.785714rem;
                 color: $color-text-light;
             }
         }
@@ -1438,7 +1457,7 @@ onBeforeUnmount(() => {
 }
 
 .seller-products-title {
-    font-size: 16px;
+    font-size: 1.142857rem;
     font-weight: 700;
     color: #1a1a2e;
     margin-bottom: 14px;
@@ -1500,7 +1519,7 @@ onBeforeUnmount(() => {
                 top: 6px;
                 left: 6px;
                 padding: 2px 10px;
-                font-size: 10px;
+                font-size: 0.714286rem;
                 color: #fff;
                 border-radius: 999px;
                 font-weight: 600;
@@ -1517,7 +1536,7 @@ onBeforeUnmount(() => {
                 top: 6px;
                 right: 6px;
                 padding: 2px 8px;
-                font-size: 10px;
+                font-size: 0.714286rem;
                 color: #fff;
                 background: rgba($color-accent, 0.8);
                 border-radius: 999px;
@@ -1530,7 +1549,7 @@ onBeforeUnmount(() => {
 
             .card-title {
                 margin: 0 0 6px;
-                font-size: 13px;
+                font-size: 0.928571rem;
                 font-weight: 500;
                 color: #1d1d1f;
                 line-height: 1.4;
@@ -1547,20 +1566,20 @@ onBeforeUnmount(() => {
                 margin-bottom: 6px;
 
                 .price-symbol {
-                    font-size: 11px;
+                    font-size: 0.785714rem;
                     font-weight: 600;
                     color: $color-accent;
                 }
 
                 .price {
-                    font-size: 16px;
+                    font-size: 1.142857rem;
                     font-weight: 700;
                     color: $color-accent;
                     letter-spacing: -0.3px;
                 }
 
                 .original-price {
-                    font-size: 10px;
+                    font-size: 0.714286rem;
                     color: #aeaeb2;
                     text-decoration: line-through;
                 }
@@ -1574,10 +1593,10 @@ onBeforeUnmount(() => {
                     display: inline-flex;
                     align-items: center;
                     gap: 2px;
-                    font-size: 10px;
+                    font-size: 0.714286rem;
                     color: #aeaeb2;
 
-                    .el-icon { font-size: 11px; }
+                    .el-icon { font-size: 0.785714rem; }
                 }
             }
         }

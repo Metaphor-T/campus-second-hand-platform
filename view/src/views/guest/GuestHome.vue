@@ -1,9 +1,10 @@
 <template>
     <div class="guest-layout">
         <!-- 顶部导航栏 -->
-        <header class="navbar">
+        <header class="navbar" v-sticky-navigation>
             <div class="navbar-inner">
                 <div class="navbar-left">
+                    <AccessibilitySettings />
                     <router-link to="/guest-home/market" class="brand-link">
                         <img class="logo" src="/logo.png" alt="logo" />
                         <div class="brand-text">
@@ -19,7 +20,7 @@
                             <el-input
                                 v-model="searchKeyword"
                                 class="search-input"
-                                placeholder="搜索商品、分类..."
+                                placeholder="搜索商品标题" aria-label="搜索商品标题"
                                 clearable
                                 @keyup.enter="doSearch"
                             />
@@ -159,14 +160,14 @@ const goRegister = () => {
     }
 
     .brand {
-        font-size: 26px;
+        font-size: 1.857143rem;
         font-weight: 700;
         color: #1a1a1a;
         letter-spacing: 0.5px;
     }
 
     .brand-sub {
-        font-size: 12px;
+        font-size: 0.857143rem;
         font-weight: 600;
         color: #636366;
         letter-spacing: 1.8px;
@@ -198,7 +199,7 @@ const goRegister = () => {
 
         .search-icon {
             color: #aeaeb2;
-            font-size: 20px;
+            font-size: 1.428571rem;
             flex-shrink: 0;
         }
 
@@ -210,7 +211,7 @@ const goRegister = () => {
                 padding: 0 8px;
             }
             :deep(.el-input__inner) {
-                font-size: 15px;
+                font-size: 1.071429rem;
                 border: none;
                 background: transparent;
                 color: #1a1a1a;
@@ -223,7 +224,7 @@ const goRegister = () => {
             height: 36px;
             padding: 0 20px;
             border-radius: 18px;
-            font-size: 14px;
+            font-size: 1rem;
             background: #1a1a1a;
             color: #fff;
             border: none;
@@ -248,7 +249,7 @@ const goRegister = () => {
 
     .btn-login {
         height: 38px;
-        font-size: 15px;
+        font-size: 1.071429rem;
         font-weight: 600;
         background: #1a1a1a;
         color: #fff;
@@ -265,7 +266,7 @@ const goRegister = () => {
 
     .btn-register {
         height: 38px;
-        font-size: 15px;
+        font-size: 1.071429rem;
         font-weight: 600;
         background: linear-gradient(135deg, #ff6b35, #e85d3a);
         color: #fff;
@@ -304,14 +305,14 @@ const goRegister = () => {
         text-align: center;
 
         .footer-title {
-            font-size: 28px;
+            font-size: 2rem;
             font-weight: 700;
             margin: 0 0 8px;
             letter-spacing: 0.5px;
         }
 
         .footer-desc {
-            font-size: 16px;
+            font-size: 1.142857rem;
             color: #aeaeb2;
             margin: 0 0 28px;
         }
@@ -324,7 +325,7 @@ const goRegister = () => {
 
         .footer-btn-register {
             height: 48px;
-            font-size: 16px;
+            font-size: 1.142857rem;
             font-weight: 700;
             background: linear-gradient(135deg, #ff6b35, #e85d3a);
             color: #fff;
@@ -340,7 +341,7 @@ const goRegister = () => {
 
         .footer-btn-login {
             height: 48px;
-            font-size: 16px;
+            font-size: 1.142857rem;
             font-weight: 600;
             background: transparent;
             color: #fff;
@@ -358,9 +359,15 @@ const goRegister = () => {
 
 /* ====== 响应式 ====== */
 @media (max-width: 768px) {
-    .navbar-inner { padding: 0 12px; gap: 10px; }
-    .navbar-search { max-width: none; }
-    .brand { display: none; }
+    .navbar-inner { display:grid; grid-template-columns:minmax(0, 1fr) auto; height:auto; padding:0 12px; gap:10px; }
+    .navbar-left { display:contents; }
+    .navbar-left .brand-text { display:none; }
+    .navbar-left .logo { width:44px; height:44px; }
+    .navbar-search { grid-column:1 / -1; grid-row:2; width:100%; min-width:0; max-width:none; }
+    .navbar-search .search-input { min-width:0; }
+    .navbar-right { grid-column:2; grid-row:1; }
+    .navbar-right .el-button { min-height:44px; margin-left:0; }
+    .navbar-left .brand-link { grid-column:1; grid-row:1; }
     .main-content { padding: 12px 8px; }
     .guest-footer { padding: 32px 16px 28px; }
     .footer-actions { flex-direction: column; align-items: center; }

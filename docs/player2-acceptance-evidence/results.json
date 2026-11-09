@@ -1,0 +1,208 @@
+{
+  "run": "mw9e60kw",
+  "results": [
+    {
+      "name": "UPLOAD-01 authenticated real PNG upload",
+      "passed": true
+    },
+    {
+      "name": "UPLOAD-02 rejects anonymous upload",
+      "passed": true
+    },
+    {
+      "name": "UPLOAD-03 rejects renamed text as PNG",
+      "passed": true
+    },
+    {
+      "name": "UPLOAD-04 rejects >2MB image",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION zero-price",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION fractional-price",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION blank-title",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION invalid-category",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION no-images",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION duplicate-images",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION external-image",
+      "passed": true
+    },
+    {
+      "name": "IMAGE-OWNER cannot reuse another user product image",
+      "passed": true
+    },
+    {
+      "name": "PUBLISH pending and hidden to guests",
+      "passed": true
+    },
+    {
+      "name": "OWNER other user cannot edit pending product",
+      "passed": true
+    },
+    {
+      "name": "ROLE ordinary user cannot audit",
+      "passed": true
+    },
+    {
+      "name": "AUDIT approve becomes public",
+      "passed": true
+    },
+    {
+      "name": "AUDIT repeated audit rejected",
+      "passed": false,
+      "error": "expected business rejection, got HTTP 500, code 500"
+    },
+    {
+      "name": "FILTER priceAsc and price range",
+      "passed": true
+    },
+    {
+      "name": "FILTER priceDesc and price range",
+      "passed": true
+    },
+    {
+      "name": "PAGINATION admin UI offered page size 100 works",
+      "passed": false,
+      "error": "HTTP 400, code 400: 每页最多50条\n\n400 !== 200\n"
+    },
+    {
+      "name": "FILTER invalid range rejected",
+      "passed": true
+    },
+    {
+      "name": "RECOMMEND cold-start list contains only approved products",
+      "passed": true
+    },
+    {
+      "name": "EDIT save re-enters review and clears original price",
+      "passed": true
+    },
+    {
+      "name": "EDIT stale version rejected",
+      "passed": true
+    },
+    {
+      "name": "FAVORITE toggle on and off persists",
+      "passed": true
+    },
+    {
+      "name": "WANT repeat operation counts only once",
+      "passed": true
+    },
+    {
+      "name": "DOWN hidden and rejects new interactions",
+      "passed": true
+    },
+    {
+      "name": "EDIT down product remains down",
+      "passed": true
+    },
+    {
+      "name": "UP requires review again",
+      "passed": true
+    },
+    {
+      "name": "AUDIT reject and remark persists",
+      "passed": true
+    },
+    {
+      "name": "ORDER seller cannot purchase own product",
+      "passed": true
+    },
+    {
+      "name": "ORDER create correct amount and deduct stock",
+      "passed": true
+    },
+    {
+      "name": "ORDER unrelated account cannot read order details",
+      "passed": false,
+      "error": "expected business rejection, got HTTP 200, code 200"
+    },
+    {
+      "name": "ORDER buyer cancellation restores stock",
+      "passed": true
+    },
+    {
+      "name": "ORDER pay-ship-receive lifecycle",
+      "passed": true
+    },
+    {
+      "name": "ORDER refund restores stock",
+      "passed": true
+    },
+    {
+      "name": "DELETE product with orders is protected",
+      "passed": true
+    },
+    {
+      "name": "STOCK remaining 1 of 3 must stay available after buying 2",
+      "passed": false,
+      "error": "remaining stock must not be prematurely taken down\n\n3 !== 1\n"
+    },
+    {
+      "name": "STOCK unlimited remains 0 after cancellation",
+      "passed": false,
+      "error": "cancellation must not convert unlimited to finite stock\n\n2 !== 0\n"
+    },
+    {
+      "name": "DELETE own unused product removes it",
+      "passed": true
+    },
+    {
+      "name": "UI product publish with actual image upload",
+      "passed": true
+    },
+    {
+      "name": "UI admin product list and detail open",
+      "passed": true
+    },
+    {
+      "name": "UI admin approve published product",
+      "passed": true
+    },
+    {
+      "name": "UI seller edit approved product re-enters review",
+      "passed": true
+    }
+  ],
+  "fixtures": {
+    "run": "mw9e60kw",
+    "accounts": [
+      "acc_mw9e60kw_seller",
+      "acc_mw9e60kw_buyer",
+      "acc_mw9e60kw_other"
+    ],
+    "products": [
+      64,
+      65,
+      66,
+      67,
+      68,
+      69
+    ],
+    "orders": [
+      21,
+      22,
+      23,
+      24
+    ]
+  }
+}

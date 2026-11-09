@@ -95,7 +95,12 @@
                 AND p.price &lt;= #{maxPrice}
             </if>
         </where>
-        ORDER BY p.create_time DESC
+        <choose>
+            <when test="sortBy == 'priceAsc'">ORDER BY p.price ASC, p.id DESC</when>
+            <when test="sortBy == 'priceDesc'">ORDER BY p.price DESC, p.id DESC</when>
+            <when test="sortBy == 'hot'">ORDER BY p.favorite_count DESC, p.view_count DESC, p.id DESC</when>
+            <otherwise>ORDER BY p.create_time DESC, p.id DESC</otherwise>
+        </choose>
         <if test="current != null and size != null">
             LIMIT #{current}, #{size}
         </if>
@@ -222,7 +227,7 @@
         UPDATE product
         SET stock = stock - #{quantity},
             `version` = `version` + 1,
-            status = IF(status = 1 AND stock - #{quantity} &lt;= 0, 3, status)
+            status = IF(status = 1 AND stock &lt;= 0, 3, status)
         WHERE id = #{id} AND stock &gt;= #{quantity} AND `version` = #{version}
     </update>
 

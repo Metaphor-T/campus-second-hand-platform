@@ -32,7 +32,6 @@
         <!-- 树形数据表格 -->
         <el-card class="table-card" shadow="never">
             <el-table
-                ref="tableRef"
                 :data="filteredTreeData"
                 v-loading="loading"
                 row-key="id"
@@ -42,7 +41,6 @@
                 stripe
                 style="width: 100%"
                 highlight-current-row
-                @row-click="handleRowClick"
             >
                 <el-table-column label="分类名称" min-width="250">
                     <template #default="{ row }">
@@ -142,6 +140,11 @@ import {
 } from '@/api/category-api'
 import type { CategoryVO, CategoryAddDTO, CategoryUpdateDTO, CategorySortDTO } from '@/types/category'
 
+interface CategoryTreeOption extends CategoryVO {
+    disabled?: boolean
+    children?: CategoryTreeOption[]
+}
+
 const loading = ref(false)
 const submitLoading = ref(false)
 const dialogVisible = ref(false)
@@ -149,7 +152,6 @@ const isEditing = ref(false)
 const isAddSub = ref(false)
 const tableData = ref<CategoryVO[]>([])
 const formRef = ref<FormInstance>()
-const tableRef = ref()
 
 let sortableInstance: Sortable | null = null
 
@@ -313,9 +315,9 @@ const parentTreeOptions = computed(() => {
     // 编辑模式下，排除当前节点及其所有子节点
     const excludeIds = collectDescendantIds(tableData.value, formData.id!)
     // 创建深拷贝并禁用排除节点
-    const disableNodes = (nodes: CategoryVO[]): CategoryVO[] => {
+    const disableNodes = (nodes: CategoryVO[]): CategoryTreeOption[] => {
         return nodes.map(node => {
-            const cloned: CategoryVO = { ...node, children: undefined as CategoryVO[] | undefined }
+            const cloned: CategoryTreeOption = { ...node, children: undefined }
             if (excludeIds.has(node.id!)) {
                 cloned.disabled = true
             }
@@ -409,12 +411,6 @@ const handleSearch = () => {
 const handleReset = () => {
     queryParams.name = ''
     queryParams.status = undefined
-}
-
-// ========== 行点击 ==========
-
-const handleRowClick = (row: CategoryVO) => {
-    // 预留：点击行可以展开/收起
 }
 
 // ========== 新增 ==========
@@ -621,7 +617,7 @@ onBeforeUnmount(() => {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            font-size: 14px;
+            font-size: 1rem;
         }
     }
 }
@@ -658,7 +654,7 @@ onBeforeUnmount(() => {
                 height: 24px;
                 margin: 0 !important;
                 padding: 0 !important;
-                font-size: 12px;
+                font-size: 0.857143rem;
                 line-height: 24px;
                 flex-shrink: 0;
                 color: #909399;
@@ -666,7 +662,7 @@ onBeforeUnmount(() => {
 
             // 标签文字
             .el-tree-node__label {
-                font-size: 14px;
+                font-size: 1rem;
                 line-height: 34px;
                 padding-left: 4px;
             }

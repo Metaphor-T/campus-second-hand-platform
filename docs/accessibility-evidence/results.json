@@ -1,0 +1,283 @@
+{
+  "time": "2026-11-09T14:40:48.298Z",
+  "results": [
+    {
+      "test": "login-scale",
+      "scale": 1,
+      "inputFont": 13.3
+    },
+    {
+      "test": "login-scale",
+      "scale": 1.25,
+      "inputFont": 16.625
+    },
+    {
+      "test": "login-scale",
+      "scale": 1.5,
+      "inputFont": 19.95
+    },
+    {
+      "test": "login-scale",
+      "scale": 2,
+      "inputFont": 26.6
+    },
+    {
+      "test": "persistence-navigation-and-inline-error",
+      "passed": true
+    },
+    {
+      "test": "page-layout",
+      "width": 1440,
+      "route": "/login",
+      "scale": 2,
+      "viewport": 1440,
+      "content": 1440,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 1440,
+      "route": "/register",
+      "scale": 2,
+      "viewport": 1440,
+      "content": 1440,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 1440,
+      "route": "/user-home/market",
+      "scale": 2,
+      "viewport": 1440,
+      "content": 1440,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 1440,
+      "route": "/user-home/products",
+      "scale": 2,
+      "viewport": 1440,
+      "content": 1440,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 1440,
+      "route": "/user-home/orders",
+      "scale": 2,
+      "viewport": 1440,
+      "content": 1440,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 1440,
+      "route": "/user-home/address",
+      "scale": 2,
+      "viewport": 1440,
+      "content": 1440,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 1440,
+      "route": "/user-home/chat",
+      "scale": 2,
+      "viewport": 1440,
+      "content": 1440,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 768,
+      "route": "/login",
+      "scale": 2,
+      "viewport": 768,
+      "content": 768,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 768,
+      "route": "/register",
+      "scale": 2,
+      "viewport": 768,
+      "content": 768,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 768,
+      "route": "/user-home/market",
+      "scale": 2,
+      "viewport": 768,
+      "content": 768,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 768,
+      "route": "/user-home/products",
+      "scale": 2,
+      "viewport": 768,
+      "content": 768,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 768,
+      "route": "/user-home/orders",
+      "scale": 2,
+      "viewport": 768,
+      "content": 768,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 768,
+      "route": "/user-home/address",
+      "scale": 2,
+      "viewport": 768,
+      "content": 768,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 768,
+      "route": "/user-home/chat",
+      "scale": 2,
+      "viewport": 768,
+      "content": 768,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 320,
+      "route": "/login",
+      "scale": 2,
+      "viewport": 320,
+      "content": 320,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 320,
+      "route": "/register",
+      "scale": 2,
+      "viewport": 320,
+      "content": 320,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 320,
+      "route": "/user-home/market",
+      "scale": 2,
+      "viewport": 320,
+      "content": 320,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 320,
+      "route": "/user-home/products",
+      "scale": 2,
+      "viewport": 320,
+      "content": 320,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 320,
+      "route": "/user-home/orders",
+      "scale": 2,
+      "viewport": 320,
+      "content": 320,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 320,
+      "route": "/user-home/address",
+      "scale": 2,
+      "viewport": 320,
+      "content": 320,
+      "violations": []
+    },
+    {
+      "test": "page-layout",
+      "width": 320,
+      "route": "/user-home/chat",
+      "scale": 2,
+      "viewport": 320,
+      "content": 320,
+      "violations": []
+    },
+    {
+      "test": "address-dialog",
+      "violations": []
+    },
+    {
+      "test": "dialog-focus-restored",
+      "passed": true
+    },
+    {
+      "test": "centered-logout-cancel",
+      "width": 1440,
+      "scale": 1,
+      "passed": true,
+      "box": {
+        "x": 500,
+        "y": 419.59375,
+        "width": 440,
+        "height": 160.796875
+      }
+    },
+    {
+      "test": "centered-logout-cancel",
+      "width": 1440,
+      "scale": 2,
+      "passed": true,
+      "box": {
+        "x": 500,
+        "y": 395.203125,
+        "width": 440,
+        "height": 209.59375
+      }
+    },
+    {
+      "test": "centered-logout-cancel",
+      "width": 320,
+      "scale": 1,
+      "passed": true,
+      "box": {
+        "x": 16,
+        "y": 419.59375,
+        "width": 288,
+        "height": 160.796875
+      }
+    },
+    {
+      "test": "centered-logout-cancel",
+      "width": 320,
+      "scale": 2,
+      "passed": true,
+      "box": {
+        "x": 16,
+        "y": 347.203125,
+        "width": 288,
+        "height": 305.59375
+      }
+    },
+    {
+      "test": "keyboard-settings",
+      "passed": true
+    },
+    {
+      "test": "reset",
+      "passed": true
+    }
+  ],
+  "errors": []
+}

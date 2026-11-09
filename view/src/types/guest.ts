@@ -12,6 +12,7 @@ export interface GuestMarketData {
   hotProducts: ProductVO[]
   /** 瀑布流商品列表 */
   productList: ProductVO[]
+  total: number
 }
 
 /** 分类视图对象 */
@@ -114,6 +115,11 @@ export interface ReviewStats {
 
 /** 商品查询参数 */
 export interface GuestProductQueryDTO {
+  minPrice?: number
+  maxPrice?: number
+  condition?: number
+  tradeType?: number
+  sortBy?: 'latest' | 'priceAsc' | 'priceDesc' | 'hot'
   /** 分类ID */
   categoryId?: number
   /** 标题搜索 */

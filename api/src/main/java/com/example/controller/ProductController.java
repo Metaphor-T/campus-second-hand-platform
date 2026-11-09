@@ -43,7 +43,7 @@ public class ProductController {
     @Auth({RoleEnum.ADMIN})
     @Pager
     @PostMapping(value = "/listPage")
-    public Result<List<ProductVO>> listPage(@RequestBody ProductQueryDTO queryDTO) {
+    public Result<List<ProductVO>> listPage(@Valid @RequestBody ProductQueryDTO queryDTO) {
         List<ProductVO> list = productService.listPage(queryDTO);
         Integer count = productService.listPageCount(queryDTO);
         return Result.success(list, count);
@@ -87,7 +87,7 @@ public class ProductController {
     @Auth({RoleEnum.USER})
     @Pager
     @PostMapping(value = "/myProducts")
-    public Result<List<ProductVO>> myProducts(@RequestBody ProductQueryDTO queryDTO) {
+    public Result<List<ProductVO>> myProducts(@Valid @RequestBody ProductQueryDTO queryDTO) {
         queryDTO.setUserId(UserContext.getUserId());
         List<ProductVO> list = productService.listPage(queryDTO);
         Integer count = productService.listPageCount(queryDTO);
@@ -218,7 +218,7 @@ public class ProductController {
     @Auth({RoleEnum.USER})
     @Pager
     @PostMapping(value = "/favorite/list")
-    public Result<List<ProductVO>> listFavorites(@RequestBody ProductQueryDTO queryDTO) {
+    public Result<List<ProductVO>> listFavorites(@Valid @RequestBody ProductQueryDTO queryDTO) {
         Integer userId = UserContext.getUserId();
         Integer current = queryDTO.getCurrent();
         Integer size = queryDTO.getSize();
@@ -238,8 +238,10 @@ public class ProductController {
     @GetMapping(value = "/public/detail/{id}")
     public Result<ProductVO> publicDetail(@PathVariable Integer id) {
         ProductVO vo = productService.getDetail(id);
-        if (vo == null) {
-            return Result.fail("商品不存在");
+        if (vo == null || (!Integer.valueOf(1).equals(vo.getStatus())
+                && !java.util.Objects.equals(vo.getUserId(), UserContext.getUserId())
+                && !"ADMIN".equalsIgnoreCase(UserContext.getRole()))) {
+            throw new com.example.exception.BusinessException("商品不存在或暂不可查看", 404);
         }
         return Result.success(vo);
     }
@@ -286,7 +288,7 @@ public class ProductController {
     @Auth
     @Pager
     @PostMapping(value = "/public/list")
-    public Result<List<ProductVO>> publicList(@RequestBody ProductQueryDTO queryDTO) {
+    public Result<List<ProductVO>> publicList(@Valid @RequestBody ProductQueryDTO queryDTO) {
         // 仅展示审核通过的商品
         queryDTO.setStatus(1);
         List<ProductVO> list = productService.listPage(queryDTO);

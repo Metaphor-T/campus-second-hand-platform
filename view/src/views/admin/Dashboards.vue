@@ -5,11 +5,7 @@
     <!-- ========== 统计卡片 ========== -->
     <el-row :gutter="20" class="stats-row">
       <el-col :xs="12" :sm="8" :md="6" :lg="4" v-for="card in statCards" :key="card.label">
-        <div
-          class="stat-card"
-          @mouseenter="card.hover = true"
-          @mouseleave="card.hover = false"
-        >
+        <div class="stat-card">
           <div class="stat-icon" :style="{ background: card.bg + '20', color: card.color }">
             <el-icon :size="30"><component :is="card.icon" /></el-icon>
           </div>
@@ -38,7 +34,7 @@
                 class="trend-item"
                 :class="{ active: trendDays === opt.value }"
                 @click="selectTrend(opt.value)"
-              >{{ opt.label }}</div>
+               role="button" tabindex="0" @keydown.enter.self.prevent="selectTrend(opt.value)" @keydown.space.self.prevent="selectTrend(opt.value)">{{ opt.label }}</div>
             </div>
           </div>
           <div ref="lineChartRef" class="chart-box"></div>
@@ -81,9 +77,9 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import { Edit, ShoppingCart, User, Goods, Coin, Tickets, WarningFilled, TrendCharts } from '@element-plus/icons-vue'
+import { ShoppingCart, User, Goods, Coin, Tickets, WarningFilled } from '@element-plus/icons-vue'
 import { getOverviewStats, getTrends, getCategorySales, getOrderStatus, getRadarData } from '@/api/stats-api'
-import type { OverviewStats, TrendsData, TrendItem, CategorySalesItem, OrderStatusItem, RadarData } from '@/types/stats'
+import type { TrendItem, CategorySalesItem, OrderStatusItem, RadarData } from '@/types/stats'
 
 // ==================== 统计卡片 ====================
 interface StatCard {
@@ -534,7 +530,7 @@ onBeforeUnmount(() => {
 
 .page-title {
   margin: 0 0 20px;
-  font-size: 22px;
+  font-size: 1.571429rem;
   font-weight: 600;
   color: #303133;
 }
@@ -577,7 +573,7 @@ onBeforeUnmount(() => {
       min-width: 0;
 
       .stat-value {
-        font-size: 22px;
+        font-size: 1.571429rem;
         font-weight: 700;
         color: #303133;
         line-height: 1.3;
@@ -589,7 +585,7 @@ onBeforeUnmount(() => {
 
       .stat-today-badge {
         display: inline-block;
-        font-size: 11px;
+        font-size: 0.785714rem;
         font-weight: 700;
         margin-left: 6px;
         vertical-align: super;
@@ -597,7 +593,7 @@ onBeforeUnmount(() => {
       }
 
       .stat-label {
-        font-size: 13px;
+        font-size: 0.928571rem;
         color: #909399;
         margin-top: 2px;
       }
@@ -630,7 +626,7 @@ onBeforeUnmount(() => {
 
       h3 {
         margin: 0;
-        font-size: 16px;
+        font-size: 1.142857rem;
         font-weight: 600;
         color: #303133;
       }
@@ -645,7 +641,7 @@ onBeforeUnmount(() => {
           padding: 4px 16px;
           cursor: pointer;
           border-radius: 20px;
-          font-size: 13px;
+          font-size: 0.928571rem;
           color: #606266;
           transition: all 0.2s;
           user-select: none;
@@ -688,7 +684,7 @@ onBeforeUnmount(() => {
 
       .stat-info {
         .stat-value {
-          font-size: 18px;
+          font-size: 1.285714rem;
         }
       }
     }

@@ -29,7 +29,7 @@ export interface ConversationVO {
 
 /** WebSocket 消息传输对象 */
 export interface WebSocketMessage {
-  type: 'MESSAGE' | 'HEARTBEAT' | 'ERROR' | 'UNREAD_COUNT'
+  type: 'MESSAGE' | 'HEARTBEAT' | 'ERROR' | 'UNREAD_COUNT' | 'USER_STATUS'
   messageType?: number // 1文本，2表情，3图片
   content?: string
   toUserId?: number

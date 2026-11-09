@@ -11,7 +11,7 @@
                 :key="item.id"
                 class="fav-card"
                 @click="goDetail(item.id)"
-            >
+             role="button" tabindex="0" @keydown.enter.self.prevent="goDetail(item.id)" @keydown.space.self.prevent="goDetail(item.id)">
                 <div class="card-image">
                     <el-image
                         :src="getImageUrl(coverImage(item))"
@@ -40,7 +40,7 @@
 
         <!-- 分页 -->
         <div class="pagination-wrap" v-if="total > size">
-            <el-pagination
+            <el-pagination v-accessible-pagination
                 v-model:current-page="current"
                 v-model:page-size="size"
                 :total="total"
@@ -128,7 +128,7 @@ onMounted(() => {
     margin-bottom: $spacing-lg;
 
     h3 {
-        font-size: 20px;
+        font-size: 1.428571rem;
         font-weight: 600;
         color: $color-text;
         margin: 0;
@@ -186,7 +186,7 @@ onMounted(() => {
             left: 8px;
             background: rgba(0, 0, 0, 0.55);
             color: #fff;
-            font-size: 13px;
+            font-size: 0.928571rem;
             font-weight: 700;
             padding: 2px 10px;
             border-radius: 6px;

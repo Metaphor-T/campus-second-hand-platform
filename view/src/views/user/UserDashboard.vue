@@ -134,7 +134,7 @@ onMounted(async () => {
             border: 3px solid rgba(255, 255, 255, 0.35);
             background: rgba(255, 255, 255, 0.12);
             color: #fff;
-            font-size: 24px;
+            font-size: 1.714286rem;
         }
     }
 

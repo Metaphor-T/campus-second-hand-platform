@@ -8,6 +8,8 @@ import com.example.pojo.vo.ProductVO;
 import com.example.service.CategoryService;
 import com.example.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
+import com.example.exception.BusinessException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -37,7 +39,7 @@ public class GuestProductController {
      */
     @PostMapping("/market")
     @Pager
-    public Result<Map<String, Object>> getMarketData(@RequestBody ProductQueryDTO queryDTO) {
+    public Result<Map<String, Object>> getMarketData(@Valid @RequestBody ProductQueryDTO queryDTO) {
         Map<String, Object> data = new HashMap<>();
 
         // 1. 分类导航列表（仅启用状态的分类）
@@ -69,6 +71,9 @@ public class GuestProductController {
     @GetMapping("/detail/{id}")
     public Result<ProductVO> getDetail(@PathVariable Integer id) {
         ProductVO detail = productService.getDetail(id);
+        if (detail == null || !Integer.valueOf(1).equals(detail.getStatus())) {
+            throw new BusinessException("商品不存在或已下架", 404);
+        }
         return Result.success(detail);
     }
 

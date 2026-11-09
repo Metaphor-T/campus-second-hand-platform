@@ -68,7 +68,7 @@
 
         <!-- 分页 -->
         <div class="pagination-bar" v-if="totalCount > 0">
-            <el-pagination
+            <el-pagination v-accessible-pagination
                 v-model:current-page="currentPage"
                 :page-size="pageSize"
                 :total="totalCount"
@@ -169,7 +169,7 @@ onMounted(() => {
 
         .search-icon {
             color: #aeaeb2;
-            font-size: 18px;
+            font-size: 1.285714rem;
             flex-shrink: 0;
         }
 
@@ -183,7 +183,7 @@ onMounted(() => {
             }
 
             :deep(.el-input__inner) {
-                font-size: 14px;
+                font-size: 1rem;
                 border: none;
                 background: transparent;
                 color: #1a1a1a;
@@ -199,7 +199,7 @@ onMounted(() => {
             height: 32px;
             padding: 0 18px;
             border-radius: 16px;
-            font-size: 13px;
+            font-size: 0.928571rem;
             background: #1a1a1a;
             color: #fff;
             border: none;
@@ -275,7 +275,7 @@ onMounted(() => {
                 gap: 10px;
 
                 .review-time {
-                    font-size: 12px;
+                    font-size: 0.857143rem;
                     color: $color-text-light;
                 }
             }
@@ -283,7 +283,7 @@ onMounted(() => {
     }
 
     .review-content {
-        font-size: 14px;
+        font-size: 1rem;
         color: $color-text-secondary;
         line-height: 1.6;
         margin-bottom: 10px;
@@ -311,7 +311,7 @@ onMounted(() => {
         background: rgb(246, 246, 246);
         border-radius: 8px;
         padding: 10px 14px;
-        font-size: 13px;
+        font-size: 0.928571rem;
         color: $color-text-secondary;
         line-height: 1.6;
         margin-bottom: 10px;
@@ -336,7 +336,7 @@ onMounted(() => {
 
     :deep(.el-pagination) {
         button, .el-pager li {
-            font-size: 18px;
+            font-size: 1.285714rem;
             min-width: 36px;
             height: 36px;
             line-height: 36px;
@@ -344,7 +344,7 @@ onMounted(() => {
         }
 
         .el-pager li.active {
-            font-size: 22px;
+            font-size: 1.571429rem;
             font-weight: 700;
             color: #000 !important;
             background: transparent !important;

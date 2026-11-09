@@ -1,0 +1,250 @@
+{
+  "run": "mw9entxm",
+  "results": [
+    {
+      "name": "UPLOAD-01 authenticated real PNG upload",
+      "passed": true
+    },
+    {
+      "name": "UPLOAD-02 rejects anonymous upload",
+      "passed": true
+    },
+    {
+      "name": "UPLOAD-03 rejects renamed text as PNG",
+      "passed": true
+    },
+    {
+      "name": "UPLOAD-04 rejects >2MB image",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION zero-price",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION fractional-price",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION blank-title",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION invalid-category",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION no-images",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION duplicate-images",
+      "passed": true
+    },
+    {
+      "name": "VALIDATION external-image",
+      "passed": true
+    },
+    {
+      "name": "IMAGE-OWNER cannot reuse another user product image",
+      "passed": true
+    },
+    {
+      "name": "PUBLISH pending and hidden to guests",
+      "passed": true
+    },
+    {
+      "name": "OWNER other user cannot edit pending product",
+      "passed": true
+    },
+    {
+      "name": "ROLE ordinary user cannot audit",
+      "passed": true
+    },
+    {
+      "name": "AUDIT approve becomes public",
+      "passed": true
+    },
+    {
+      "name": "AUDIT repeated audit rejected",
+      "passed": true
+    },
+    {
+      "name": "FILTER priceAsc and price range",
+      "passed": true
+    },
+    {
+      "name": "FILTER priceDesc and price range",
+      "passed": true
+    },
+    {
+      "name": "PAGINATION admin UI offered page size 100 works",
+      "passed": true
+    },
+    {
+      "name": "FILTER invalid range rejected",
+      "passed": true
+    },
+    {
+      "name": "RECOMMEND cold-start list contains only approved products",
+      "passed": true
+    },
+    {
+      "name": "EDIT save re-enters review and clears original price",
+      "passed": true
+    },
+    {
+      "name": "EDIT stale version rejected",
+      "passed": true
+    },
+    {
+      "name": "FAVORITE toggle on and off persists",
+      "passed": true
+    },
+    {
+      "name": "WANT repeat operation counts only once",
+      "passed": true
+    },
+    {
+      "name": "DOWN hidden and rejects new interactions",
+      "passed": true
+    },
+    {
+      "name": "EDIT down product remains down",
+      "passed": true
+    },
+    {
+      "name": "UP requires review again",
+      "passed": true
+    },
+    {
+      "name": "AUDIT reject and remark persists",
+      "passed": true
+    },
+    {
+      "name": "ORDER seller cannot purchase own product",
+      "passed": true
+    },
+    {
+      "name": "ORDER create correct amount and deduct stock",
+      "passed": true
+    },
+    {
+      "name": "ORDER unrelated account cannot read order details",
+      "passed": true
+    },
+    {
+      "name": "ORDER buyer cancellation restores stock",
+      "passed": true
+    },
+    {
+      "name": "ORDER pay-ship-receive lifecycle",
+      "passed": true
+    },
+    {
+      "name": "ORDER refund restores stock",
+      "passed": true
+    },
+    {
+      "name": "DELETE product with orders is protected",
+      "passed": true
+    },
+    {
+      "name": "STOCK remaining 1 of 3 must stay available after buying 2",
+      "passed": true
+    },
+    {
+      "name": "STOCK unlimited remains 0 after cancellation",
+      "passed": true
+    },
+    {
+      "name": "ORDER detail permits buyer and seller but not anonymous",
+      "passed": true
+    },
+    {
+      "name": "PAGINATION above supported 100 rejected",
+      "passed": true
+    },
+    {
+      "name": "STOCK exact sellout prevents further purchases and cancellation restores once",
+      "passed": true
+    },
+    {
+      "name": "STOCK concurrent cancel returns inventory only once",
+      "passed": true
+    },
+    {
+      "name": "STOCK concurrent buyers cannot oversell last unit",
+      "passed": true
+    },
+    {
+      "name": "STOCK unlimited refund remains unlimited",
+      "passed": true
+    },
+    {
+      "name": "STOCK seller and admin concurrent refund returns inventory once",
+      "passed": true
+    },
+    {
+      "name": "AUDIT concurrent reviewers cannot both change one pending item",
+      "passed": true
+    },
+    {
+      "name": "LEGACY unknown stock deduction cannot silently change inventory",
+      "passed": true
+    },
+    {
+      "name": "DELETE own unused product removes it",
+      "passed": true
+    },
+    {
+      "name": "UI product publish with actual image upload",
+      "passed": true
+    },
+    {
+      "name": "UI admin product list and detail open",
+      "passed": true
+    },
+    {
+      "name": "UI admin approve published product",
+      "passed": true
+    },
+    {
+      "name": "UI seller edit approved product re-enters review",
+      "passed": true
+    }
+  ],
+  "fixtures": {
+    "run": "mw9entxm",
+    "accounts": [
+      "acc_mw9entxm_seller",
+      "acc_mw9entxm_buyer",
+      "acc_mw9entxm_other"
+    ],
+    "products": [
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92
+    ],
+    "orders": [
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42
+    ]
+  }
+}

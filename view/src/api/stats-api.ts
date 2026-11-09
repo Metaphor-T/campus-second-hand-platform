@@ -1,4 +1,4 @@
-import request, { get } from '@/utils/request'
+import { get } from '@/utils/request'
 import type { Result } from '@/types/result'
 import type { OverviewStats, TrendsData, CategorySalesItem, OrderStatusItem, RadarData } from '@/types/stats'
 

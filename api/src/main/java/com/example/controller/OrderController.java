@@ -178,7 +178,7 @@ public class OrderController {
     @Auth({RoleEnum.USER})
     @GetMapping(value = "/detail/{orderId}")
     public Result<OrderVO> detail(@PathVariable Integer orderId) {
-        return Result.success(orderService.getDetail(orderId));
+        return Result.success(orderService.getDetail(orderId, UserContext.getUserId()));
     }
 
     // ==================== 各状态订单数量统计 ====================

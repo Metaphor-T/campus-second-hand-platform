@@ -1,9 +1,10 @@
 <template>
     <div class="user-layout">
         <!-- 顶部导航栏 -->
-        <header class="navbar">
+        <header class="navbar" v-sticky-navigation>
             <div class="navbar-inner">
                 <div class="navbar-left">
+                    <AccessibilitySettings />
                     <router-link to="/user-home/market" class="brand-link">
                         <img class="logo" src="/logo.png" alt="logo" />
                         <div class="brand-text">
@@ -168,8 +169,8 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { UploadProps } from 'element-plus'
 import {
-    ChatDotSquare, EditPen, TurnOff, SwitchButton, ArrowDown, Plus,
-    Search, ShoppingBag, User, Goods, Star, List, ChatLineSquare, Location
+    EditPen, TurnOff, SwitchButton, ArrowDown, Plus,
+    Search, ShoppingBag, Goods, Star, List, ChatLineSquare, Location
 } from '@element-plus/icons-vue'
 import {
     clearRole,
@@ -341,8 +342,9 @@ const submitChangePwd = async () => {
 
 // ====== 退出 ======
 const doLogout = () => {
-    ElMessageBox.confirm('确定退出登录吗？', '提示', {
-        confirmButtonText: '确定',
+    ElMessageBox.confirm('确定退出登录吗？', '退出登录', {
+        customClass: 'logout-confirm',
+        confirmButtonText: '退出登录',
         cancelButtonText: '取消',
         type: 'warning'
     }).then(() => {
@@ -438,14 +440,14 @@ onUnmounted(() => {
     }
 
     .brand {
-        font-size: 26px;
+        font-size: 1.857143rem;
         font-weight: 700;
         color: #1a1a1a;
         letter-spacing: 0.5px;
     }
 
     .brand-sub {
-        font-size: 12px;
+        font-size: 0.857143rem;
         font-weight: 600;
         color: #636366;
         letter-spacing: 1.8px;
@@ -477,7 +479,7 @@ onUnmounted(() => {
 
         .search-icon {
             color: #aeaeb2;
-            font-size: 20px;
+            font-size: 1.428571rem;
             flex-shrink: 0;
         }
 
@@ -489,7 +491,7 @@ onUnmounted(() => {
                 padding: 0 8px;
             }
             :deep(.el-input__inner) {
-                font-size: 15px;
+                font-size: 1.071429rem;
                 border: none;
                 background: transparent;
                 color: #1a1a1a;
@@ -504,7 +506,7 @@ onUnmounted(() => {
             height: 36px;
             padding: 0 20px;
             border-radius: 18px;
-            font-size: 14px;
+            font-size: 1rem;
             background: #1a1a1a;
             color: #fff;
             border: none;
@@ -531,7 +533,7 @@ onUnmounted(() => {
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        font-size: 16px;
+        font-size: 1.142857rem;
         font-weight: 500;
         color: #1a1a1a;
         text-decoration: none;
@@ -545,7 +547,7 @@ onUnmounted(() => {
         }
 
         :deep(.el-badge__content) {
-            font-size: 11px;
+            font-size: 0.785714rem;
             padding: 0 5px;
             height: 16px;
             line-height: 16px;
@@ -571,7 +573,7 @@ onUnmounted(() => {
         }
 
         .username {
-            font-size: 18px;
+            font-size: 1.285714rem;
             color: #1a1a1a;
             font-weight: 600;
             max-width: 180px;
@@ -582,7 +584,7 @@ onUnmounted(() => {
 
         .arrow {
             color: #aeaeb2;
-            font-size: 14px;
+            font-size: 1rem;
         }
     }
 }
@@ -606,7 +608,7 @@ onUnmounted(() => {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            font-size: 20px;
+            font-size: 1.428571rem;
             font-weight: 500;
             color: #636366;
             text-decoration: none;
@@ -616,7 +618,7 @@ onUnmounted(() => {
             white-space: nowrap;
 
             .el-icon {
-                font-size: 22px;
+                font-size: 1.571429rem;
             }
 
             &:hover {
@@ -683,7 +685,7 @@ onUnmounted(() => {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        font-size: 1.428571rem;
         color: $color-text-light;
         cursor: pointer;
         transition: border-color 0.2s, color 0.2s;
@@ -719,7 +721,7 @@ onUnmounted(() => {
     .navbar-search { max-width: none; }
     .brand { display: none; }
     .nav-secondary-inner { padding: 0 8px; }
-    .nav-secondary-inner .nav-link { padding: 6px 10px; font-size: 12px; }
+    .nav-secondary-inner .nav-link { padding: 6px 10px; font-size: 0.857143rem; }
     .main-content { padding: 12px 8px; }
 }
 </style>

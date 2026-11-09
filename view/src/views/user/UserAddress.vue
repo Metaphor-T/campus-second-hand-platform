@@ -2,7 +2,7 @@
     <div class="user-address">
         <div class="page-header">
             <h3>收货地址</h3>
-            <el-button class="add-btn" circle @click="openAddDialog" :icon="Plus" />
+            <el-button class="add-btn" aria-label="新增收货地址" circle @click="openAddDialog" :icon="Plus" />
         </div>
 
         <!-- 地址列表 -->
@@ -280,7 +280,7 @@ onMounted(() => {
 
     h3 {
         margin: 0;
-        font-size: 18px;
+        font-size: 1.285714rem;
         font-weight: 600;
         color: #303133;
     }
@@ -292,7 +292,7 @@ onMounted(() => {
         color: #fff;
         border: none;
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-        font-size: 20px;
+        font-size: 1.428571rem;
         transition: all 0.25s ease;
 
         &:hover {
@@ -337,25 +337,25 @@ onMounted(() => {
     margin-bottom: 8px;
 
     .consignee {
-        font-size: 15px;
+        font-size: 1.071429rem;
         font-weight: 500;
         color: #303133;
     }
 
     .phone {
-        font-size: 14px;
+        font-size: 1rem;
         color: #909399;
     }
 }
 
 .address-detail {
-    font-size: 14px;
+    font-size: 1rem;
     color: #606266;
     line-height: 1.5;
 }
 
 .address-zip {
-    font-size: 12px;
+    font-size: 0.857143rem;
     color: #909399;
     margin-top: 4px;
 }

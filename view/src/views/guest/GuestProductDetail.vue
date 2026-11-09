@@ -1,6 +1,8 @@
 <template>
-    <div class="product-detail" v-loading="loading">
-        <div class="back-bar" @click="goBack">
+    <div class="product-detail product-module" :class="{ 'product-large-text': largeText }" v-loading="loading">
+        <ProductExperienceToolbar guest />
+        <div v-if="detailError" class="product-request-error" role="alert">{{ detailError }}<el-button @click="loadProductData">重试加载</el-button></div>
+        <div class="back-bar" @click="goBack" role="button" tabindex="0" aria-label="返回商品列表" @keydown.enter="goBack" @keydown.space.prevent="goBack">
             <el-icon :size="20"><ArrowLeft /></el-icon>
             <span>{{ product?.title ?? '商品' }}详情</span>
         </div>
@@ -60,7 +62,7 @@
             <!-- ====== Tab 切换栏 ====== -->
             <div class="tab-bar">
                 <div class="tab-panel">
-                    <div v-for="tab in tabList" :key="tab.key" :class="['tab-item', { active: activeTab === tab.key }]" @click="activeTab = tab.key">
+                    <div v-for="tab in tabList" :key="tab.key" :class="['tab-item', { active: activeTab === tab.key }]" @click="activeTab = tab.key" role="button" tabindex="0" @keydown.enter.self.prevent="activeTab = tab.key" @keydown.space.self.prevent="activeTab = tab.key">
                         <el-icon :size="16"><component :is="tab.icon" /></el-icon>{{ tab.label }}
                     </div>
                 </div>
@@ -69,7 +71,7 @@
             <!-- ====== 商品图册 ====== -->
             <div class="gallery-section" v-show="activeTab === 'gallery'">
                 <div class="thumbnail-row" v-if="imageList.length > 0">
-                    <div v-for="(img, index) in imageList" :key="index" class="thumbnail-item" @click="openPreview(index)">
+                    <div v-for="(img, index) in imageList" :key="index" class="thumbnail-item" @click="openPreview(index)" role="button" tabindex="0" @keydown.enter.self.prevent="openPreview(index)" @keydown.space.self.prevent="openPreview(index)">
                         <el-image :src="getImageUrl(img.imageUrl)" fit="cover" class="thumbnail-img">
                             <template #error><div class="img-placeholder"><el-icon :size="20"><Picture /></el-icon></div></template>
                         </el-image>
@@ -88,7 +90,7 @@
                     </el-image>
                 </div>
                 <div class="preview-thumbnails" v-if="imageList.length > 1">
-                    <div v-for="(img, index) in imageList" :key="index" :class="['preview-thumb-item', { active: activeImageIndex === index }]" @click="switchPreviewImage(index)">
+                    <div v-for="(img, index) in imageList" :key="index" :class="['preview-thumb-item', { active: activeImageIndex === index }]" @click="switchPreviewImage(index)" role="button" tabindex="0" @keydown.enter.self.prevent="switchPreviewImage(index)" @keydown.space.self.prevent="switchPreviewImage(index)">
                         <el-image :src="getImageUrl(img.imageUrl)" fit="cover" class="preview-thumb-img" />
                     </div>
                 </div>
@@ -129,17 +131,17 @@
                         </div>
                     </div>
                     <div class="review-pagination" v-if="reviewTotal > pageSize">
-                        <el-pagination v-model:current-page="reviewPage" :page-size="pageSize" :total="reviewTotal" layout="prev, pager, next" small background @current-change="loadReviews" />
+                        <el-pagination v-accessible-pagination v-model:current-page="reviewPage" :page-size="pageSize" :total="reviewTotal" layout="prev, pager, next" small background @current-change="loadReviews" />
                     </div>
                 </div>
             </div>
         </template>
 
-        <el-empty v-else-if="!loading" description="商品不存在或已下架" />
+        <el-empty v-else-if="!loading && !detailError" description="商品不存在或已下架" />
 
         <!-- ====== 回到顶部 ====== -->
         <transition name="fade">
-            <div v-if="showBackTop" class="back-to-top" @click="scrollToTop"><el-icon :size="22"><ArrowUp /></el-icon></div>
+            <div v-if="showBackTop" class="back-to-top" @click="scrollToTop" role="button" tabindex="0" @keydown.enter.self.prevent="scrollToTop" @keydown.space.self.prevent="scrollToTop"><el-icon :size="22"><ArrowUp /></el-icon></div>
         </transition>
     </div>
 </template>
@@ -151,7 +153,8 @@
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import ProductExperienceToolbar from '@/components/ProductExperienceToolbar.vue'
+import { useProductReadability, productImageUrl, productErrorMessage } from '@/utils/product-experience'
 import { ArrowLeft, ArrowUp, Picture, View, Star, ChatDotSquare, Medal, Van, Collection, Document } from '@element-plus/icons-vue'
 import { getGuestProductDetail, getGuestReviewList, getGuestReviewStats } from '@/api/guest-api'
 import type { ProductVO, ProductImageVO, ProductReviewVO } from '@/types/guest'
@@ -159,6 +162,8 @@ import type { ProductVO, ProductImageVO, ProductReviewVO } from '@/types/guest'
 const route = useRoute()
 const router = useRouter()
 
+const largeText = useProductReadability()
+const detailError = ref('')
 const product = ref<ProductVO | null>(null)
 const loading = ref(false)
 const activeImageIndex = ref(0)
@@ -184,10 +189,7 @@ const tabList = [
 const imageList = computed<ProductImageVO[]>(() => product.value?.images ?? [])
 
 // 工具函数
-const getImageUrl = (path?: string) => {
-    if (!path) return ''; if (path.startsWith('http')) return path
-    return `${import.meta.env.VITE_API_BASE_URL}${path}`
-}
+const getImageUrl = productImageUrl
 const conditionLabel = (v?: number) => ({ 1: '全新', 2: '几乎全新', 3: '有使用痕迹', 4: '老旧' } as Record<number,string>)[v ?? 0] || ''
 const conditionType = (v?: number) => ({ 1: 'success', 2: 'warning', 3: 'danger', 4: 'info' } as Record<number,string>)[v ?? 0] || ''
 const tradeTypeLabel = (v?: number) => ({ 1: '自提', 2: '邮寄', 3: '两者皆可' } as Record<number,string>)[v ?? 0] ?? ''
@@ -214,31 +216,43 @@ const switchPreviewImage = (index: number) => {
 }
 
 // 加载评价
+let reviewRequest = 0
 const loadReviews = async () => {
+    const generation = detailGeneration
+    const request = ++reviewRequest
     const id = Number(route.params.id); if (!id) return
     reviewLoading.value = true
     try {
         const res = await getGuestReviewList({ productId: id, current: reviewPage.value, size: pageSize })
+        if (generation !== detailGeneration || request !== reviewRequest) return
         reviewList.value = (res?.data ?? []) as any[]; reviewTotal.value = (res as any)?.count ?? 0
-    } catch { /* silent */ } finally { reviewLoading.value = false }
+    } catch { /* silent */ } finally { if (generation === detailGeneration && request === reviewRequest) reviewLoading.value = false }
 }
 const loadReviewStats = async () => {
+    const generation = detailGeneration
     const id = Number(route.params.id); if (!id) return
-    try { const res = await getGuestReviewStats(id); reviewStats.value = res?.data as any ?? null } catch { /* silent */ }
+    try { const res = await getGuestReviewStats(id); if (generation !== detailGeneration) return; reviewStats.value = res?.data as any ?? null } catch { /* silent */ }
 }
 
 // 加载商品
+let detailGeneration = 0
 const loadProductData = async () => {
+    const generation = ++detailGeneration
+    detailError.value = ''
+    reviewLoading.value = false
+    product.value = null
+    activeImageIndex.value = 0
     const id = Number(route.params.id)
-    if (!id || isNaN(id)) { ElMessage.error('商品ID无效'); return }
+    if (!Number.isSafeInteger(id) || id <= 0) { loading.value = false; detailError.value = '商品编号无效，请返回列表重新选择'; return }
     loading.value = true; activeTab.value = 'gallery'; reviewPage.value = 1; reviewList.value = []; reviewTotal.value = 0; reviewStats.value = null
     try {
         const res = await getGuestProductDetail(id)
+        if (generation !== detailGeneration) return
         product.value = res?.data ?? null
         const coverIdx = imageList.value.findIndex(img => img.isCover === 1); if (coverIdx >= 0) activeImageIndex.value = coverIdx
         loadReviews(); loadReviewStats()
-    } catch (e: any) { ElMessage.error(e.message || '加载商品详情失败') }
-    finally { loading.value = false }
+    } catch (e) { if (generation === detailGeneration) detailError.value = productErrorMessage(e, '加载商品详情失败') }
+    finally { if (generation === detailGeneration) loading.value = false }
 }
 
 watch(() => route.params.id, () => { loadProductData(); window.scrollTo({ top: 0, behavior: 'smooth' }) })
@@ -249,42 +263,42 @@ const handleScroll = () => { showBackTop.value = (window.scrollY || document.doc
 const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 
 onMounted(() => { loadProductData(); window.addEventListener('scroll', handleScroll) })
-onBeforeUnmount(() => { window.removeEventListener('scroll', handleScroll) })
+onBeforeUnmount(() => { ++detailGeneration; window.removeEventListener('scroll', handleScroll) })
 </script>
 
 <style scoped lang="scss">
 .product-detail { max-width: 860px; margin: 0 auto; padding-bottom: 40px; }
 
-.back-bar { display: flex; align-items: center; gap: 8px; padding: 16px 0; color: #636366; font-size: 15px; cursor: pointer; user-select: none; transition: color 0.2s; &:hover { color: #e85d3a; } }
+.back-bar { display: flex; align-items: center; gap: 8px; padding: 16px 0; color: #636366; font-size: 1.071429rem; cursor: pointer; user-select: none; transition: color 0.2s; &:hover { color: #e85d3a; } }
 
-.tab-bar { display: flex; justify-content: center; margin-bottom: 16px; .tab-panel { display: inline-flex; background: rgb(240,240,240); border-radius: 30px; padding: 4px; .tab-item { display: inline-flex; align-items: center; gap: 6px; padding: 5px 18px; border-radius: 20px; font-size: 14px; font-weight: 500; color: #666; cursor: pointer; transition: all 0.2s; user-select: none; &.active { background: #fff; color: #000; font-weight: 600; } &:not(.active):hover { color: #333; } } } }
+.tab-bar { display: flex; justify-content: center; margin-bottom: 16px; .tab-panel { display: inline-flex; background: rgb(240,240,240); border-radius: 30px; padding: 4px; .tab-item { display: inline-flex; align-items: center; gap: 6px; padding: 5px 18px; border-radius: 20px; font-size: 1rem; font-weight: 500; color: #666; cursor: pointer; transition: all 0.2s; user-select: none; &.active { background: #fff; color: #000; font-weight: 600; } &:not(.active):hover { color: #333; } } } }
 
 .info-section { background: #fff; border-radius: 14px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
 .info-header { margin-bottom: 16px; }
-.product-title { font-size: 38px; font-weight: 700; color: #1a1a2e; line-height: 1.4; margin-bottom: 16px; }
-.price-row { display: flex; align-items: baseline; gap: 12px; padding: 14px 16px; background: linear-gradient(135deg,#fff5f5,#fff0f0); border-radius: 10px; .price-amount { display: flex; align-items: baseline; gap: 2px; .price-symbol { font-size: 18px; font-weight: 700; color: #ff6b35; } .price { font-size: 32px; font-weight: 800; color: #ff6b35; letter-spacing: -1px; } } .original-price { font-size: 14px; color: #999; text-decoration: line-through; } }
+.product-title { font-size: 2.714286rem; font-weight: 700; color: #1a1a2e; line-height: 1.4; margin-bottom: 16px; }
+.price-row { display: flex; align-items: baseline; gap: 12px; padding: 14px 16px; background: linear-gradient(135deg,#fff5f5,#fff0f0); border-radius: 10px; .price-amount { display: flex; align-items: baseline; gap: 2px; .price-symbol { font-size: 1.285714rem; font-weight: 700; color: #ff6b35; } .price { font-size: 2.285714rem; font-weight: 800; color: #ff6b35; letter-spacing: -1px; } } .original-price { font-size: 1rem; color: #999; text-decoration: line-through; } }
 
-.tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; .tag-item { display: inline-flex; align-items: center; gap: 5px; padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; &.tag-success { background: #e8f5e9; color: #2e7d32; } &.tag-warning { background: #fff8e1; color: #f57c00; } &.tag-danger { background: #fbe9e7; color: #c62828; } &.tag-info { background: #e3f2fd; color: #1565c0; } &.tag-trade { background: #f3e5f5; color: #7b1fa2; } &.tag-category { background: #e0f2f1; color: #00695c; } } }
-.stats-row { display: flex; gap: 32px; padding: 16px 0; margin-bottom: 16px; .stat-item { display: flex; align-items: center; gap: 6px; font-size: 15px; color: #636366; .el-icon { font-size: 18px; color: #aeaeb2; } } }
-.meta-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 15px; .meta-label { color: #aeaeb2; } .meta-value { color: #636366; } }
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; .tag-item { display: inline-flex; align-items: center; gap: 5px; padding: 5px 14px; border-radius: 20px; font-size: 0.928571rem; font-weight: 500; &.tag-success { background: #e8f5e9; color: #2e7d32; } &.tag-warning { background: #fff8e1; color: #f57c00; } &.tag-danger { background: #fbe9e7; color: #c62828; } &.tag-info { background: #e3f2fd; color: #1565c0; } &.tag-trade { background: #f3e5f5; color: #7b1fa2; } &.tag-category { background: #e0f2f1; color: #00695c; } } }
+.stats-row { display: flex; gap: 32px; padding: 16px 0; margin-bottom: 16px; .stat-item { display: flex; align-items: center; gap: 6px; font-size: 1.071429rem; color: #636366; .el-icon { font-size: 1.285714rem; color: #aeaeb2; } } }
+.meta-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 1.071429rem; .meta-label { color: #aeaeb2; } .meta-value { color: #636366; } }
 
 .seller-section { background: #fff; border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-.seller-card { display: flex; align-items: center; gap: 14px; .seller-info { display: flex; flex-direction: column; gap: 4px; flex: 1; .seller-name-row { display: flex; align-items: center; gap: 12px; .seller-name { font-size: 15px; font-weight: 700; color: #1a1a1a; } } .seller-time { font-size: 13px; color: #999; } } }
+.seller-card { display: flex; align-items: center; gap: 14px; .seller-info { display: flex; flex-direction: column; gap: 4px; flex: 1; .seller-name-row { display: flex; align-items: center; gap: 12px; .seller-name { font-size: 1.071429rem; font-weight: 700; color: #1a1a1a; } } .seller-time { font-size: 0.928571rem; color: #999; } } }
 
 .gallery-section { background: #fff; border-radius: 14px; margin-bottom: 16px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); &.empty { display: flex; align-items: center; justify-content: center; min-height: 100px; } }
 .thumbnail-row { display: flex; flex-wrap: wrap; gap: 10px; .thumbnail-item { width: 80px; height: 80px; flex-shrink: 0; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: all 0.25s; background: #f5f5f7; &:hover { border-color: #e85d3a; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(232,93,58,0.15); } .thumbnail-img { width: 100%; height: 100%; } .img-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #bbb; } } }
 
 :deep(.image-preview-dialog) { .el-dialog__body { padding: 0 20px 16px; } }
-.preview-container { width: 100%; height: 480px; display: flex; align-items: center; justify-content: center; border-radius: 8px; overflow: hidden; .preview-image { width: 100%; height: 100%; object-fit: contain; } .preview-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; color: #bbb; font-size: 13px; } }
+.preview-container { width: 100%; height: 480px; display: flex; align-items: center; justify-content: center; border-radius: 8px; overflow: hidden; .preview-image { width: 100%; height: 100%; object-fit: contain; } .preview-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; color: #bbb; font-size: 0.928571rem; } }
 .preview-thumbnails { display: flex; justify-content: center; gap: 8px; margin-top: 14px; padding: 10px 0; .preview-thumb-item { width: 52px; height: 52px; flex-shrink: 0; border-radius: 6px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; background: #f0f0f0; &.active { border-color: #e85d3a; } &:hover:not(.active) { border-color: #ccc; } .preview-thumb-img { width: 100%; height: 100%; object-fit: cover; } } }
-.preview-nav { display: flex; justify-content: center; margin-top: 10px; .preview-counter { padding: 4px 14px; background: #f0f2f5; border-radius: 20px; font-size: 12px; color: #636366; font-weight: 500; } }
+.preview-nav { display: flex; justify-content: center; margin-top: 10px; .preview-counter { padding: 4px 14px; background: #f0f2f5; border-radius: 20px; font-size: 0.857143rem; color: #636366; font-weight: 500; } }
 
 .desc-section { background: #fff; border-radius: 14px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-.section-title { font-size: 18px; font-weight: 600; color: #1a1a1a; margin-bottom: 16px; }
-.desc-content { font-size: 15px; color: #636366; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+.section-title { font-size: 1.285714rem; font-weight: 600; color: #1a1a1a; margin-bottom: 16px; }
+.desc-content { font-size: 1.071429rem; color: #636366; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
 
-.review-section { background: #fff; border-radius: 14px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); .review-stats-badge { display: inline-flex; align-items: center; gap: 10px; margin-left: 14px; font-size: 14px; color: #636366; vertical-align: middle; .review-count { color: #aeaeb2; } } }
-.review-list { .review-item { padding: 16px 0; border-bottom: 1px solid #f0f0f4; &:last-child { border-bottom: none; } .review-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; .review-buyer { font-size: 15px; font-weight: 500; color: #1a1a1a; } .review-rating { margin-left: 6px; } .review-time { margin-left: auto; font-size: 13px; color: #aeaeb2; } } .review-content { font-size: 14px; color: #636366; line-height: 1.6; margin-bottom: 10px; white-space: pre-wrap; } .review-images { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; .review-img { width: 72px; height: 72px; border-radius: 6px; cursor: pointer; object-fit: cover; border: 1px solid #f0f0f4; &:hover { opacity: 0.85; } } } .seller-reply { background: #f5f7fa; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #636366; line-height: 1.6; .reply-label { font-weight: 600; color: #1a1a1a; } .reply-time { display: inline-block; margin-left: 8px; font-size: 11px; color: #aeaeb2; } } } .review-pagination { display: flex; justify-content: center; padding-top: 16px; } }
+.review-section { background: #fff; border-radius: 14px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); .review-stats-badge { display: inline-flex; align-items: center; gap: 10px; margin-left: 14px; font-size: 1rem; color: #636366; vertical-align: middle; .review-count { color: #aeaeb2; } } }
+.review-list { .review-item { padding: 16px 0; border-bottom: 1px solid #f0f0f4; &:last-child { border-bottom: none; } .review-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; .review-buyer { font-size: 1.071429rem; font-weight: 500; color: #1a1a1a; } .review-rating { margin-left: 6px; } .review-time { margin-left: auto; font-size: 0.928571rem; color: #aeaeb2; } } .review-content { font-size: 1rem; color: #636366; line-height: 1.6; margin-bottom: 10px; white-space: pre-wrap; } .review-images { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; .review-img { width: 72px; height: 72px; border-radius: 6px; cursor: pointer; object-fit: cover; border: 1px solid #f0f0f4; &:hover { opacity: 0.85; } } } .seller-reply { background: #f5f7fa; border-radius: 8px; padding: 10px 14px; font-size: 0.928571rem; color: #636366; line-height: 1.6; .reply-label { font-weight: 600; color: #1a1a1a; } .reply-time { display: inline-block; margin-left: 8px; font-size: 0.785714rem; color: #aeaeb2; } } } .review-pagination { display: flex; justify-content: center; padding-top: 16px; } }
 
 .back-to-top { position: fixed; right: 28px; bottom: 36px; width: 44px; height: 44px; border-radius: 50%; background: #fff; border: 1.5px solid #e0e0e0; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #333; box-shadow: 0 4px 16px rgba(0,0,0,0.1); transition: all 0.25s; z-index: 1000; &:hover { background: #1a1a1a; color: #fff; border-color: #1a1a1a; box-shadow: 0 6px 20px rgba(0,0,0,0.2); transform: translateY(-2px); } }
 .fade-enter-active,.fade-leave-active { transition: opacity 0.3s; }

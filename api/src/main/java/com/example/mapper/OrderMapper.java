@@ -6,6 +6,7 @@ import com.example.pojo.entity.Order;
 import com.example.pojo.vo.OrderVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,9 @@ import java.util.Map;
  */
 @Mapper
 public interface OrderMapper extends BaseMapper<Order> {
+    /** 在事务内串行处理同一订单的状态转换，防止重复取消/退款返还库存。 */
+    @Select("SELECT * FROM `order` WHERE id = #{id} FOR UPDATE")
+    Order selectForUpdate(@Param("id") Integer id);
 
     /**
      * 分页查询买家订单列表（联表 product、address）

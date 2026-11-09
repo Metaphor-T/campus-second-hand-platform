@@ -230,12 +230,12 @@ onMounted(() => {
     margin-bottom: $spacing-lg;
 
     .back-btn {
-        font-size: 14px;
+        font-size: 1rem;
         padding: 4px 8px;
     }
 
     .page-title {
-        font-size: 22px;
+        font-size: 1.571429rem;
         font-weight: 700;
         color: $color-text;
     }
@@ -311,7 +311,7 @@ onMounted(() => {
 // ====== 各区块 ======
 .section-label {
     display: block;
-    font-size: 15px;
+    font-size: 1.071429rem;
     font-weight: 600;
     color: $color-text;
     margin-bottom: 12px;
@@ -389,7 +389,7 @@ onMounted(() => {
 
     .upload-tip {
         margin-top: 8px;
-        font-size: 12px;
+        font-size: 0.857143rem;
         color: #909399;
     }
 }
