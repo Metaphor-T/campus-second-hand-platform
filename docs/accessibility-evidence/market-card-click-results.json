@@ -1,0 +1,155 @@
+{
+  "time": "2026-11-10T13:40:13.901Z",
+  "fixtureMode": "frontend-only-network-interception",
+  "databaseWrites": false,
+  "results": [
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "user",
+      "card": "\u70ed\u95e8",
+      "width": 1440,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "user",
+      "card": "\u63a8\u8350",
+      "width": 1440,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "guest",
+      "card": "\u70ed\u95e8",
+      "width": 1440,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "user",
+      "card": "\u70ed\u95e8",
+      "width": 1440,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "user",
+      "card": "\u63a8\u8350",
+      "width": 1440,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "guest",
+      "card": "\u70ed\u95e8",
+      "width": 1440,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "user",
+      "card": "\u70ed\u95e8",
+      "width": 768,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "user",
+      "card": "\u63a8\u8350",
+      "width": 768,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "guest",
+      "card": "\u70ed\u95e8",
+      "width": 768,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "user",
+      "card": "\u70ed\u95e8",
+      "width": 768,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "user",
+      "card": "\u63a8\u8350",
+      "width": 768,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "guest",
+      "card": "\u70ed\u95e8",
+      "width": 768,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "user",
+      "card": "\u70ed\u95e8",
+      "width": 320,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "user",
+      "card": "\u63a8\u8350",
+      "width": 320,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "guest",
+      "card": "\u70ed\u95e8",
+      "width": 320,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "user",
+      "card": "\u70ed\u95e8",
+      "width": 320,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "user",
+      "card": "\u63a8\u8350",
+      "width": 320,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "full-card-single-navigation-thumbnail-isolation-and-keyboard",
+      "role": "guest",
+      "card": "\u70ed\u95e8",
+      "width": 320,
+      "scale": 2,
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "unmocked": [],
+  "frontendBuild": "passed",
+  "mainAreaClicksVerified": 72
+}

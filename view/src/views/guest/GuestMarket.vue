@@ -7,6 +7,9 @@
                 <!-- 左侧：热门轮播 -->
                 <div class="hot-main">
                     <div class="hot-main-carousel">
+                        <RouterLink v-if="hotProducts[activeHotIndex]?.id" class="hot-card-link"
+                            :to="'/guest-home/product-detail/' + hotProducts[activeHotIndex]?.id"
+                            :aria-label="'查看商品：' + (hotProducts[activeHotIndex]?.title || '商品详情')" />
                         <el-carousel :autoplay="false" height="100%" indicator-position="none" arrow="never" :interval="5000" ref="carouselRef" @change="onHotCarouselChange">
                             <el-carousel-item v-for="(product, i) in hotProducts" :key="i">
                                 <img :src="getImageUrl(coverImage(product))" :alt="product.title || '商品图片'" @error="onHotImgError($event)" />
@@ -14,7 +17,7 @@
                         </el-carousel>
                         <span class="hot-main-rank" :class="'rank-' + (activeHotIndex + 1)">{{ activeHotIndex + 1 }}</span>
                         <div class="hot-main-overlay">
-                            <h3 class="hot-overlay-title"><button type="button" class="hot-detail-link" @click="onProductClick(hotProducts[activeHotIndex])">{{ hotProducts[activeHotIndex]?.title }}</button></h3>
+                            <h3 class="hot-overlay-title">{{ hotProducts[activeHotIndex]?.title }}</h3>
                             <div class="hot-overlay-price">
                                 <span class="hop-symbol">¥</span>
                                 <span class="hop-value">{{ hotProducts[activeHotIndex]?.price }}</span>
@@ -25,10 +28,10 @@
                             </div>
                         </div>
                         <div class="hot-thumbs">
-                            <div v-for="(item, idx) in hotProducts" :key="'thumb-' + idx" class="hot-thumb" :class="{ active: idx === activeHotIndex }" @click.stop="switchHot(idx)" role="button" tabindex="0" @keydown.enter.self.prevent="switchHot(idx)" @keydown.space.self.prevent="switchHot(idx)">
-                                <img :src="getImageUrl(coverImage(item))" :alt="item.title || '商品图片'" @error="onHotImgError($event)" />
+                            <button type="button" v-for="(item, idx) in hotProducts" :key="'thumb-' + idx" class="hot-thumb" :class="{ active: idx === activeHotIndex }" @click.stop="switchHot(idx)" :aria-label="'显示第' + (idx + 1) + '件热门商品：' + (item.title || '商品')" :aria-pressed="idx === activeHotIndex">
+                                <img :src="getImageUrl(coverImage(item))" alt="" @error="onHotImgError($event)" />
                                 <span class="hot-thumb-rank" :class="'rank-' + (idx + 1)">{{ idx + 1 }}</span>
-                            </div>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -419,8 +422,8 @@ onUnmounted(() => {
 .hot-overlay-title { margin: 0 0 8px; font-size: 1.714286rem; font-weight: 600; color: #fff; line-height: 1.4; display: -webkit-box; -webkit-line-clamp:1; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
 .hot-overlay-price { display: flex; align-items: baseline; gap: 2px; margin-bottom: 8px; .hop-symbol { font-size: 1.142857rem; font-weight: 600; color: #ffd700; } .hop-value { font-size: 2rem; font-weight: 800; color: #ffd700; letter-spacing: -0.5px; text-shadow: 0 1px 4px rgba(0,0,0,0.3); } }
 .hot-overlay-stats { display: flex; gap: 16px; span { display: inline-flex; align-items: center; gap: 4px; font-size: 1.071429rem; color: rgba(255,255,255,0.85); .el-icon { font-size: 1.142857rem; } } }
-.hot-thumbs { position: absolute; bottom: 22px; right: 22px; display: flex; gap: 6px; z-index: 10; }
-.hot-thumb { position: relative; width: 40px; height: 40px; border-radius: 6px; overflow: hidden; cursor: pointer; background: #f5f5f5; border: 2px solid rgba(255,255,255,0.5); transition: all 0.2s; flex-shrink: 0; img { width: 100%; height: 100%; object-fit: cover; display: block; } &:hover { border-color: #fff; transform: translateY(-2px); } &.active { border-color: #ffd700; } .hot-thumb-rank { position: absolute; bottom: 1px; right: 1px; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.571429rem; font-weight: 700; color: #fff; &.rank-1 { background: linear-gradient(135deg,#ff6b35,#ff9500); } &.rank-2 { background: linear-gradient(135deg,#ff9500,#ffcc02); } &.rank-3 { background: linear-gradient(135deg,#ffcc02,#e8d44d); } &.rank-4,&.rank-5 { background: #aeaeb2; } } }
+.hot-thumbs { position: absolute; bottom: 22px; right: 22px; display: flex; gap: 6px; z-index: 30; }
+.hot-thumb { padding:0; font:inherit; color:inherit; position: relative; width: 40px; height: 40px; border-radius: 6px; overflow: hidden; cursor: pointer; background: #f5f5f5; border: 2px solid rgba(255,255,255,0.5); transition: all 0.2s; flex-shrink: 0; img { width: 100%; height: 100%; object-fit: cover; display: block; } &:hover { border-color: #fff; transform: translateY(-2px); } &.active { border-color: #ffd700; } .hot-thumb-rank { position: absolute; bottom: 1px; right: 1px; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.571429rem; font-weight: 700; color: #fff; &.rank-1 { background: linear-gradient(135deg,#ff6b35,#ff9500); } &.rank-2 { background: linear-gradient(135deg,#ff9500,#ffcc02); } &.rank-3 { background: linear-gradient(135deg,#ffcc02,#e8d44d); } &.rank-4,&.rank-5 { background: #aeaeb2; } } }
 
 .masonry-wrap { position: relative; min-height: 400px; }
 .masonry-grid { position: relative; width: 100%; transition: height 0.4s cubic-bezier(0.4,0,0.2,1); }
@@ -448,4 +451,9 @@ onUnmounted(() => {
 
 @media (max-width: 820px) { .hot-main { width: 100%; } .category-nav-panel { display: none; } }
 @media (max-width: 640px) { .skeleton-card { width: calc((100% - 14px) / 2); } }
+
+// 整卡详情链接与缩略图按钮互为兄弟，避免嵌套交互和事件重复触发。
+.hot-card-link { position:absolute; inset:0; z-index:20; border-radius:inherit; }
+.hot-card-link:focus-visible { outline:3px solid #fff; outline-offset:-6px; box-shadow:inset 0 0 0 3px #9f421c; }
+.hot-thumb:focus-visible { outline:3px solid #fff; outline-offset:-4px; box-shadow:0 0 0 2px #9f421c; }
 </style>

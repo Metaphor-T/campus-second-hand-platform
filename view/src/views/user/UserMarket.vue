@@ -7,6 +7,9 @@
                 <!-- 轮播图区域：占据 50%，所有信息悬浮在图片上 -->
                 <div class="hot-main">
                     <div class="hot-main-carousel">
+                        <RouterLink v-if="currentHotProduct?.id" class="hot-card-link"
+                            :to="'/user-home/product-detail/' + currentHotProduct?.id"
+                            :aria-label="'查看商品：' + (currentHotProduct?.title || '商品详情')" />
                         <el-carousel :autoplay="false" height="100%" indicator-position="none" arrow="never" :interval="5000" ref="carouselRef" @change="onHotCarouselChange">
                             <el-carousel-item v-for="(product, i) in hotProducts" :key="i">
                                 <img :src="getImageUrl(coverImage(product))" :alt="product.title || '商品图片'" @error="onHotImgError($event)" />
@@ -20,7 +23,7 @@
 
                         <!-- 商品信息：底部左悬浮 -->
                         <div class="hot-main-overlay">
-                            <h3 class="hot-overlay-title"><button type="button" class="hot-detail-link" @click="handleProductClick(currentHotProduct)">{{ currentHotProduct?.title }}</button></h3>
+                            <h3 class="hot-overlay-title">{{ currentHotProduct?.title }}</h3>
                             <div class="hot-overlay-price">
                                 <span class="hop-symbol">¥</span>
                                 <span class="hop-value">{{ currentHotProduct?.price }}</span>
@@ -33,23 +36,26 @@
 
                         <!-- 小图切换：右下角悬浮在同一行（40x40） -->
                         <div class="hot-thumbs">
-                            <div
+                            <button type="button"
                                 v-for="(item, idx) in hotProducts"
                                 :key="'thumb-' + idx"
                                 class="hot-thumb"
                                 :class="{ active: idx === activeHotIndex }"
                                 @click.stop="switchHot(idx)"
-                             role="button" tabindex="0" @keydown.enter.self.prevent="switchHot(idx)" @keydown.space.self.prevent="switchHot(idx)">
-                                <img :src="getImageUrl(coverImage(item))" :alt="item.title || '商品图片'" @error="onHotImgError($event)" />
+                             :aria-label="'显示第' + (idx + 1) + '件热门商品：' + (item.title || '商品')" :aria-pressed="idx === activeHotIndex">
+                                <img :src="getImageUrl(coverImage(item))" alt="" @error="onHotImgError($event)" />
                                 <span class="hot-thumb-rank" :class="'rank-' + (idx + 1)">{{ idx + 1 }}</span>
-                            </div>
+                            </button>
                         </div>
                     </div>
                 </div>
 
                 <!-- 🤖 猜你喜欢 — 右侧 50%（与左侧使用完全一致的类名） -->
-                <div v-if="recommendProducts.length > 0" class="hot-main" @click="handleProductClick(currentRecommendProduct)">
+                <div v-if="recommendProducts.length > 0" class="hot-main">
                     <div class="hot-main-carousel">
+                        <RouterLink v-if="currentRecommendProduct?.id" class="hot-card-link"
+                            :to="'/user-home/product-detail/' + currentRecommendProduct?.id"
+                            :aria-label="'查看商品：' + (currentRecommendProduct?.title || '商品详情')" />
                         <el-carousel :autoplay="false" height="100%" indicator-position="none" arrow="never" :interval="5000" ref="recCarouselRef" @change="onRecCarouselChange">
                             <el-carousel-item v-for="(product, i) in recommendProducts" :key="i">
                                 <img :src="getImageUrl(coverImage(product))" :alt="product.title || '商品图片'" @error="onHotImgError($event)" />
@@ -63,7 +69,7 @@
 
                         <!-- 商品信息：底部左悬浮 -->
                         <div class="hot-main-overlay">
-                            <h3 class="hot-overlay-title"><button type="button" class="hot-detail-link" @click="handleProductClick(currentRecommendProduct)">{{ currentRecommendProduct?.title }}</button></h3>
+                            <h3 class="hot-overlay-title">{{ currentRecommendProduct?.title }}</h3>
                             <div class="hot-overlay-price">
                                 <span class="hop-symbol">¥</span>
                                 <span class="hop-value">{{ currentRecommendProduct?.price }}</span>
@@ -76,16 +82,16 @@
 
                         <!-- 小图切换：右下角悬浮在同一行（40x40） -->
                         <div class="hot-thumbs">
-                            <div
+                            <button type="button"
                                 v-for="(item, idx) in recommendProducts"
                                 :key="'rec-thumb-' + idx"
                                 class="hot-thumb"
                                 :class="{ active: idx === activeRecommendIndex }"
                                 @click.stop="switchRecommend(idx)"
-                             role="button" tabindex="0" @keydown.enter.self.prevent="switchRecommend(idx)" @keydown.space.self.prevent="switchRecommend(idx)">
-                                <img :src="getImageUrl(coverImage(item))" :alt="item.title || '商品图片'" @error="onHotImgError($event)" />
+                             :aria-label="'显示第' + (idx + 1) + '件推荐商品：' + (item.title || '商品')" :aria-pressed="idx === activeRecommendIndex">
+                                <img :src="getImageUrl(coverImage(item))" alt="" @error="onHotImgError($event)" />
                                 <span class="hot-thumb-rank" :class="'rank-' + (idx + 1)">{{ idx + 1 }}</span>
-                            </div>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -716,10 +722,13 @@ onUnmounted(() => {
         right: 22px;
         display: flex;
         gap: 6px;
-        z-index: 10;
+        z-index: 30;
     }
 
     .hot-thumb {
+        padding: 0;
+        font: inherit;
+        color: inherit;
         position: relative;
         width: 40px;
         height: 40px;
@@ -774,6 +783,9 @@ onUnmounted(() => {
 
 // ========== 响应式 ==========
 @media (max-width: 820px) {
+    .hot-content {
+        flex-direction: column;
+    }
     .hot-main {
         width: 100%;
     }
@@ -1169,4 +1181,9 @@ onUnmounted(() => {
     .filter-bar .filter-item { padding: 5px 12px; font-size: 0.857143rem; }
     .skeleton-card { width: calc((100% - 14px) / 2); }
 }
+
+// 整卡详情链接与缩略图按钮互为兄弟，避免嵌套交互和事件重复触发。
+.hot-card-link { position:absolute; inset:0; z-index:20; border-radius:inherit; }
+.hot-card-link:focus-visible { outline:3px solid #fff; outline-offset:-6px; box-shadow:inset 0 0 0 3px #9f421c; }
+.hot-thumb:focus-visible { outline:3px solid #fff; outline-offset:-4px; box-shadow:0 0 0 2px #9f421c; }
 </style>
