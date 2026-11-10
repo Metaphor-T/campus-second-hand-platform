@@ -7,6 +7,9 @@ import com.example.pojo.dto.UserProfileUpdateDTO;
 import com.example.pojo.enums.RoleEnum;
 import com.example.pojo.vo.UserProfileVO;
 import com.example.service.UserProfileService;
+import com.example.service.CampusVerificationService;
+import com.example.pojo.dto.CampusVerificationApplyDTO;
+import com.example.pojo.vo.CampusVerificationVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +20,13 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class UserProfileController {
     private final UserProfileService profiles;
+    private final CampusVerificationService verification;
+    @Auth(RoleEnum.USER) @GetMapping("/campus-verification")
+    public Result<CampusVerificationVO> verificationStatus() { return Result.success(verification.mine()); }
+    @Auth(RoleEnum.USER) @PostMapping("/campus-verification")
+    public Result<CampusVerificationVO> applyVerification(@Valid @RequestBody CampusVerificationApplyDTO consent) { return Result.success(verification.apply()); }
+    @Auth(RoleEnum.USER) @PostMapping("/campus-verification/refresh")
+    public Result<CampusVerificationVO> refreshVerification() { return Result.success(verification.refresh()); }
     @Auth(RoleEnum.USER) @GetMapping
     public Result<UserProfileVO> mine() { return Result.success(profiles.mine()); }
     @Auth(RoleEnum.USER) @PutMapping(consumes="application/json")

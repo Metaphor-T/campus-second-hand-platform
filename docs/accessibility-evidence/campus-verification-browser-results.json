@@ -1,0 +1,103 @@
+{
+  "time": "2026-11-10T11:11:37.890Z",
+  "results": [
+    {
+      "test": "live-endpoints-require-own-ordinary-user-login",
+      "passed": true
+    },
+    {
+      "test": "live-disconnected-provider-does-not-claim-verification",
+      "passed": true
+    },
+    {
+      "test": "live-forged-status-and-forced-apply-cannot-certify-or-create-pending",
+      "passed": true
+    },
+    {
+      "test": "self-filled-campus-data-does-not-become-trusted-certification",
+      "passed": true
+    },
+    {
+      "test": "live-default-card-responsive-and-accessible",
+      "width": 1440,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "live-default-card-responsive-and-accessible",
+      "width": 1440,
+      "scale": 1.25,
+      "passed": true
+    },
+    {
+      "test": "live-default-card-responsive-and-accessible",
+      "width": 1440,
+      "scale": 1.5,
+      "passed": true
+    },
+    {
+      "test": "live-default-card-responsive-and-accessible",
+      "width": 1440,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "live-default-card-responsive-and-accessible",
+      "width": 768,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "live-default-card-responsive-and-accessible",
+      "width": 768,
+      "scale": 1.25,
+      "passed": true
+    },
+    {
+      "test": "live-default-card-responsive-and-accessible",
+      "width": 768,
+      "scale": 1.5,
+      "passed": true
+    },
+    {
+      "test": "live-default-card-responsive-and-accessible",
+      "width": 768,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "live-default-card-responsive-and-accessible",
+      "width": 320,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "live-default-card-responsive-and-accessible",
+      "width": 320,
+      "scale": 1.25,
+      "passed": true
+    },
+    {
+      "test": "live-default-card-responsive-and-accessible",
+      "width": 320,
+      "scale": 1.5,
+      "passed": true
+    },
+    {
+      "test": "live-default-card-responsive-and-accessible",
+      "width": 320,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "frontend-fixture-consent-editing-guard-and-apply-refresh-transitions",
+      "passed": true
+    },
+    {
+      "test": "removing-frontend-fixtures-restores-real-unverified-state",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "temporaryAccountCleaned": true
+}

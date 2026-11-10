@@ -2,6 +2,7 @@ package com.example.profile;
 
 import com.example.exception.BusinessException;
 import com.example.mapper.UserProfileMapper;
+import com.example.mapper.CampusVerificationMapper;
 import com.example.pojo.dto.*;
 import com.example.pojo.entity.BaseUser;
 import com.example.pojo.vo.UserProfileVO;
@@ -15,13 +16,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class UserProfileServiceTest {
-    BaseUserService users;UserProfileMapper mapper;ProductImageStorageService images;UserProfileService service;
+    BaseUserService users;UserProfileMapper mapper;ProductImageStorageService images;UserProfileService service;CampusVerificationMapper verification;
     static UserProfileVO profile() { return new UserProfileVO(2,"student","同学","/files/original.png",1,null,LocalDateTime.of(2026,6,21,12,0),null,null,null,"USER"); }
     UserProfileUpdateDTO data() { var dto=new UserProfileUpdateDTO();dto.setUsername("  同学  ");dto.setPhone("");dto.setSchool("  校园大学  ");dto.setCollege("");dto.setStudentNumber("T_2026");return dto; }
     UserProfilePasswordDTO password(String old,String next,String confirm) { var dto=new UserProfilePasswordDTO();dto.setOldPassword(old);dto.setNewPassword(next);dto.setConfirmPassword(confirm);return dto; }
     @BeforeEach void setup() {
         users=mock(BaseUserService.class);mapper=mock(UserProfileMapper.class);images=mock(ProductImageStorageService.class);
-        service=new UserProfileService(users,mapper,images);UserContext.setUser(2,"USER");
+        verification=mock(CampusVerificationMapper.class);
+        service=new UserProfileService(users,mapper,images,verification);UserContext.setUser(2,"USER");
+        when(mapper.lockActiveUser(2)).thenReturn(2);
         when(users.getById(2)).thenReturn(BaseUser.builder().id(2).loginStatus(1).password("OldPass123").build());
         when(mapper.hasUserRole(2)).thenReturn(true);when(mapper.selectProfile(2)).thenReturn(profile());when(mapper.updateBasic(eq(2),any(),any())).thenReturn(1);
     }
@@ -36,6 +39,7 @@ class UserProfileServiceTest {
         var dto=data();service.save(dto,null);
         verify(mapper).updateBasic(eq(2),argThat(d->d.getUsername().equals("同学")&&d.getPhone()==null&&d.getSchool().equals("校园大学")&&d.getCollege()==null),isNull());
         verify(mapper).upsertCampus(2,dto);verifyNoInteractions(images);
+        var sequence=inOrder(mapper,verification);sequence.verify(mapper).lockActiveUser(2);sequence.verify(mapper).upsertCampus(2,dto);sequence.verify(verification).invalidateChanged(2,"校园大学","T_2026");
     }
     @Test void successfulAvatarSaveDoesNotDeleteOriginalFile() {
         var file=new MockMultipartFile("avatar","a.png","image/png",new byte[]{1});when(images.storeAvatar(2,file)).thenReturn("/files/avatars/2/new.png");

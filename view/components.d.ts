@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AccessibilitySettings: typeof import('./src/components/AccessibilitySettings.vue')['default']
+    CampusVerificationCard: typeof import('./src/components/CampusVerificationCard.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']
     ElBadge: typeof import('element-plus/es')['ElBadge']

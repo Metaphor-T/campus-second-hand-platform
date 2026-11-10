@@ -21,7 +21,7 @@ class UserProfileHttpTest {
     UserProfileService profiles;UserService users;AdminService admins;JwtUtil jwt;MockMvc mvc;
     @BeforeEach void setup() {
         profiles=mock(UserProfileService.class);users=mock(UserService.class);admins=mock(AdminService.class);jwt=mock(JwtUtil.class);
-        mvc=MockMvcBuilders.standaloneSetup(new UserProfileController(profiles),new UserController(users,profiles),new AdminController(admins))
+        mvc=MockMvcBuilders.standaloneSetup(new UserProfileController(profiles,mock(CampusVerificationService.class)),new UserController(users,profiles),new AdminController(admins))
             .setControllerAdvice(new UserProfileExceptionHandler(),new GlobalExceptionHandler()).addInterceptors(new JwtInterceptor(jwt)).build();
     }
     void role(String role) { when(jwt.getClaims("token")).thenReturn(mock(Claims.class));when(jwt.getUserId("token")).thenReturn(role.equals("ADMIN")?"1":"2");when(jwt.getRole("token")).thenReturn(role); }

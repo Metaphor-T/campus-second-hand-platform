@@ -1,0 +1,21 @@
+{
+  "database": "campus_system_dev_test",
+  "account": "campus_dev_test@localhost",
+  "existingTablesUnchanged": 16,
+  "migrationRepeatedSuccessfully": true,
+  "newTable": "campus_verification",
+  "newTableRows": 0,
+  "columns": [
+    "id",
+    "base_user_id",
+    "request_id",
+    "school",
+    "student_number",
+    "provider",
+    "status",
+    "evidence_reference",
+    "requested_at",
+    "checked_at",
+    "expires_at"
+  ]
+}

@@ -1,0 +1,143 @@
+{
+  "time": "2026-11-10T11:11:41.606Z",
+  "results": [
+    {
+      "test": "old-style-account-without-campus-record-can-read-profile",
+      "passed": true
+    },
+    {
+      "test": "avatar-menu-opens-independent-personal-center",
+      "passed": true
+    },
+    {
+      "test": "cancel-restores-original-fields-and-avatar-without-upload",
+      "passed": true
+    },
+    {
+      "test": "atomic-avatar-profile-save-updates-navbar-and-persists-on-refresh",
+      "passed": true
+    },
+    {
+      "test": "campus-data-private-and-client-cannot-change-target-account-or-role",
+      "passed": true
+    },
+    {
+      "test": "optional-contact-and-campus-fields-can-be-cleared",
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 1440,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 1440,
+      "scale": 1.25,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 1440,
+      "scale": 1.5,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 1440,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 1024,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 1024,
+      "scale": 1.25,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 1024,
+      "scale": 1.5,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 1024,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 768,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 768,
+      "scale": 1.25,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 768,
+      "scale": 1.5,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 768,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 320,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 320,
+      "scale": 1.25,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 320,
+      "scale": 1.5,
+      "passed": true
+    },
+    {
+      "test": "responsive-read-edit-and-accessibility",
+      "width": 320,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "invalid-phone-and-student-number-do-not-save",
+      "passed": true
+    },
+    {
+      "test": "save-failure-keeps-draft-and-original-server-data",
+      "passed": true
+    },
+    {
+      "test": "password-validation-and-cancel-preserve-existing-password",
+      "passed": true
+    },
+    {
+      "test": "password-change-logs-out-current-browser-and-new-password-works",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "temporaryAccountCleaned": true
+}

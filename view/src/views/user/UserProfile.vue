@@ -50,6 +50,7 @@
           </section>
         </template>
 
+        <CampusVerificationCard :school="profile.school" :student-number="profile.studentNumber" :editing="editing" />
         <section id="password" ref="passwordSection" class="profile-card" aria-labelledby="profile-password-title" tabindex="-1">
           <div class="profile-card-heading"><h2 id="profile-password-title">密码管理</h2><button v-if="!showPassword" class="profile-button" type="button" @click="openPassword">修改登录密码</button></div>
           <p class="profile-footnote">修改时需确认原密码。成功后退出当前登录，请使用新密码重新登录。</p>
@@ -74,6 +75,7 @@ import { getMyProfileApi, saveMyProfileApi, changeMyPasswordApi } from '@/api/us
 import type { BaseUserVO, UserProfile, UserProfileUpdate, UserProfilePassword } from '@/types/user'
 import { clearToken, clearRole, clearLastVisitedPath } from '@/utils/localStorage'
 import wsService from '@/utils/websocket'
+import CampusVerificationCard from '@/components/CampusVerificationCard.vue'
 
 const route = useRoute(), router = useRouter()
 const updateCurrentUser = inject<(profile: BaseUserVO) => void>('update-current-user', () => {})

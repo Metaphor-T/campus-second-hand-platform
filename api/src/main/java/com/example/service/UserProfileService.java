@@ -2,6 +2,7 @@ package com.example.service;
 
 import com.example.exception.BusinessException;
 import com.example.mapper.UserProfileMapper;
+import com.example.mapper.CampusVerificationMapper;
 import com.example.pojo.dto.UserProfilePasswordDTO;
 import com.example.pojo.dto.UserProfileUpdateDTO;
 import com.example.pojo.entity.BaseUser;
@@ -21,6 +22,7 @@ public class UserProfileService {
     private final BaseUserService users;
     private final UserProfileMapper profiles;
     private final ProductImageStorageService images;
+    private final CampusVerificationMapper verificationRecords;
 
     private BaseUser requireIdentity(String role) {
         Integer id=UserContext.getUserId();
@@ -42,7 +44,10 @@ public class UserProfileService {
 
     @Transactional(rollbackFor=Exception.class)
     public UserProfileVO save(UserProfileUpdateDTO dto,MultipartFile avatar) {
-        Integer id=requireIdentity("USER").getId();
+        Integer id=UserContext.getUserId();
+        if(id==null || !"USER".equals(UserContext.getRole())) throw new BusinessException("请使用普通用户身份登录",403);
+        if(profiles.lockActiveUser(id)==null) throw new BusinessException("账号状态已变化，请重新登录",403);
+        requireIdentity("USER");
         dto.setUsername(dto.getUsername().strip()); dto.setPhone(optional(dto.getPhone()));
         dto.setSchool(optional(dto.getSchool()));dto.setCollege(optional(dto.getCollege()));dto.setStudentNumber(optional(dto.getStudentNumber()));
         String uploaded=avatar==null?null:images.storeAvatar(id,avatar);
@@ -56,6 +61,7 @@ public class UserProfileService {
         try {
             if(profiles.updateBasic(id,dto,uploaded)!=1) throw new BusinessException("账号状态已变化，请重新登录",409);
             profiles.upsertCampus(id,dto);
+            verificationRecords.invalidateChanged(id,dto.getSchool(),dto.getStudentNumber());
             return getProfile(id);
         } catch(RuntimeException e) {
             if(uploaded!=null) images.discardAvatar(id,uploaded);

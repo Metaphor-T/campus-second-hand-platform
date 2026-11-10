@@ -6,6 +6,9 @@ import org.apache.ibatis.annotations.*;
 
 @Mapper
 public interface UserProfileMapper {
+    @Select("SELECT id FROM base_user WHERE id=#{id} AND login_status=1 FOR UPDATE")
+    @Options(useCache=false,flushCache=Options.FlushCachePolicy.TRUE)
+    Integer lockActiveUser(Integer id);
     @Select("SELECT EXISTS(SELECT 1 FROM `user` WHERE base_user_id=#{id})")
     boolean hasUserRole(Integer id);
     @Select("SELECT EXISTS(SELECT 1 FROM admin WHERE base_user_id=#{id})")
