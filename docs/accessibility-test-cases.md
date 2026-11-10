@@ -66,6 +66,8 @@
 | A31 | 上述各组合实际向下滚动 600px | 导航仍在视口顶部；高度不超过视口 60%；焦点避让变量与导航实际高度一致 | 导航专项通过，共 40 组合 |
 | A32 | 管理员仪表盘、用户、商品、分类页，四档字号与 1440/1024/768/320 宽度逐一切换 | 左侧菜单与右侧内容始终左右排列；内容区域在视口内、可滚动，页面不横向溢出；仪表盘统计数值不截断 | 自动通过，64 组合 |
 | A33 | 上述每页/宽度在 200% 下收起再展开菜单 | 右侧仍保持可视；操作有明确按钮；侧栏宽度按字号适配且有上限 | 自动通过，16 组收起/展开往返 |
+| A34 | 游客/用户商品市场在 1440/1024/768/320 宽度及四档字号下检查筛选区 | 标签位于控件上方且左对齐；控件等高；按钮独立底行；表单不溢出；所测表单无自动无障碍扫描违规 | 自动通过，32 组合（2026-11-10） |
+| A35 | 输入关键词及 10—20 元价格范围并应用；将最低价改成 50；最后重置 | 请求使用去除首尾空白的关键词与正确价格；错误区间提示；重置清空条件和错误并恢复最新发布 | 自动通过，1 组组合交互（2026-11-10） |
 
 人工验收记录：测试人员 ________；浏览器/版本 ________；日期 ________；通过用例 ________；问题及截图编号 ________。
 
@@ -88,6 +90,7 @@ node view/tests/accessibility-browser.cjs
 node view/tests/reading-layout-browser.cjs
 node view/tests/navigation-browser.cjs
 node view/tests/admin-layout-browser.cjs
+node view/tests/product-filters-browser.cjs
 ```
 
 需要已安装 Microsoft Edge，以及独立测试库中的 `player2_tester` 测试账号（此前导入阶段创建）。脚本不注册新账号、不提交表单数据，仅登录、读取页面、检查空表单和打开/关闭地址弹窗。结果写入 `.local-backups/accessibility-results/`。人工测试发布/修改会改变测试库，请勿连接原库。
@@ -131,6 +134,18 @@ node view/tests/admin-layout-browser.cjs
 ![管理员125%布局](accessibility-evidence/admin-layout-125.png)
 
 ![管理员200%布局](accessibility-evidence/admin-layout-200.png)
+
+### 商品筛选布局更新（2026-11-10）
+
+关键词和价格区间组成第一组，新旧程度、交易方式、排序方式组成第二组。标签统一置顶，最低/最高价格保留独立可读名称，重置与应用按钮独立放在底部。根据筛选卡片实际可用宽度及字号改变列数，极窄时价格输入也纵向排列。
+
+构建通过；[33 项布局及交互检查结果](accessibility-evidence/product-filters-results.json)。本次为前端筛选区增量更新，不涉及数据库结构或业务数据变更。
+
+补充修复：筛选下拉框内部行高改为随字号变化的 1.5 倍，内部输入高度随内容增长，外框保留一致的最小高度。四档字号下检查选中值文字实际边界没有超出裁切区域，并检查展开选项的行高与可见高度；33 项复测及构建通过。
+
+![标准字号筛选区](accessibility-evidence/product-filters-standard.png)
+
+![超大字号筛选区](accessibility-evidence/product-filters-large.png)
 
 ## 检查边界
 
