@@ -69,43 +69,12 @@ public class AdminServiceImpl extends ServiceImpl<AdminMapper, Admin> implements
             throw new BusinessException("该账号已被封禁，禁止登录！可联系管理员咨询！");
         }
         // 生成Token
-        String token = jwtUtil.generateToken(baseUser.getId(), RoleEnum.ADMIN.getRole());
+        String token = jwtUtil.generateToken(baseUser.getId(), RoleEnum.ADMIN.getRole(), baseUser.getPassword());
         return UserLoginResponseVO
                 .builder()
                 .token(token)
                 .role(RoleEnum.ADMIN.getRole())
                 .build();
-    }
-
-    /**
-     * 注册
-     *
-     * @param userRegisterDTO 注册参数对象
-     */
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void register(UserRegisterDTO userRegisterDTO) {
-        // 校验账号可用性
-        BaseUser baseUser = baseUserService.getOne(
-                new LambdaQueryWrapper<BaseUser>()
-                        .eq(BaseUser::getAccount, userRegisterDTO.getAccount())
-        );
-        if (Objects.nonNull(baseUser)) {
-            throw new BusinessException("账户不可用");
-        }
-        // 数据新增（基础信息新增、管理员信息新增）
-        BaseUser baseUserSaveEntity = BaseUser.builder()
-                .account(userRegisterDTO.getAccount())
-                .password(userRegisterDTO.getPassword())
-                .username(userRegisterDTO.getUsername())
-                .loginStatus(AccountStatusEnum.NORMAL.getStatusCode())
-                .createTime(LocalDateTime.now())
-                .build();
-        this.baseUserService.save(baseUserSaveEntity);
-        Admin admin = Admin.builder()
-                .baseUserId(baseUserSaveEntity.getId())
-                .build();
-        this.save(admin);
     }
 
     /**
@@ -134,75 +103,6 @@ public class AdminServiceImpl extends ServiceImpl<AdminMapper, Admin> implements
                 .gender(baseUser.getGender()) // 添加
                 .loginStatus(baseUser.getLoginStatus())
                 .build();
-    }
-
-    /**
-     * 修改密码
-     * TODO 权限认证
-     *
-     * @param id                    基础信息主键ID
-     * @param userUpdatePasswordDTO 修改密码实体
-     */
-    @Override
-    public void updatePassword(Integer id, UserUpdatePasswordDTO userUpdatePasswordDTO) {
-        if (Objects.nonNull(id)) {
-            BaseUser baseUser = this.baseUserService.getById(id);
-            if (Objects.isNull(baseUser)) {
-                throw new BusinessException("用户信息查询异常");
-            }
-            BaseUser baseUserEntity = BaseUser.builder()
-                    .id(id)
-                    .password(userUpdatePasswordDTO.getPassword())
-                    .build();
-            this.baseUserService.updateById(baseUserEntity);
-        }
-    }
-
-    @Override
-    public void uploadAvatar(BaseUserUpdateDTO baseUserUpdateDTO) {
-        BaseUser baseUserUpdate = this.baseUserService.getById(baseUserUpdateDTO.getId());
-        if (Objects.isNull(baseUserUpdate)) {
-            throw new BusinessException("用户信息查询异常");
-        }
-        if (!baseUserUpdateDTO.getAvatar().equals(baseUserUpdate.getAvatar())) {
-            this.fileUploadService.deleteFile(baseUserUpdate.getAvatar());
-        }
-        BaseUser baseUser = new BaseUser();
-        baseUser.setId(baseUserUpdateDTO.getId());
-        baseUser.setAvatar(baseUserUpdateDTO.getAvatar());
-        this.baseUserService.updateById(baseUser);
-    }
-
-    /**
-     * 修改个人信息
-     *
-     * @param baseUserUpdateDTO 修改参数DTO
-     */
-    @Override
-    public void updateInfo(BaseUserUpdateDTO baseUserUpdateDTO) {
-        BaseUser baseUserUpdate = this.baseUserService.getById(baseUserUpdateDTO.getId());
-        if (Objects.isNull(baseUserUpdate)) {
-            throw new BusinessException("用户信息查询异常");
-        }
-        // 使用 UpdateWrapper 只更新非空字段
-        LambdaUpdateWrapper<BaseUser> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(BaseUser::getId, baseUserUpdateDTO.getId());
-
-        if (StringUtils.hasText(baseUserUpdateDTO.getUsername())) {
-            updateWrapper.set(BaseUser::getUsername, baseUserUpdateDTO.getUsername());
-        }
-        if (StringUtils.hasText(baseUserUpdateDTO.getPhone())) {
-            updateWrapper.set(BaseUser::getPhone, baseUserUpdateDTO.getPhone());
-        }
-        if (baseUserUpdateDTO.getGender() != null) {
-            updateWrapper.set(BaseUser::getGender, baseUserUpdateDTO.getGender());
-        }
-        // 只有明确传入了avatar才更新，否则保持原样
-        if (baseUserUpdateDTO.getAvatar() != null) {
-            updateWrapper.set(BaseUser::getAvatar, baseUserUpdateDTO.getAvatar());
-        }
-
-        this.baseUserService.update(updateWrapper);
     }
 
     /**

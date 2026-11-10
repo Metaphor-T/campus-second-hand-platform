@@ -1,7 +1,8 @@
 // src/utils/request.ts
 import axios, { AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
-import { getToken } from './localStorage'
+import { getToken, clearToken, clearRole, clearLastVisitedPath } from './localStorage'
+import wsService from './websocket'
 
 // 创建 axios 实例
 const instance = axios.create({
@@ -25,7 +26,15 @@ instance.interceptors.response.use(
     return response.data
   },
   (error) => {
-    ElMessage.error(error.message || '请求失败')
+    const currentToken = getToken()
+    const sentToken = String(error.config?.headers?.Authorization || '').replace(/^Bearer\s+/i, '')
+    // 只清理这次失效请求对应的登录，避免旧请求覆盖刚建立的新登录。
+    if (error.response?.status === 401 && currentToken && sentToken === currentToken) {
+      clearToken(); clearRole(); clearLastVisitedPath(); wsService.disconnect()
+      const login = new URL(`${import.meta.env.BASE_URL}login`, window.location.origin)
+      if (window.location.pathname !== login.pathname) window.location.replace(login.href)
+    }
+    ElMessage.error(error.response?.data?.message || error.message || '请求失败')
     return Promise.reject(error)
   }
 )

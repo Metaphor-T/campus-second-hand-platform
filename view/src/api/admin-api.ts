@@ -4,7 +4,7 @@ import type {
     BaseUserVO,
     UserLoginDTO,
     UserLoginResponseVO,
-    UserUpdatePasswordDTO,
+    UserProfilePassword,
     BaseUserUpdateDTO,
     BaseUserDTO,
     BaseUser
@@ -17,8 +17,8 @@ export const loginApi = (params: UserLoginDTO) => {
 }
 
 // 管理员修改密码
-export const updatePasswordApi = (id: number,params: UserUpdatePasswordDTO) => {
-    return request.put<Result<void>>(`/admin/${id}/updatePassword`, params)
+export const updatePasswordApi = (params: UserProfilePassword) => {
+    return request.put<Result<void>>('/admin/profile/password', params)
 }
 
 // Token认证接口
@@ -27,13 +27,12 @@ export const adminTokenAuthApi = () => {
 }
 
 // 修改信息
-export const adminUpdateInfoApi = (params: BaseUserUpdateDTO) => {
-    return request.put<Result<BaseUserVO>>(`/admin`,params)
-}
-
-// 上传头像
-export const uploadAvatarApi = (params: BaseUserUpdateDTO) => {
-    return request.put<Result<BaseUserVO>>(`/admin/uploadAvatar`,params)
+export const adminUpdateInfoApi = (params: Pick<BaseUserUpdateDTO, 'username' | 'phone' | 'gender'>, avatar?: File) => {
+    if (!avatar) return request.put<Result<BaseUserVO>>('/admin/profile', params)
+    const data = new FormData()
+    data.append('profile', new Blob([JSON.stringify(params)], { type: 'application/json' }))
+    data.append('avatar', avatar)
+    return request.put<Result<BaseUserVO>>('/admin/profile', data)
 }
 
 // 管理员列表查询接口

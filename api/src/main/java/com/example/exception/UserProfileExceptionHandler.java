@@ -1,6 +1,9 @@
 package com.example.exception;
 
 import com.example.controller.UserProfileController;
+import com.example.controller.AdminProfileController;
+import com.example.controller.UserController;
+import com.example.controller.AdminController;
 import com.example.pojo.api.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -13,7 +16,7 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 import org.springframework.http.converter.HttpMessageNotReadableException;
 
 @Slf4j @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(assignableTypes=UserProfileController.class)
+@RestControllerAdvice(assignableTypes={UserProfileController.class,AdminProfileController.class,UserController.class,AdminController.class})
 public class UserProfileExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Result<Void>> business(BusinessException e) { int code=e.getCode()==null?400:e.getCode();return ResponseEntity.status(code>=400&&code<=599?code:400).body(Result.fail(code,e.getMessage())); }

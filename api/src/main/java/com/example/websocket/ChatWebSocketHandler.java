@@ -21,12 +21,21 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
+    private final com.example.service.SessionIdentityService identities;
+    private boolean authorized(WebSocketSession session) throws Exception {
+        try {
+            identities.validateSession((Integer)session.getAttributes().get("userId"),(String)session.getAttributes().get("role"),(String)session.getAttributes().get("credential"));
+            return true;
+        } catch(com.example.exception.BusinessException e) { session.close(CloseStatus.POLICY_VIOLATION);return false; }
+    }
+
     private final WebSocketSessionManager sessionManager;
     private final ChatMessageService chatMessageService;
     private final ObjectMapper objectMapper;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        if(!authorized(session)) return;
         // 从会话属性中获取 userId
         Integer userId = (Integer) session.getAttributes().get("userId");
         if (userId == null) {
@@ -46,6 +55,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        if(!authorized(session)) return;
         Integer fromUserId = (Integer) session.getAttributes().get("userId");
         if (fromUserId == null) {
             return;
@@ -107,7 +117,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
                 // 推送给接收者（如果在线）
                 WebSocketSession toSession = sessionManager.getSession(toUserId);
-                if (toSession != null && toSession.isOpen()) {
+                if (toSession != null && toSession.isOpen() && authorized(toSession)) {
                     // 为接收者补全消息内容
                     WebSocketMessage toMsg = WebSocketMessage.builder()
                             .type("MESSAGE")

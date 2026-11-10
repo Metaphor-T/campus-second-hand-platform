@@ -1,6 +1,7 @@
 package com.example.interceptor;
 
 import com.example.annotation.Auth;
+import com.example.service.SessionIdentityService;
 import com.example.exception.BusinessException;
 import com.example.pojo.api.Result;
 import com.example.pojo.api.ResultCode;
@@ -26,6 +27,7 @@ import java.lang.reflect.Method;
 public class JwtInterceptor implements HandlerInterceptor {
 
     private final JwtUtil jwtUtil;
+    private final SessionIdentityService identities;
 
     // 不需要拦截的路径（白名单）
     private static final String[] EXCLUDE_PATHS = {
@@ -40,6 +42,7 @@ public class JwtInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request,
                              HttpServletResponse response,
                              Object handler) throws Exception {
+        UserContext.clear();
         String path = request.getRequestURI();
 
         // 检查是否在白名单中（白名单路径直接放行，不需要任何验证）
@@ -90,6 +93,8 @@ public class JwtInterceptor implements HandlerInterceptor {
             String role = jwtUtil.getRole(token);
             int userId = Integer.parseInt(userIdStr);
 
+            identities.validateSession(userId,role,claims.get("credential",String.class));
+
             // 将用户信息存储到 ThreadLocal
             UserContext.setUser(userId, role);
 
@@ -101,6 +106,7 @@ public class JwtInterceptor implements HandlerInterceptor {
                 if (requiredRoles.length > 0) {
                     String currentRole = UserContext.getRole();
                     if (!hasRequiredRole(currentRole, requiredRoles)) {
+                        UserContext.clear();
                         handleForbidden(response, "权限不足，不可操作");
                         return false;
                     }
@@ -111,7 +117,8 @@ public class JwtInterceptor implements HandlerInterceptor {
 
             return true;
         } catch (Exception e) {
-            handleUnauthorized(response, "认证失败: " + e.getMessage());
+            UserContext.clear();
+            handleUnauthorized(response, "登录状态已失效，请重新登录");
             return false;
         }
     }

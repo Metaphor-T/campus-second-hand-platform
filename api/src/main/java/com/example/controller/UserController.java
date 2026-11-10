@@ -9,6 +9,7 @@ import com.example.pojo.enums.RoleEnum;
 import com.example.pojo.vo.BaseUserVO;
 import com.example.pojo.vo.UserLoginResponseVO;
 import com.example.service.UserService;
+import com.example.service.AccountManagementService;
 import com.example.service.UserProfileService;
 import com.example.utils.UserContext;
 import com.example.exception.BusinessException;
@@ -27,7 +28,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
-    private final UserProfileService profiles;
+    private final AccountManagementService management;
 
     /**
      * 用户新增
@@ -36,8 +37,8 @@ public class UserController {
      */
     @Auth({RoleEnum.ADMIN})
     @PostMapping(value = "/add")
-    public Result<Void> add(@Valid @RequestBody BaseUser baseUser) {
-        userService.add(baseUser);
+    public Result<Void> add(@Valid @RequestBody AccountCreateDTO baseUser) {
+        management.create(baseUser,false);
         return Result.success();
     }
 
@@ -48,8 +49,8 @@ public class UserController {
      */
     @Auth({RoleEnum.ADMIN})
     @PutMapping(value = "/update")
-    public Result<Void> update(@Valid @RequestBody BaseUser baseUser) {
-        userService.updateAdminInfo(baseUser);
+    public Result<Void> update(@Valid @RequestBody AccountUpdateDTO baseUser) {
+        management.update(baseUser,false);
         return Result.success();
     }
 
@@ -62,7 +63,7 @@ public class UserController {
     @Auth({RoleEnum.ADMIN})
     @DeleteMapping(value = "/{baseUserId}")
     public Result<Void> deleteById(@PathVariable Integer baseUserId) {
-        userService.deleteById(baseUserId);
+        management.delete(baseUserId,false);
         return Result.success();
     }
 
@@ -75,7 +76,7 @@ public class UserController {
     @Auth({RoleEnum.ADMIN})
     @DeleteMapping(value = "/{baseUserId}/detail")
     public Result<BaseUserVO> detail(@PathVariable Integer baseUserId) {
-        BaseUserVO baseUserVO = userService.detail(baseUserId);
+        BaseUserVO baseUserVO = management.detail(baseUserId,false);
         return Result.success(baseUserVO);
     }
 
@@ -123,8 +124,7 @@ public class UserController {
     public Result<Void> updateInfo(@Valid @RequestBody BaseUserUpdateDTO baseUserUpdateDTO) {
         requireSelf(baseUserUpdateDTO.getId());
         if(baseUserUpdateDTO.getAvatar()!=null) throw new BusinessException("请在个人中心选择并保存头像",400);
-        userService.updateInfo(baseUserUpdateDTO);
-        return Result.success();
+        throw new BusinessException("请在个人中心保存资料",410);
     }
 
     /**
@@ -149,8 +149,7 @@ public class UserController {
     public Result<Void> updatePassword(@PathVariable Integer id,
                                         @Valid @RequestBody UserProfilePasswordDTO userUpdatePasswordDTO) {
         requireSelf(id);
-        profiles.changePassword(userUpdatePasswordDTO);
-        return Result.success();
+        throw new BusinessException("请在个人中心修改密码",410);
     }
 
     /**

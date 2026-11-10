@@ -5,7 +5,6 @@ import type {
     BaseUserVO,
     UserLoginDTO,
     UserLoginResponseVO,
-    BaseUserUpdateDTO,
     BaseUserDTO,
     BaseUser,
     UserRegisterDTO
@@ -22,25 +21,13 @@ export const registerApi = (params: UserRegisterDTO) => {
     return request.post<Result<UserLoginResponseVO>>('/user/register', params)
 }
 
-// 兼容旧地址；同样要求原密码、新密码和确认密码。新页面使用 changeMyPasswordApi。
-export const updatePasswordApi = (id: number,params: UserProfilePassword) => {
-    return request.put<Result<void>>(`/user/${id}/updatePassword`, params)
-}
 
 // Token认证接口
 export const userTokenAuthApi = () => {
     return request.get<Result<BaseUserVO>>(`/user/auth`)
 }
 
-// 修改信息
-export const userUpdateInfoApi = (params: BaseUserUpdateDTO) => {
-    return request.put<Result<BaseUserVO>>(`/user`,params)
-}
 
-// 旧接口已停用；个人中心通过 saveMyProfileApi 将头像与资料统一保存。
-export const uploadAvatarApi = (params: BaseUserUpdateDTO) => {
-    return request.put<Result<BaseUserVO>>(`/user/uploadAvatar`,params)
-}
 
 // 用户列表查询接口
 export const userListQueryApi = (params: BaseUserDTO) => {

@@ -9,6 +9,7 @@ import com.example.pojo.enums.RoleEnum;
 import com.example.pojo.vo.BaseUserVO;
 import com.example.pojo.vo.UserLoginResponseVO;
 import com.example.service.AdminService;
+import com.example.service.AccountManagementService;
 import com.example.utils.UserContext;
 import com.example.exception.BusinessException;
 import jakarta.validation.Valid;
@@ -26,6 +27,7 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final AccountManagementService management;
 
     /**
      * 管理员新增
@@ -34,8 +36,8 @@ public class AdminController {
      */
     @Auth({RoleEnum.ADMIN})
     @PostMapping(value = "/add")
-    public Result<Void> add(@Valid @RequestBody BaseUser baseUser) {
-        adminService.add(baseUser);
+    public Result<Void> add(@Valid @RequestBody AccountCreateDTO baseUser) {
+        management.create(baseUser,true);
         return Result.success();
     }
 
@@ -46,8 +48,8 @@ public class AdminController {
      */
     @Auth({RoleEnum.ADMIN})
     @PutMapping(value = "/update")
-    public Result<Void> update(@Valid @RequestBody BaseUser baseUser) {
-        adminService.updateAdminInfo(baseUser);
+    public Result<Void> update(@Valid @RequestBody AccountUpdateDTO baseUser) {
+        management.update(baseUser,true);
         return Result.success();
     }
 
@@ -60,7 +62,7 @@ public class AdminController {
     @Auth({RoleEnum.ADMIN})
     @DeleteMapping(value = "/{baseUserId}")
     public Result<Void> deleteById(@PathVariable Integer baseUserId) {
-        adminService.deleteById(baseUserId);
+        management.delete(baseUserId,true);
         return Result.success();
     }
 
@@ -73,7 +75,7 @@ public class AdminController {
     @Auth({RoleEnum.ADMIN})
     @DeleteMapping(value = "/{baseUserId}/detail")
     public Result<BaseUserVO> detail(@PathVariable Integer baseUserId) {
-        BaseUserVO baseUserVO = adminService.detail(baseUserId);
+        BaseUserVO baseUserVO = management.detail(baseUserId,true);
         return Result.success(baseUserVO);
     }
 
@@ -101,18 +103,6 @@ public class AdminController {
     }
 
     /**
-     * 注册
-     *
-     * @return String
-     */
-    @Auth(RoleEnum.ADMIN)
-    @PostMapping(value = "/register")
-    public Result<Void> register(@Valid @RequestBody UserRegisterDTO userRegisterDTO) {
-        adminService.register(userRegisterDTO);
-        return Result.success();
-    }
-
-    /**
      * 修改个人信息
      *
      * @return String
@@ -121,8 +111,7 @@ public class AdminController {
     @PutMapping
     public Result<Void> updateInfo(@Valid @RequestBody BaseUserUpdateDTO baseUserUpdateDTO) {
         requireSelf(baseUserUpdateDTO.getId());
-        adminService.updateInfo(baseUserUpdateDTO);
-        return Result.success();
+        throw new BusinessException("请刷新页面，使用新的个人资料接口",410);
     }
 
     /**
@@ -134,8 +123,7 @@ public class AdminController {
     @PutMapping(value = "/uploadAvatar")
     public Result<Void> uploadAvatar(@Valid @RequestBody BaseUserUpdateDTO baseUserUpdateDTO) {
         requireSelf(baseUserUpdateDTO.getId());
-        adminService.uploadAvatar(baseUserUpdateDTO);
-        return Result.success();
+        throw new BusinessException("请刷新页面，在个人资料中预览并保存头像",410);
     }
 
     /**
@@ -148,8 +136,7 @@ public class AdminController {
     public Result<Void> updatePassword(@PathVariable Integer id,
                                         @Valid @RequestBody UserUpdatePasswordDTO userUpdatePasswordDTO) {
         requireSelf(id);
-        adminService.updatePassword(id, userUpdatePasswordDTO);
-        return Result.success();
+        throw new BusinessException("请使用新的改密接口并验证原密码",410);
     }
 
     /**

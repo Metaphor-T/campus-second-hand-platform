@@ -19,7 +19,7 @@ class StatisticsHttpTest {
     @BeforeEach void setup() {
         mapper=mock(StatisticsMapper.class); jwt=mock(JwtUtil.class);
         mvc=MockMvcBuilders.standaloneSetup(new StatisticsController(new StatisticsService(mapper)))
-            .setControllerAdvice(new StatisticsExceptionHandler()).addInterceptors(new JwtInterceptor(jwt)).build();
+            .setControllerAdvice(new StatisticsExceptionHandler()).addInterceptors(new JwtInterceptor(jwt,mock(com.example.service.SessionIdentityService.class))).build();
     }
     void role(String role) { when(jwt.getClaims("test")).thenReturn(mock(Claims.class)); when(jwt.getUserId("test")).thenReturn("1"); when(jwt.getRole("test")).thenReturn(role); }
     @Test void guestCannotReadStatistics() throws Exception { mvc.perform(get("/stats/dashboard")).andExpect(status().isUnauthorized()); verifyNoInteractions(mapper); }

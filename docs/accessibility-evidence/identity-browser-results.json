@@ -1,0 +1,111 @@
+{
+  "time": "2026-11-10T12:35:29.869Z",
+  "results": [
+    {
+      "test": "temporary-admin-created-only-through-existing-admin-and-server-owned-identity",
+      "passed": true
+    },
+    {
+      "test": "public-registration-cannot-create-admin-through-role-or-id-fields",
+      "passed": true
+    },
+    {
+      "test": "live-anonymous-and-ordinary-user-blocked-from-management-and-admin-personal-endpoints",
+      "passed": true
+    },
+    {
+      "test": "legacy-admin-registration-no-longer-has-a-post-handler",
+      "passed": true
+    },
+    {
+      "test": "management-scope-prevents-user-endpoint-from-editing-or-deleting-admin",
+      "passed": true
+    },
+    {
+      "test": "ordinary-profile-forged-target-id-and-role-only-update-authenticated-owner",
+      "passed": true
+    },
+    {
+      "test": "legacy-target-id-self-writers-denied-or-retired-without-changing-other-user",
+      "passed": true
+    },
+    {
+      "test": "management-edit-whitelist-does-not-accept-account-password-avatar-role-or-registration-time",
+      "passed": true
+    },
+    {
+      "test": "disabled-account-existing-session-rejected-by-current-database-state",
+      "passed": true
+    },
+    {
+      "test": "deleted-account-cannot-reuse-existing-token",
+      "passed": true
+    },
+    {
+      "test": "admin-self-profile-ignores-foreign-id-and-management-fields",
+      "passed": true
+    },
+    {
+      "test": "admin-avatar-preview-and-cancel-do-not-write-or-delete-server-files",
+      "passed": true
+    },
+    {
+      "test": "admin-avatar-and-info-saved-atomically-to-authenticated-owner-and-navbar-updated",
+      "passed": true
+    },
+    {
+      "test": "admin-password-modal-fits-standard-and-large-font",
+      "width": 1440,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "admin-password-modal-fits-standard-and-large-font",
+      "width": 1440,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "admin-password-modal-fits-standard-and-large-font",
+      "width": 768,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "admin-password-modal-fits-standard-and-large-font",
+      "width": 768,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "admin-password-modal-fits-standard-and-large-font",
+      "width": 320,
+      "scale": 1,
+      "passed": true
+    },
+    {
+      "test": "admin-password-modal-fits-standard-and-large-font",
+      "width": 320,
+      "scale": 2,
+      "passed": true
+    },
+    {
+      "test": "admin-password-requires-original-password-and-old-no-proof-endpoint-is-retired",
+      "passed": true
+    },
+    {
+      "test": "admin-password-change-through-ui-logs-out-and-revokes-prior-token",
+      "passed": true
+    },
+    {
+      "test": "ordinary-password-change-revokes-old-http-and-open-websocket-session",
+      "passed": true
+    },
+    {
+      "test": "expired-session-clears-browser-credentials-and-returns-to-login",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "temporaryAccountsCleaned": true
+}

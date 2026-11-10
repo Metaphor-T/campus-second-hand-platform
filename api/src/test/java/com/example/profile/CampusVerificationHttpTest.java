@@ -21,7 +21,7 @@ class CampusVerificationHttpTest {
     @BeforeEach void setup() {
         service=mock(CampusVerificationService.class);jwt=mock(JwtUtil.class);
         mvc=MockMvcBuilders.standaloneSetup(new UserProfileController(mock(UserProfileService.class),service))
-            .setControllerAdvice(new UserProfileExceptionHandler()).addInterceptors(new JwtInterceptor(jwt)).build();
+            .setControllerAdvice(new UserProfileExceptionHandler()).addInterceptors(new JwtInterceptor(jwt,mock(com.example.service.SessionIdentityService.class))).build();
     }
     void role(String role) { when(jwt.getClaims("token")).thenReturn(mock(Claims.class));when(jwt.getUserId("token")).thenReturn("2");when(jwt.getRole("token")).thenReturn(role); }
     @Test void allEndpointsRequireLogin() throws Exception {

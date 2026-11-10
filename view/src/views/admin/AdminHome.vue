@@ -108,9 +108,8 @@
             <div>
                 <div>
                     <p>头像</p>
-                    <el-upload class="avatar-uploader" action="http://localhost:21090/files/upload"
-                        :show-file-list="false" :on-success="handleAvatarSuccess"
-                        :before-upload="beforeAvatarUpload">
+                    <el-upload class="avatar-uploader" :auto-upload="false" accept="image/png,image/jpeg"
+                        :show-file-list="false" :on-change="handleAvatarChange">
                         <img v-if="imageUrl" :src="imageUrl" class="avatar" />
                         <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
                     </el-upload>
@@ -142,11 +141,16 @@
             </template>
         </el-dialog>
 
-        <!-- 修改密码弹窗（原始逻辑） -->
+        <!-- 验证原密码后修改当前管理员的密码 -->
         <el-dialog v-model="dialogUpdatePasswordVisible" title="修改密码" width="400"
             :before-close="handlePasswordDialogClose">
-            <div>
-                <el-input v-model="updatePasswordDTO.password" type="password" placeholder="请输入新密码" show-password />
+            <div class="admin-password-fields">
+                <label for="admin-old-password">原密码</label>
+                <el-input id="admin-old-password" v-model="updatePasswordDTO.oldPassword" type="password" autocomplete="current-password" placeholder="请输入原密码" show-password />
+                <label for="admin-new-password">新密码（8—64 位）</label>
+                <el-input id="admin-new-password" v-model="updatePasswordDTO.newPassword" type="password" autocomplete="new-password" placeholder="请输入新密码" show-password />
+                <label for="admin-confirm-password">确认新密码</label>
+                <el-input id="admin-confirm-password" v-model="updatePasswordDTO.confirmPassword" type="password" autocomplete="new-password" placeholder="请再次输入新密码" show-password />
             </div>
             <template #footer>
                 <div class="dialog-footer">
@@ -180,8 +184,8 @@ import {
     getSidebarCollapsed,
     setSidebarCollapsed
 } from '@/utils/localStorage'
-import { adminTokenAuthApi, updatePasswordApi, uploadAvatarApi, adminUpdateInfoApi } from "@/api/admin-api"
-import { BaseUserVO, UserUpdatePasswordDTO, BaseUserUpdateDTO } from '@/types/user'
+import { adminTokenAuthApi, updatePasswordApi, adminUpdateInfoApi } from "@/api/admin-api"
+import { BaseUserVO, UserProfilePassword, BaseUserUpdateDTO } from '@/types/user'
 
 const router = useRouter()
 const route = useRoute()
@@ -202,16 +206,22 @@ const getIconComponent = (iconName: string) => iconMap[iconName] || null
 
 // ========== 原始页面数据与逻辑 ==========
 const baseUser = ref<BaseUserVO>({})
-const updatePasswordDTO = ref<UserUpdatePasswordDTO>({})
+const emptyPassword = (): UserProfilePassword => ({ oldPassword: '', newPassword: '', confirmPassword: '' })
+const updatePasswordDTO = ref<UserProfilePassword>(emptyPassword())
+const selectedAvatar = ref<File>()
+let avatarPreview = ''
+const resetAvatarPreview = () => { if (avatarPreview) URL.revokeObjectURL(avatarPreview); avatarPreview = ''; selectedAvatar.value = undefined }
 const updateInfoDTO = ref<BaseUserUpdateDTO>({})
 const dialogUpdatePasswordVisible = ref(false)
 const dialogUpdateInfoVisible = ref(false)
 const loadingUpdatePassword = ref(false)
 const imageUrl = ref('')
 
+onUnmounted(resetAvatarPreview)
+
 const handleUpdateInfoDialogClose = () => {
     dialogUpdateInfoVisible.value = false
-    updatePasswordDTO.value.password = ''
+    resetAvatarPreview()
     imageUrl.value = ''
 }
 
@@ -221,29 +231,21 @@ const getImageUrl = (filePath: string) => {
     return `${import.meta.env.VITE_API_BASE_URL}${filePath}`
 }
 
-const handleAvatarSuccess: UploadProps['onSuccess'] = async (response) => {
-    try {
-        imageUrl.value = getImageUrl(response.data.filePath)
-        const baseUserUpdateDTO = {
-            id: baseUser.value.id,
-            avatar: response.data.filePath
-        }
-        await uploadAvatarApi(baseUserUpdateDTO)
-        ElMessage.success(`头像设置成功`)
-    } catch (error: any) {
-        ElMessage.error(`${error.message}`)
-    }
+const handleAvatarChange: UploadProps['onChange'] = (file) => {
+    if (!file.raw || !beforeAvatarUpload(file.raw)) return
+    resetAvatarPreview(); selectedAvatar.value = file.raw
+    avatarPreview = URL.createObjectURL(file.raw); imageUrl.value = avatarPreview
 }
 
-const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+const beforeAvatarUpload = (rawFile: File) => {
+    const allowedTypes = ['image/jpeg', 'image/png']
     const maxSize = 2 * 1024 * 1024 // 2MB
 
     if (!allowedTypes.includes(rawFile.type)) {
-        ElMessage.error('Avatar picture must be JPG, PNG, GIF, WEBP or BMP format!')
+        ElMessage.error('头像仅支持 JPG / PNG 图片')
         return false
     } else if (rawFile.size > maxSize) {
-        ElMessage.error('Avatar picture size can not exceed 2MB!')
+        ElMessage.error('头像不能超过 2MB')
         return false
     }
     return true
@@ -251,11 +253,12 @@ const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
 
 const handlePasswordDialogClose = () => {
     dialogUpdatePasswordVisible.value = false
-    updatePasswordDTO.value = {}
+    updatePasswordDTO.value = emptyPassword()
 }
 
 // 修改信息
 const updateInfo = () => {
+    resetAvatarPreview()
     updateInfoDTO.value = { ...baseUser.value }
     imageUrl.value = getImageUrl(baseUser.value?.avatar ?? '')
     dialogUpdateInfoVisible.value = true
@@ -288,12 +291,11 @@ const loginout = () => {
 const handleUpdateInfoOperation = async () => {
     try {
         const baseUserUpdateDTO = {
-            id: baseUser.value.id,
             username: updateInfoDTO.value.username,
             phone: updateInfoDTO.value.phone,
             gender: updateInfoDTO.value.gender
         }
-        await adminUpdateInfoApi(baseUserUpdateDTO)
+        await adminUpdateInfoApi(baseUserUpdateDTO, selectedAvatar.value)
         ElMessage.success(`个人信息修改成功`)
         handleUpdateInfoDialogClose()
         await tokenAuth()
@@ -307,8 +309,13 @@ const handleUpdateInfoOperation = async () => {
 const handleUpdatePassword = async () => {
     try {
         loadingUpdatePassword.value = true
-        if (!baseUser.value.id) return
-        await updatePasswordApi(baseUser.value.id, updatePasswordDTO.value)
+        const data = updatePasswordDTO.value
+        if (!data.oldPassword) throw new Error('请输入原密码')
+        if (data.newPassword.length < 8 || data.newPassword.length > 64) throw new Error('新密码长度为8至64位')
+        if (data.newPassword !== data.confirmPassword) throw new Error('两次新密码不一致')
+        await updatePasswordApi(data)
+        updatePasswordDTO.value = emptyPassword()
+        clearLastVisitedPath()
         loadingUpdatePassword.value = false
         router.push('/login')
         clearRole()
@@ -861,6 +868,9 @@ onUnmounted(() => {
 .dialog-footer {
     text-align: right;
 }
+/* 原生标签也随全站字号缩放，保持输入框与说明文字一致。 */
+.admin-password-fields { display:grid; gap:12px; }
+.admin-password-fields label { font-size:1rem; line-height:1.6; font-weight:500; }
 </style>
 
 <style>

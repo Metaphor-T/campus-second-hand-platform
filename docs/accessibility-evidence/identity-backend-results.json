@@ -1,0 +1,8 @@
+{
+  "tests": 285,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "identityPermissionTests": 76,
+  "frontendBuild": "passed"
+}

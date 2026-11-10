@@ -17,15 +17,7 @@ public interface AdminService extends IService<Admin> {
 
     UserLoginResponseVO login(UserLoginDTO userLoginDTO);
 
-    void register(UserRegisterDTO userRegisterDTO);
-
     BaseUserVO tokenAuth();
-
-    void updatePassword(Integer id, UserUpdatePasswordDTO userUpdatePasswordDTO);
-
-    void updateInfo( BaseUserUpdateDTO baseUserUpdateDTO);
-
-    void uploadAvatar(@Valid BaseUserUpdateDTO baseUserUpdateDTO);
 
     List<BaseUserVO> listPage(BaseUserQueryDTO baseUserQueryDTO);
 

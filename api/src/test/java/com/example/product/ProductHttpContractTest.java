@@ -24,7 +24,7 @@ class ProductHttpContractTest {
         products=mock(ProductService.class);
         jwt=mock(JwtUtil.class);
         mvc=MockMvcBuilders.standaloneSetup(new GuestProductController(products,mock(CategoryService.class)),new ProductController(products,mock(UserInteractionService.class)),new ProductImageUploadController(mock(ProductImageStorageService.class)))
-                .setControllerAdvice(new ProductExceptionHandler()).addInterceptors(new JwtInterceptor(jwt)).build();
+                .setControllerAdvice(new ProductExceptionHandler()).addInterceptors(new JwtInterceptor(jwt,mock(com.example.service.SessionIdentityService.class))).build();
     }
     @Test void guestCanViewApprovedDetailWithoutToken() throws Exception { when(products.getDetail(1)).thenReturn(ProductVO.builder().id(1).status(1).build()); mvc.perform(get("/guest/product/detail/1")).andExpect(status().isOk()).andExpect(jsonPath("$.data.id").value(1)); }
     @Test void guestCannotViewPendingDetail() throws Exception { when(products.getDetail(1)).thenReturn(ProductVO.builder().id(1).status(0).build()); mvc.perform(get("/guest/product/detail/1")).andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value(404)); }

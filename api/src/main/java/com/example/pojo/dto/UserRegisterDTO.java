@@ -17,6 +17,7 @@ public class UserRegisterDTO {
     @Size(min = 3,max = 30,message = "账号长度在3-30之间")
     private String account; // 账号
     @NotBlank(message = "密码不能为空")
+    @Size(min=6,max=64,message="密码长度为6至64位")
     private String password; // 密码
     @NotBlank(message = "用户名不能为空")
     @Size(min = 1,max = 20,message = "用户长度在1-20之间")

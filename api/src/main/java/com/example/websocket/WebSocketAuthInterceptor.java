@@ -1,6 +1,7 @@
 package com.example.websocket;
 
 import com.example.utils.JwtUtil;
+import com.example.service.SessionIdentityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.ServerHttpRequest;
@@ -22,6 +23,7 @@ import java.util.Map;
 public class WebSocketAuthInterceptor implements HandshakeInterceptor {
 
     private final JwtUtil jwtUtil;
+    private final SessionIdentityService identities;
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
@@ -61,8 +63,11 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
             String role = jwtUtil.getRole(token);
             Integer userId = Integer.parseInt(userIdStr);
 
+            identities.validateSession(userId,role,jwtUtil.getClaims(token).get("credential",String.class));
+
             attributes.put("userId", userId);
             attributes.put("role", role);
+            attributes.put("credential",jwtUtil.getClaims(token).get("credential",String.class));
 
             log.info("WebSocket 握手成功: userId={}, role={}", userId, role);
             return true;

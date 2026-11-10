@@ -14,6 +14,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public org.springframework.http.ResponseEntity<Result<Void>> unsupportedMethod(Exception e) {
+        return org.springframework.http.ResponseEntity.status(405).body(Result.fail(405,"请求方法不支持"));
+    }
     /**
      * 业务异常处理
      */

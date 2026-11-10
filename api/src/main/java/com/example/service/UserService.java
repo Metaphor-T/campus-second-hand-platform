@@ -22,12 +22,6 @@ public interface UserService extends IService<User> {
 
     BaseUserVO tokenAuth();
 
-    void updatePassword(Integer id, UserUpdatePasswordDTO userUpdatePasswordDTO);
-
-    void updateInfo(BaseUserUpdateDTO baseUserUpdateDTO);
-
-    void uploadAvatar(BaseUserUpdateDTO baseUserUpdateDTO);
-
     List<BaseUserVO> listPage(BaseUserQueryDTO baseUserQueryDTO);
 
     Integer listPageCount(BaseUserQueryDTO baseUserQueryDTO);
