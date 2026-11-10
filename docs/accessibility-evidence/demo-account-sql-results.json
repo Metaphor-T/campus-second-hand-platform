@@ -1,0 +1,36 @@
+{
+  "database": "campus_system_dev_test",
+  "tests": 7,
+  "failures": 0,
+  "fixtureTableRemoved": true,
+  "results": [
+    {
+      "test": "seed-creates-four-new-login-account-names",
+      "passed": true
+    },
+    {
+      "test": "migration-changes-only-account-keeps-all-other-fields",
+      "passed": true
+    },
+    {
+      "test": "migration-is-repeatable",
+      "passed": true
+    },
+    {
+      "test": "mixed-old-and-new-names-complete-safely",
+      "passed": true
+    },
+    {
+      "test": "occupied-target-prevents-all-renames-without-overwriting",
+      "passed": true
+    },
+    {
+      "test": "unexpected-source-id-leaves-all-records-unchanged",
+      "passed": true
+    },
+    {
+      "test": "real-development-base-user-data-and-schema-untouched",
+      "passed": true
+    }
+  ]
+}
