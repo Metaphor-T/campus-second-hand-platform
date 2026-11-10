@@ -1,0 +1,32 @@
+{
+  "database": "campus_system_dev_test",
+  "tests": 6,
+  "failures": 0,
+  "fixtureTableRemoved": true,
+  "results": [
+    {
+      "test": "seed-matches-five-requested-account-nicknames",
+      "passed": true
+    },
+    {
+      "test": "migration-updates-only-nicknames-and-preserves-other-users-and-fields",
+      "passed": true
+    },
+    {
+      "test": "nickname-migration-is-repeatable",
+      "passed": true
+    },
+    {
+      "test": "unexpected-account-id-prevents-all-nickname-updates",
+      "passed": true
+    },
+    {
+      "test": "duplicate-login-account-prevents-all-nickname-updates",
+      "passed": true
+    },
+    {
+      "test": "real-development-user-data-and-schema-untouched",
+      "passed": true
+    }
+  ]
+}
