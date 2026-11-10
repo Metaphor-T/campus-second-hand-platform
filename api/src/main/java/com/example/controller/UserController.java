@@ -9,6 +9,9 @@ import com.example.pojo.enums.RoleEnum;
 import com.example.pojo.vo.BaseUserVO;
 import com.example.pojo.vo.UserLoginResponseVO;
 import com.example.service.UserService;
+import com.example.service.UserProfileService;
+import com.example.utils.UserContext;
+import com.example.exception.BusinessException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -24,13 +27,14 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final UserProfileService profiles;
 
     /**
      * 用户新增
      *
      * @return Result<Void>
      */
-    @Auth({RoleEnum.ADMIN,RoleEnum.USER})
+    @Auth({RoleEnum.ADMIN})
     @PostMapping(value = "/add")
     public Result<Void> add(@Valid @RequestBody BaseUser baseUser) {
         userService.add(baseUser);
@@ -42,7 +46,7 @@ public class UserController {
      *
      * @return Result<Void>
      */
-    @Auth({RoleEnum.ADMIN,RoleEnum.USER})
+    @Auth({RoleEnum.ADMIN})
     @PutMapping(value = "/update")
     public Result<Void> update(@Valid @RequestBody BaseUser baseUser) {
         userService.updateAdminInfo(baseUser);
@@ -55,7 +59,7 @@ public class UserController {
      * @param baseUserId 基础用户信息ID
      * @return Result<Void>
      */
-    @Auth({RoleEnum.ADMIN,RoleEnum.USER})
+    @Auth({RoleEnum.ADMIN})
     @DeleteMapping(value = "/{baseUserId}")
     public Result<Void> deleteById(@PathVariable Integer baseUserId) {
         userService.deleteById(baseUserId);
@@ -68,7 +72,7 @@ public class UserController {
      * @param baseUserId 基础用户信息ID
      * @return Result<BaseUserVO>
      */
-    @Auth({RoleEnum.ADMIN,RoleEnum.USER})
+    @Auth({RoleEnum.ADMIN})
     @DeleteMapping(value = "/{baseUserId}/detail")
     public Result<BaseUserVO> detail(@PathVariable Integer baseUserId) {
         BaseUserVO baseUserVO = userService.detail(baseUserId);
@@ -114,8 +118,11 @@ public class UserController {
      *
      * @return String
      */
+    @Auth(RoleEnum.USER)
     @PutMapping
     public Result<Void> updateInfo(@Valid @RequestBody BaseUserUpdateDTO baseUserUpdateDTO) {
+        requireSelf(baseUserUpdateDTO.getId());
+        if(baseUserUpdateDTO.getAvatar()!=null) throw new BusinessException("请在个人中心选择并保存头像",400);
         userService.updateInfo(baseUserUpdateDTO);
         return Result.success();
     }
@@ -125,10 +132,11 @@ public class UserController {
      *
      * @return Result<Void>
      */
+    @Auth(RoleEnum.USER)
     @PutMapping(value = "/uploadAvatar")
     public Result<Void> uploadAvatar(@Valid @RequestBody BaseUserUpdateDTO baseUserUpdateDTO) {
-        userService.uploadAvatar(baseUserUpdateDTO);
-        return Result.success();
+        requireSelf(baseUserUpdateDTO.getId());
+        throw new BusinessException("头像已改为个人中心预览后统一保存，请刷新页面",410);
     }
 
     /**
@@ -136,10 +144,12 @@ public class UserController {
      *
      * @return Result<Void>
      */
+    @Auth(RoleEnum.USER)
     @PutMapping(value = "/{id}/updatePassword")
     public Result<Void> updatePassword(@PathVariable Integer id,
-                                        @Valid @RequestBody UserUpdatePasswordDTO userUpdatePasswordDTO) {
-        userService.updatePassword(id, userUpdatePasswordDTO);
+                                        @Valid @RequestBody UserProfilePasswordDTO userUpdatePasswordDTO) {
+        requireSelf(id);
+        profiles.changePassword(userUpdatePasswordDTO);
         return Result.success();
     }
 
@@ -149,12 +159,16 @@ public class UserController {
      * @return Result<List < BaseUserVO>>
      */
     @Pager
-    @Auth({RoleEnum.ADMIN,RoleEnum.USER})
+    @Auth({RoleEnum.ADMIN})
     @PostMapping(value = "/listPage")
     public Result<List<BaseUserVO>> listPage(@RequestBody BaseUserQueryDTO baseUserQueryDTO) {
         List<BaseUserVO> baseUserVOS = userService.listPage(baseUserQueryDTO);
         Integer count = userService.listPageCount(baseUserQueryDTO);
         return Result.success(baseUserVOS, count);
+    }
+
+    private void requireSelf(Integer id) {
+        if(id==null || !id.equals(UserContext.getUserId())) throw new BusinessException("只能修改自己的个人资料",403);
     }
 
 }

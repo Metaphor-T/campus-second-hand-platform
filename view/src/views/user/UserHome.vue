@@ -43,8 +43,7 @@
                         </span>
                         <template #dropdown>
                             <el-dropdown-menu>
-                                <el-dropdown-item @click="openEditInfo" :icon="EditPen">修改信息</el-dropdown-item>
-                                <el-dropdown-item @click="openChangePassword" :icon="TurnOff">修改密码</el-dropdown-item>
+                                <el-dropdown-item @click="router.push('/user-home/profile')" :icon="User">个人中心</el-dropdown-item>
                                 <el-dropdown-item divided @click="doLogout" :icon="SwitchButton">退出登录</el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
@@ -82,94 +81,15 @@
             <router-view />
         </main>
 
-        <!-- ====== 修改信息弹窗 ====== -->
-        <el-dialog
-            v-model="dialogInfoVisible"
-            title="修改个人信息"
-            width="440px"
-            :before-close="closeInfoDialog"
-            destroy-on-close
-            center
-        >
-            <div class="dialog-body">
-                <div class="avatar-row">
-                    <span class="label">头像</span>
-                    <el-upload
-                        class="avatar-uploader"
-                        :action="uploadUrl"
-                        :show-file-list="false"
-                        :on-success="onAvatarSuccess"
-                        :before-upload="beforeAvatarUpload"
-                    >
-                        <img v-if="imageUrl" :src="imageUrl" class="avatar-preview" />
-                        <el-icon v-else class="avatar-placeholder"><Plus /></el-icon>
-                    </el-upload>
-                </div>
-                <div class="field-row">
-                    <span class="label">账号</span>
-                    <el-input :model-value="baseUser.account" disabled />
-                </div>
-                <div class="field-row">
-                    <span class="label">用户名</span>
-                    <el-input v-model="infoForm.username" placeholder="请输入用户名" maxlength="20" />
-                </div>
-                <div class="field-row">
-                    <span class="label">手机号</span>
-                    <el-input v-model="infoForm.phone" placeholder="请输入手机号" maxlength="11" />
-                </div>
-                <div class="field-row">
-                    <span class="label">性别</span>
-                    <el-radio-group v-model="infoForm.gender">
-                        <el-radio :value="1">男</el-radio>
-                        <el-radio :value="2">女</el-radio>
-                    </el-radio-group>
-                </div>
-            </div>
-            <template #footer>
-                <div class="dialog-footer">
-                    <el-button @click="closeInfoDialog">取消</el-button>
-                    <el-button type="primary" :loading="infoLoading" @click="submitUpdateInfo">保存</el-button>
-                </div>
-            </template>
-        </el-dialog>
-
-        <!-- ====== 修改密码弹窗 ====== -->
-        <el-dialog
-            v-model="dialogPwdVisible"
-            title="修改密码"
-            width="400px"
-            :before-close="closePwdDialog"
-            destroy-on-close
-            center
-        >
-            <div class="dialog-body">
-                <div class="field-row">
-                    <span class="label">新密码</span>
-                    <el-input
-                        v-model="pwdForm.password"
-                        type="password"
-                        placeholder="请输入新密码"
-                        show-password
-                    />
-                </div>
-            </div>
-            <template #footer>
-                <div class="dialog-footer">
-                    <el-button @click="closePwdDialog">取消</el-button>
-                    <el-button type="primary" :loading="pwdLoading" @click="submitChangePwd">确认修改</el-button>
-                </div>
-            </template>
-        </el-dialog>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, provide, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { UploadProps } from 'element-plus'
 import {
-    EditPen, TurnOff, SwitchButton, ArrowDown, Plus,
+    User, SwitchButton, ArrowDown,
     Search, ShoppingBag, Goods, Star, List, ChatLineSquare, Location
 } from '@element-plus/icons-vue'
 import {
@@ -179,20 +99,19 @@ import {
     getToken
 } from '@/utils/localStorage'
 import {
-    userTokenAuthApi,
-    userUpdateInfoApi,
-    updatePasswordApi,
-    uploadAvatarApi
+    userTokenAuthApi
 } from '@/api/user-api'
 import { getTotalUnreadCountApi } from '@/api/chat-api'
 import wsService from '@/utils/websocket'
 import type { WebSocketMessage } from '@/types/chat'
-import type { BaseUserVO, BaseUserUpdateDTO, UserUpdatePasswordDTO } from '@/types/user'
+import type { BaseUserVO } from '@/types/user'
 
 const router = useRouter()
 
 // ====== 当前用户 ======
 const baseUser = ref<BaseUserVO>({})
+let profileRevision = 0
+provide('update-current-user', (profile: BaseUserVO) => { profileRevision++; baseUser.value = profile })
 
 // ====== 搜索关键词 ======
 const searchKeyword = ref('')
@@ -232,113 +151,7 @@ const fetchTotalUnread = async () => {
     } catch { /* 静默 */ }
 }
 
-// ====== 修改信息 ======
-const dialogInfoVisible = ref(false)
-const infoLoading = ref(false)
-const imageUrl = ref('')
-const infoForm = reactive<BaseUserUpdateDTO>({
-    id: undefined,
-    username: '',
-    phone: '',
-    gender: 1
-})
-
-const uploadUrl = `${import.meta.env.VITE_API_BASE_URL}/files/upload`
-
-const getImageUrl = (filePath: string) => {
-    if (!filePath) return ''
-    return `${import.meta.env.VITE_API_BASE_URL}${filePath}`
-}
-
-const openEditInfo = () => {
-    infoForm.id = baseUser.value.id
-    infoForm.username = baseUser.value.username ?? ''
-    infoForm.phone = baseUser.value.phone ?? ''
-    infoForm.gender = baseUser.value.gender ?? 1
-    imageUrl.value = getImageUrl(baseUser.value?.avatar ?? '')
-    dialogInfoVisible.value = true
-}
-
-const closeInfoDialog = () => { dialogInfoVisible.value = false }
-
-const onAvatarSuccess: UploadProps['onSuccess'] = async (response) => {
-    try {
-        imageUrl.value = getImageUrl(response.data.filePath)
-        await uploadAvatarApi({ id: baseUser.value.id, avatar: response.data.filePath })
-        ElMessage.success('头像已更新')
-        await tokenAuth()
-    } catch (e: any) {
-        ElMessage.error(e.message || '头像上传失败')
-    }
-}
-
-const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
-    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
-    if (!allowed.includes(rawFile.type)) {
-        ElMessage.error('仅支持 JPG / PNG / GIF / WEBP / BMP 格式')
-        return false
-    }
-    if (rawFile.size > 2 * 1024 * 1024) {
-        ElMessage.error('图片大小不能超过 2MB')
-        return false
-    }
-    return true
-}
-
-const submitUpdateInfo = async () => {
-    try {
-        infoLoading.value = true
-        await userUpdateInfoApi({
-            id: infoForm.id,
-            username: infoForm.username,
-            phone: infoForm.phone,
-            gender: infoForm.gender
-        })
-        ElMessage.success('个人信息已保存')
-        closeInfoDialog()
-        await tokenAuth()
-    } catch (e: any) {
-        ElMessage.error(e.message || '保存失败')
-    } finally {
-        infoLoading.value = false
-    }
-}
-
-// ====== 修改密码 ======
-const dialogPwdVisible = ref(false)
-const pwdLoading = ref(false)
-const pwdForm = reactive<UserUpdatePasswordDTO>({ password: '' })
-
-const openChangePassword = () => {
-    pwdForm.password = ''
-    dialogPwdVisible.value = true
-}
-
-const closePwdDialog = () => {
-    dialogPwdVisible.value = false
-    pwdForm.password = ''
-}
-
-const submitChangePwd = async () => {
-    if (!pwdForm.password) {
-        ElMessage.warning('请输入新密码')
-        return
-    }
-    try {
-        pwdLoading.value = true
-        if (!baseUser.value.id) return
-        await updatePasswordApi(baseUser.value.id, pwdForm)
-        ElMessage.success('密码修改成功，请重新登录')
-        clearToken()
-        clearRole()
-        clearLastVisitedPath()
-        router.push('/login')
-    } catch (e: any) {
-        ElMessage.error(e.message || '修改密码失败')
-    } finally {
-        pwdLoading.value = false
-    }
-}
+const getImageUrl = (path: string) => path.startsWith('/files/') ? `${import.meta.env.VITE_API_BASE_URL}${path}` : ''
 
 // ====== 退出 ======
 const doLogout = () => {
@@ -359,9 +172,10 @@ const doLogout = () => {
 
 // ====== Token 认证 ======
 const tokenAuth = async () => {
+    const revision = profileRevision
     try {
         const response = await userTokenAuthApi()
-        baseUser.value = response?.data ?? {}
+        if (revision === profileRevision) baseUser.value = response?.data ?? {}
     } catch {
         router.push('/401')
         ElMessage.warning('身份认证异常，请重新登录')

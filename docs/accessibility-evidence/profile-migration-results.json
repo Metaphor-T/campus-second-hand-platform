@@ -1,0 +1,14 @@
+{
+  "database": "campus_system_dev_test",
+  "account": "campus_dev_test@localhost",
+  "existingTablesUnchanged": 15,
+  "migrationRepeatedSuccessfully": true,
+  "newTable": "user_campus_profile",
+  "columns": [
+    "base_user_id",
+    "school",
+    "college",
+    "student_number",
+    "update_time"
+  ]
+}

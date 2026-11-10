@@ -146,6 +146,12 @@ const routes: RouteRecordRaw[] = [
         },
         children: [
             {
+                path: 'profile',
+                name: '个人中心',
+                component: () => import('@/views/user/UserProfile.vue'),
+                meta: { title: '个人中心', roles: ['USER'] }
+            },
+            {
                 path: 'market',
                 name: '商品市场',
                 component: () => import('@/views/user/UserMarket.vue'),

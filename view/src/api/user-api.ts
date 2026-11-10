@@ -1,10 +1,10 @@
+import type { UserProfile, UserProfileUpdate, UserProfilePassword } from '@/types/user'
 // src/api/user-api.ts
 import type { Result } from "@/types/result"
 import type {
     BaseUserVO,
     UserLoginDTO,
     UserLoginResponseVO,
-    UserUpdatePasswordDTO,
     BaseUserUpdateDTO,
     BaseUserDTO,
     BaseUser,
@@ -22,8 +22,8 @@ export const registerApi = (params: UserRegisterDTO) => {
     return request.post<Result<UserLoginResponseVO>>('/user/register', params)
 }
 
-// 用户修改密码
-export const updatePasswordApi = (id: number,params: UserUpdatePasswordDTO) => {
+// 兼容旧地址；同样要求原密码、新密码和确认密码。新页面使用 changeMyPasswordApi。
+export const updatePasswordApi = (id: number,params: UserProfilePassword) => {
     return request.put<Result<void>>(`/user/${id}/updatePassword`, params)
 }
 
@@ -37,7 +37,7 @@ export const userUpdateInfoApi = (params: BaseUserUpdateDTO) => {
     return request.put<Result<BaseUserVO>>(`/user`,params)
 }
 
-// 上传头像
+// 旧接口已停用；个人中心通过 saveMyProfileApi 将头像与资料统一保存。
 export const uploadAvatarApi = (params: BaseUserUpdateDTO) => {
     return request.put<Result<BaseUserVO>>(`/user/uploadAvatar`,params)
 }
@@ -66,3 +66,12 @@ export const deleteuserByIdApi = (baseUserId: number) => {
 export const detailuserByIdApi = (baseUserId: number) => {
     return request.delete<Result<BaseUserVO>>(`/user/${baseUserId}/detail`)
 }
+export const getMyProfileApi = () => request.get<Result<UserProfile>>('/user/profile')
+export const saveMyProfileApi = (profile: UserProfileUpdate, avatar?: File) => {
+    if (!avatar) return request.put<Result<UserProfile>>('/user/profile', profile)
+    const data = new FormData()
+    data.append('profile', new Blob([JSON.stringify(profile)], { type: 'application/json' }))
+    data.append('avatar', avatar)
+    return request.put<Result<UserProfile>>('/user/profile', data)
+}
+export const changeMyPasswordApi = (password: UserProfilePassword) => request.put<Result<void>>('/user/profile/password', password)

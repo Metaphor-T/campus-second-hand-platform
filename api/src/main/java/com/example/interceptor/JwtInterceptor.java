@@ -29,11 +29,11 @@ public class JwtInterceptor implements HandlerInterceptor {
 
     // 不需要拦截的路径（白名单）
     private static final String[] EXCLUDE_PATHS = {
-            "/login",
-            "/register",
+            "/user/login",
+            "/admin/login",
+            "/user/register",
             "/files/upload",
-            "/ws/chat",
-            "/guest"  // 游客端 API 全部免登录
+            "/ws/chat"
     };
 
     @Override
@@ -179,8 +179,9 @@ public class JwtInterceptor implements HandlerInterceptor {
      * 检查路径是否在白名单中
      */
     private boolean isExcludePath(String path) {
+        if(path.startsWith("/guest/")) return true;
         for (String excludePath : EXCLUDE_PATHS) {
-            if (path.contains(excludePath)) {
+            if (path.equals(excludePath)) {
                 return true;
             }
         }

@@ -70,6 +70,7 @@ export interface BaseUserVO {
     gender?: number      // 性别（1：男；2：女）
     phone?: string       // 手机号（可选）
     loginStatus?: number // 账号状态（1：正常；2：封号）
+    createTime?: string
 }
 
 /**
@@ -82,4 +83,23 @@ export interface BaseUserUpdateDTO {
     gender?: number      // 性别（1：男；2：女）
     phone?: string       // 手机号（可选）
     loginStatus?: number // 账号状态（1：正常；2：封号）
+}
+export interface UserProfile extends BaseUserVO {
+    school: string | null
+    college: string | null
+    studentNumber: string | null
+    role: 'USER'
+}
+export interface UserProfileUpdate {
+    username: string
+    phone: string
+    gender: number | null
+    school: string
+    college: string
+    studentNumber: string
+}
+export interface UserProfilePassword {
+    oldPassword: string
+    newPassword: string
+    confirmPassword: string
 }

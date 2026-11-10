@@ -9,6 +9,8 @@ import com.example.pojo.enums.RoleEnum;
 import com.example.pojo.vo.BaseUserVO;
 import com.example.pojo.vo.UserLoginResponseVO;
 import com.example.service.AdminService;
+import com.example.utils.UserContext;
+import com.example.exception.BusinessException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -103,6 +105,7 @@ public class AdminController {
      *
      * @return String
      */
+    @Auth(RoleEnum.ADMIN)
     @PostMapping(value = "/register")
     public Result<Void> register(@Valid @RequestBody UserRegisterDTO userRegisterDTO) {
         adminService.register(userRegisterDTO);
@@ -114,8 +117,10 @@ public class AdminController {
      *
      * @return String
      */
+    @Auth(RoleEnum.ADMIN)
     @PutMapping
     public Result<Void> updateInfo(@Valid @RequestBody BaseUserUpdateDTO baseUserUpdateDTO) {
+        requireSelf(baseUserUpdateDTO.getId());
         adminService.updateInfo(baseUserUpdateDTO);
         return Result.success();
     }
@@ -125,8 +130,10 @@ public class AdminController {
      *
      * @return Result<Void>
      */
+    @Auth(RoleEnum.ADMIN)
     @PutMapping(value = "/uploadAvatar")
     public Result<Void> uploadAvatar(@Valid @RequestBody BaseUserUpdateDTO baseUserUpdateDTO) {
+        requireSelf(baseUserUpdateDTO.getId());
         adminService.uploadAvatar(baseUserUpdateDTO);
         return Result.success();
     }
@@ -136,9 +143,11 @@ public class AdminController {
      *
      * @return Result<Void>
      */
+    @Auth(RoleEnum.ADMIN)
     @PutMapping(value = "/{id}/updatePassword")
     public Result<Void> updatePassword(@PathVariable Integer id,
                                         @Valid @RequestBody UserUpdatePasswordDTO userUpdatePasswordDTO) {
+        requireSelf(id);
         adminService.updatePassword(id, userUpdatePasswordDTO);
         return Result.success();
     }
@@ -158,4 +167,7 @@ public class AdminController {
     }
 
 
+    private void requireSelf(Integer id) {
+        if(id==null || !id.equals(UserContext.getUserId())) throw new BusinessException("只能修改自己的管理员资料",403);
+    }
 }

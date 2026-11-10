@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 
-/** 商品图片专用存储，不改变头像、聊天图片等其他成员的上传接口。 */
+/** 对商品图片与个人中心头像执行内容验证；保留原有其他上传接口。 */
 @Service
 @Slf4j
 public class ProductImageStorageService {
@@ -24,6 +24,12 @@ public class ProductImageStorageService {
         root = (configured.isAbsolute() ? configured : Path.of(System.getProperty("user.dir")).resolve(configured)).toAbsolutePath().normalize();
     }
     public String store(Integer userId, MultipartFile file) {
+        return storeIn(userId,file,"products");
+    }
+    public String storeAvatar(Integer userId, MultipartFile file) {
+        return storeIn(userId,file,"avatars");
+    }
+    private String storeIn(Integer userId, MultipartFile file,String area) {
         if (userId == null || userId <= 0) throw new BusinessException("请先登录再上传商品图片", 400);
         if (file == null || file.isEmpty()) throw new BusinessException("请选择有效图片", 400);
         if (file.getSize() > MAX_BYTES) throw new BusinessException("单张图片不能超过2MB", 400);
@@ -52,7 +58,7 @@ public class ProductImageStorageService {
                 image = reader.read(0);
                 if (image == null) throw new BusinessException("图片已损坏，请重新选择", 400);
             } finally { reader.dispose(); }
-            Path directory = root.resolve("products").resolve(userId.toString()).normalize();
+            Path directory = root.resolve(area).resolve(userId.toString()).normalize();
             Files.createDirectories(directory);
             if (!directory.toRealPath().startsWith(root.toRealPath())) throw new BusinessException("图片存储目录无效", 400);
             String filename = UUID.randomUUID() + (format.equals("png") ? ".png" : ".jpg");
@@ -60,7 +66,7 @@ public class ProductImageStorageService {
             if (!ImageIO.write(image, format.equals("png") ? "png" : "jpeg", written.toFile())) {
                 throw new BusinessException("图片转换失败，请重新选择", 400);
             }
-            return "/files/products/" + userId + "/" + filename;
+            return "/files/" + area + "/" + userId + "/" + filename;
         } catch (BusinessException e) {
             cleanup(written);
             throw e;
@@ -69,6 +75,18 @@ public class ProductImageStorageService {
             log.warn("商品图片写入失败", e);
             throw new BusinessException("图片保存失败，请稍后重试", 500);
         }
+    }
+    /** 只清理本次失败保存产生的新头像，不能删除旧头像或其他用户文件。 */
+    public void discardAvatar(Integer userId,String url) {
+        String prefix="/files/avatars/"+userId+"/";
+        if(userId==null || url==null || !url.startsWith(prefix)) return;
+        String name=url.substring(prefix.length());
+        if(!name.matches("[0-9a-fA-F-]{36}\\.(png|jpg)")) return;
+        Path target=root.resolve("avatars").resolve(userId.toString()).resolve(name).normalize();
+        try {
+            if(!target.startsWith(root) || !target.getParent().toRealPath().startsWith(root.toRealPath())) return;
+            cleanup(target);
+        } catch(IOException e) { log.warn("头像清理目录不可用",e); }
     }
     private void cleanup(Path path) {
         if (path == null) return;
