@@ -10,6 +10,7 @@
         <result property="orderNo" column="order_no"/>
         <result property="productId" column="product_id"/>
         <result property="productTitle" column="product_title"/>
+        <result property="productTradeType" column="product_trade_type"/>
         <result property="productImage" column="product_image"/>
         <result property="buyerId" column="buyer_id"/>
         <result property="buyerName" column="buyer_name"/>
@@ -42,6 +43,7 @@
         o.order_no,
         o.product_id,
         p.title AS product_title,
+        p.trade_type AS product_trade_type,
         (SELECT pi.image_url FROM product_image pi WHERE pi.product_id = o.product_id ORDER BY pi.is_cover DESC, pi.id ASC LIMIT 1) AS product_image,
         o.buyer_id,
         bu.username AS buyer_name,
@@ -76,7 +78,7 @@
         LEFT JOIN product p ON o.product_id = p.id
         LEFT JOIN base_user bu ON o.buyer_id = bu.id
         LEFT JOIN base_user su ON o.seller_id = su.id
-        LEFT JOIN address a ON o.address_id = a.id
+        LEFT JOIN address a ON o.address_id = a.id AND a.user_id = o.buyer_id
         <where>
             o.buyer_id = #{buyerId}
             <if test="query.orderStatus != null">
@@ -115,7 +117,7 @@
         LEFT JOIN product p ON o.product_id = p.id
         LEFT JOIN base_user bu ON o.buyer_id = bu.id
         LEFT JOIN base_user su ON o.seller_id = su.id
-        LEFT JOIN address a ON o.address_id = a.id
+        LEFT JOIN address a ON o.address_id = a.id AND a.user_id = o.buyer_id
         <where>
             o.seller_id = #{sellerId}
             <if test="query.orderStatus != null">
@@ -154,7 +156,7 @@
         LEFT JOIN product p ON o.product_id = p.id
         LEFT JOIN base_user bu ON o.buyer_id = bu.id
         LEFT JOIN base_user su ON o.seller_id = su.id
-        LEFT JOIN address a ON o.address_id = a.id
+        LEFT JOIN address a ON o.address_id = a.id AND a.user_id = o.buyer_id
         WHERE o.id = #{id}
     </select>
 
@@ -166,7 +168,7 @@
         LEFT JOIN product p ON o.product_id = p.id
         LEFT JOIN base_user bu ON o.buyer_id = bu.id
         LEFT JOIN base_user su ON o.seller_id = su.id
-        LEFT JOIN address a ON o.address_id = a.id
+        LEFT JOIN address a ON o.address_id = a.id AND a.user_id = o.buyer_id
         <where>
             <if test="query.orderStatus != null">
                 AND o.order_status = #{query.orderStatus}

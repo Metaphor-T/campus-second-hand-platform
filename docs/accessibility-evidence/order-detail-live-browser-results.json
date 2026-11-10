@@ -1,0 +1,13 @@
+{
+  "mode": "real development backend and existing order; read-only",
+  "passed": true,
+  "checks": [
+    "actual order number renders",
+    "buyer role renders",
+    "saved timeline renders",
+    "no browser errors",
+    "no mutating API requests"
+  ],
+  "pageErrors": [],
+  "mutatingRequests": []
+}

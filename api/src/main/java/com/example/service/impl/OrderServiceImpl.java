@@ -32,6 +32,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     private final OrderMapper orderMapper;
     private final ProductService productService;
+    private final com.example.mapper.AddressMapper addressMapper;
 
     /**
      * 生成唯一订单编号（含时间戳和随机串）
@@ -55,6 +56,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         }
         if (product.getStatus() == null || product.getStatus() != 1) {
             throw new BusinessException("商品暂未上架或审核未通过", 400);
+        }
+
+        if(createDTO.getAddressId()!=null) {
+            var address=addressMapper.selectById(createDTO.getAddressId());
+            if(address==null) throw new BusinessException("收货地址不存在，请重新选择",400);
+            if(!Objects.equals(address.getUserId(),buyerId)) throw new BusinessException("只能使用自己的收货地址",403);
         }
 
         // 2. 不能购买自己的商品

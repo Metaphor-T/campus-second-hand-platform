@@ -8,6 +8,7 @@ export interface OrderVO {
     orderNo?: string           // 订单编号
     productId?: number         // 商品ID
     productTitle?: string      // 商品标题
+    productTradeType?: number  // 商品当前支持的交付方式，非订单快照
     productImage?: string      // 商品首图
     buyerId?: number           // 买家用户ID
     buyerName?: string         // 买家用户名
@@ -32,6 +33,15 @@ export interface OrderVO {
     buyerRemark?: string       // 买家备注
     createTime?: string        // 下单时间
     updateTime?: string        // 更新时间
+}
+
+export interface OrderOverview {
+    order: OrderVO
+    viewerRole: 'BUYER' | 'SELLER'
+    statusLabel: string
+    nextStep: { responsibleRole: 'BUYER' | 'SELLER' | 'NONE'; title: string; description: string; yours: boolean }
+    timeline: Array<{ key: string; title: string; time: string | null; state: 'RECORDED' | 'UNRECORDED' | 'UNKNOWN' | 'WAITING'; participant: string; description: string }>
+    notices: string[]
 }
 
 /**

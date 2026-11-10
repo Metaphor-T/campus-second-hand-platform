@@ -32,6 +32,9 @@ public class OrderVO {
     /** 商品标题 */
     private String productTitle;
 
+    /** 商品当前支持的交付方式，并非历史订单方式快照。 */
+    private Integer productTradeType;
+
     /** 商品首图 */
     private String productImage;
 

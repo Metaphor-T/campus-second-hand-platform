@@ -51,7 +51,7 @@
                 <div class="order-header">
                     <div class="order-no">
                         <span class="label">订单编号：</span>
-                        <span class="value">{{ order.orderNo }}</span>
+                        <RouterLink v-if="order.id" class="value order-detail-link" :to="{ path: '/user-home/order-detail/' + order.id, query: { role: activeRole } }">{{ order.orderNo }}</RouterLink>
                     </div>
                 </div>
 
@@ -104,6 +104,7 @@
                             </div>
                         </div>
                         <div class="order-actions">
+                            <RouterLink v-if="order.id" class="order-detail-button" :to="{ path: '/user-home/order-detail/' + order.id, query: { role: activeRole } }">查看详情</RouterLink>
                             <!-- 买家操作 -->
                             <template v-if="activeRole === 'buyer'">
                                 <template v-if="order.orderStatus === 0">
@@ -280,7 +281,7 @@
 
 <script lang="ts" setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Picture, CircleCheck } from '@element-plus/icons-vue'
 import { listBuyerOrdersApi, listSellerOrdersApi, cancelOrderApi, payOrderApi, receiveOrderApi, refundOrderApi, shipOrderApi, agreeRefundOrderApi, countBuyerOrdersByStatusApi, countSellerOrdersByStatusApi } from '@/api/order-api'
@@ -290,11 +291,12 @@ import type { ProductReviewVO } from '@/types/review'
 
 // ====== 状态 ======
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
-const activeRole = ref<'buyer' | 'seller'>('buyer')
+const activeRole = ref<'buyer' | 'seller'>(route.query.role === 'seller' ? 'seller' : 'buyer')
 const activeStatus = ref<number | undefined>(undefined)
 const activeStatusStr = ref('')
-const keyword = ref('')
+const keyword = ref(typeof route.query.keyword === 'string' ? route.query.keyword : '')
 const orderList = ref<OrderVO[]>([])
 const totalCount = ref(0)
 const currentPage = ref(1)
@@ -1146,4 +1148,6 @@ onMounted(() => {
         }
     }
 }
+.order-detail-link { text-underline-offset:3px; }
+.order-detail-button { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:10px 16px; border:1px solid #c9c7c5; border-radius:8px; background:#fff; color:#49433e; text-decoration:none; font:inherit; line-height:1.5; }
 </style>

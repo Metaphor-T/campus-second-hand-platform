@@ -63,7 +63,7 @@
                     <router-link to="/user-home/favorites" class="nav-link" active-class="nav-link-active">
                         <el-icon><Star /></el-icon>我的收藏
                     </router-link>
-                    <router-link to="/user-home/orders" class="nav-link" active-class="nav-link-active">
+                    <router-link to="/user-home/orders" class="nav-link" :class="{ 'nav-link-active': $route.path.startsWith('/user-home/order-detail/') }" active-class="nav-link-active">
                         <el-icon><List /></el-icon>订单中心
                     </router-link>
                     <router-link to="/user-home/my-reviews" class="nav-link" active-class="nav-link-active">

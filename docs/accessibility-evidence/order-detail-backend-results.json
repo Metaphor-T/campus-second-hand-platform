@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-10",
+  "database": "campus_system_dev_test",
+  "counts": {
+    "tests": 317,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "orderSuites": [
+    {
+      "name": "com.example.product.OrderOverviewDatabaseTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.example.product.OrderOverviewHttpTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.example.product.OrderOverviewTest",
+      "tests": 18,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.example.product.OrderSafetyTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "databaseFixturePolicy": "transaction rollback; no stable database access",
+  "build": "SUCCESS"
+}

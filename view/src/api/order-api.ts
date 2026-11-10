@@ -6,6 +6,9 @@ import type {
     OrderQueryDTO
 } from "@/types/order"
 import request from "@/utils/request"
+import type { OrderOverview } from '@/types/order'
+
+export const getOrderOverviewApi = (orderId: number) => request.get<Result<OrderOverview>>(`/order/detail/${orderId}/overview`)
 
 /** 创建订单 */
 export const createOrderApi = (params: OrderCreateDTO) => {

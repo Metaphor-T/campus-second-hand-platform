@@ -1,0 +1,40 @@
+{
+  "database": "campus_system_dev_test",
+  "mode": "read-only existing orders; no order mutations",
+  "checks": [
+    {
+      "case": "live-existing-order",
+      "role": "BUYER",
+      "httpStatus": 200,
+      "passed": true
+    },
+    {
+      "case": "live-existing-order",
+      "role": "SELLER",
+      "httpStatus": 200,
+      "passed": true
+    },
+    {
+      "case": "live-existing-order",
+      "role": "STRANGER",
+      "httpStatus": 403,
+      "passed": true
+    },
+    {
+      "case": "live-status-401",
+      "httpStatus": 401,
+      "passed": true
+    },
+    {
+      "case": "live-status-404",
+      "httpStatus": 404,
+      "passed": true
+    },
+    {
+      "case": "live-status-400",
+      "httpStatus": 400,
+      "passed": true
+    }
+  ],
+  "total": 6
+}

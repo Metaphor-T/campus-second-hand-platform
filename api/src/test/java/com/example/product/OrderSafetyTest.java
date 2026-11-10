@@ -23,7 +23,7 @@ class OrderSafetyTest {
     @BeforeEach void setup() {
         orders = mock(OrderMapper.class);
         products = mock(ProductService.class);
-        service = new OrderServiceImpl(orders, products);
+        service = new OrderServiceImpl(orders, products, mock(com.example.mapper.AddressMapper.class));
         ReflectionTestUtils.setField(service, "baseMapper", orders);
     }
     Order order(Integer deducted) {
@@ -36,6 +36,21 @@ class OrderSafetyTest {
         assertNotNull(service.getDetail(1, 30));
         assertEquals(403, assertThrows(BusinessException.class, () -> service.getDetail(1, 40)).getCode());
         assertEquals(403, assertThrows(BusinessException.class, () -> service.getDetail(1, null)).getCode());
+    }
+    @Test void cannotUseAnotherUsersAddressWhenCreatingOrder() {
+        var addresses=mock(com.example.mapper.AddressMapper.class);
+        var guarded=new OrderServiceImpl(orders,products,addresses);
+        when(products.getById(10)).thenReturn(Product.builder().id(10).userId(30).status(1).tradeType(2).build());
+        when(addresses.selectById(99)).thenReturn(com.example.pojo.entity.Address.builder().id(99).userId(99).build());
+        var dto=new OrderCreateDTO();dto.setProductId(10);dto.setAddressId(99);
+        assertEquals(403,assertThrows(BusinessException.class,()->guarded.createOrder(20,dto)).getCode());
+        verify(products,never()).deductStock(anyInt(),anyInt(),anyInt());verify(orders,never()).insert(any(Order.class));
+    }
+    @Test void deletedAddressRejectedBeforeCreatingOrder() {
+        var addresses=mock(com.example.mapper.AddressMapper.class);var guarded=new OrderServiceImpl(orders,products,addresses);
+        when(products.getById(10)).thenReturn(Product.builder().id(10).userId(30).status(1).tradeType(2).build());
+        var dto=new OrderCreateDTO();dto.setProductId(10);dto.setAddressId(99);
+        assertEquals(400,assertThrows(BusinessException.class,()->guarded.createOrder(20,dto)).getCode());verify(orders,never()).insert(any(Order.class));
     }
     @Test void cancellationOfUnlimitedOrderDoesNotRestoreInventory() {
         Order o = order(0);

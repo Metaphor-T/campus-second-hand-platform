@@ -208,6 +208,12 @@ const routes: RouteRecordRaw[] = [
                 }
             },
             {
+                path: 'order-detail/:id',
+                name: '订单详情',
+                component: () => import('@/views/user/OrderDetail.vue'),
+                meta: { title: '订单详情', roles: ['USER'] }
+            },
+            {
                 path: 'my-reviews',
                 name: '我的评价',
                 component: () => import('@/views/user/UserReviews.vue'),

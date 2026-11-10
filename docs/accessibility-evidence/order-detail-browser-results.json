@@ -1,0 +1,328 @@
+{
+  "mode": "isolated frontend fixtures; no database writes",
+  "results": [
+    {
+      "case": "six-status-both-roles",
+      "status": 0,
+      "role": "BUYER",
+      "passed": true
+    },
+    {
+      "case": "six-status-both-roles",
+      "status": 0,
+      "role": "SELLER",
+      "passed": true
+    },
+    {
+      "case": "six-status-both-roles",
+      "status": 1,
+      "role": "BUYER",
+      "passed": true
+    },
+    {
+      "case": "six-status-both-roles",
+      "status": 1,
+      "role": "SELLER",
+      "passed": true
+    },
+    {
+      "case": "six-status-both-roles",
+      "status": 2,
+      "role": "BUYER",
+      "passed": true
+    },
+    {
+      "case": "six-status-both-roles",
+      "status": 2,
+      "role": "SELLER",
+      "passed": true
+    },
+    {
+      "case": "six-status-both-roles",
+      "status": 3,
+      "role": "BUYER",
+      "passed": true
+    },
+    {
+      "case": "six-status-both-roles",
+      "status": 3,
+      "role": "SELLER",
+      "passed": true
+    },
+    {
+      "case": "six-status-both-roles",
+      "status": 4,
+      "role": "BUYER",
+      "passed": true
+    },
+    {
+      "case": "six-status-both-roles",
+      "status": 4,
+      "role": "SELLER",
+      "passed": true
+    },
+    {
+      "case": "six-status-both-roles",
+      "status": 5,
+      "role": "BUYER",
+      "passed": true
+    },
+    {
+      "case": "six-status-both-roles",
+      "status": 5,
+      "role": "SELLER",
+      "passed": true
+    },
+    {
+      "case": "legacy-missing-timestamp-address-product-and-safe-text",
+      "passed": true
+    },
+    {
+      "case": "inconsistent-history-warning",
+      "passed": true
+    },
+    {
+      "case": "error-and-retry",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "case": "error-and-retry",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "case": "error-and-retry",
+      "status": 500,
+      "passed": true
+    },
+    {
+      "case": "invalid-id-no-api-request",
+      "passed": true
+    },
+    {
+      "case": "entry-links-and-seller-return-filter",
+      "passed": true
+    },
+    {
+      "case": "stale-result-does-not-replace-invalid-route",
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 1440,
+      "scale": 1,
+      "sizes": {
+        "scroll": 1168,
+        "width": 1168,
+        "right": 1304,
+        "window": 1440,
+        "root": 14
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 1440,
+      "scale": 1.25,
+      "sizes": {
+        "scroll": 1168,
+        "width": 1168,
+        "right": 1304,
+        "window": 1440,
+        "root": 17.5
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 1440,
+      "scale": 1.5,
+      "sizes": {
+        "scroll": 1168,
+        "width": 1168,
+        "right": 1304,
+        "window": 1440,
+        "root": 21
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 1440,
+      "scale": 2,
+      "sizes": {
+        "scroll": 1168,
+        "width": 1168,
+        "right": 1304,
+        "window": 1440,
+        "root": 28
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 1024,
+      "scale": 1,
+      "sizes": {
+        "scroll": 992,
+        "width": 992,
+        "right": 1008,
+        "window": 1024,
+        "root": 14
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 1024,
+      "scale": 1.25,
+      "sizes": {
+        "scroll": 992,
+        "width": 992,
+        "right": 1008,
+        "window": 1024,
+        "root": 17.5
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 1024,
+      "scale": 1.5,
+      "sizes": {
+        "scroll": 992,
+        "width": 992,
+        "right": 1008,
+        "window": 1024,
+        "root": 21
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 1024,
+      "scale": 2,
+      "sizes": {
+        "scroll": 992,
+        "width": 992,
+        "right": 1008,
+        "window": 1024,
+        "root": 28
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 768,
+      "scale": 1,
+      "sizes": {
+        "scroll": 752,
+        "width": 752,
+        "right": 760,
+        "window": 768,
+        "root": 14
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 768,
+      "scale": 1.25,
+      "sizes": {
+        "scroll": 752,
+        "width": 752,
+        "right": 760,
+        "window": 768,
+        "root": 17.5
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 768,
+      "scale": 1.5,
+      "sizes": {
+        "scroll": 752,
+        "width": 752,
+        "right": 760,
+        "window": 768,
+        "root": 21
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 768,
+      "scale": 2,
+      "sizes": {
+        "scroll": 752,
+        "width": 752,
+        "right": 760,
+        "window": 768,
+        "root": 28
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 320,
+      "scale": 1,
+      "sizes": {
+        "scroll": 304,
+        "width": 304,
+        "right": 312,
+        "window": 320,
+        "root": 14
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 320,
+      "scale": 1.25,
+      "sizes": {
+        "scroll": 304,
+        "width": 304,
+        "right": 312,
+        "window": 320,
+        "root": 17.5
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 320,
+      "scale": 1.5,
+      "sizes": {
+        "scroll": 304,
+        "width": 304,
+        "right": 312,
+        "window": 320,
+        "root": 21
+      },
+      "passed": true
+    },
+    {
+      "case": "responsive-four-font-sizes",
+      "width": 320,
+      "scale": 2,
+      "sizes": {
+        "scroll": 304,
+        "width": 304,
+        "right": 312,
+        "window": 320,
+        "root": 28
+      },
+      "passed": true
+    },
+    {
+      "case": "wcag-axe-order-detail",
+      "rules": 15,
+      "passed": true
+    }
+  ],
+  "pageErrors": [],
+  "unexpectedApi": [],
+  "total": 37
+}
