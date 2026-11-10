@@ -219,6 +219,8 @@ html .admin-layout .user-info { flex-wrap:wrap; }
 html .admin-layout .sidebar-header { flex-wrap:nowrap; min-width:0; }
 html .admin-layout .sidebar-header h2 { min-width:0; overflow-wrap:anywhere; }
 html .admin-layout .sidebar-header img { flex-shrink:0; }
+/* 收起后只有一级图标行，分组按钮和普通菜单采用相同的字号自适应高度。 */
+html .admin-layout > .sidebar.collapsed :is(.nav-list > li:not(.nav-group), .nav-group-header) { height:max(50px,calc(1.428571rem + 24px)); min-height:0; padding:0 10px; line-height:1; }
 html .admin-sidebar-toggle { min-height:44px; padding:8px 12px; background:#fff6ef; color:#853416; border:1px solid #d7b39c; border-radius:8px; font:inherit; cursor:pointer; }
 html:not([data-font-scale="1"]) .admin-layout .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr)); gap:16px; margin-inline:0 !important; }
 html:not([data-font-scale="1"]) .admin-layout .stats-row > .el-col { width:100%; max-width:100%; padding:0 !important; }

@@ -11,7 +11,19 @@
                     <template v-for="item in sidebarItems" :key="item.path">
                         <!-- 有子菜单的分组 -->
                         <li v-if="item.children" class="nav-group">
-                            <div class="nav-group-header" @click="toggleExpand(item.path)" role="button" tabindex="0" @keydown.enter.self.prevent="toggleExpand(item.path)" @keydown.space.self.prevent="toggleExpand(item.path)">
+                            <el-dropdown v-if="isCollapsed" ref="collapsedMenus" class="collapsed-group-menu" trigger="click" placement="right-start" popper-class="admin-submenu-popup" @command="$router.push($event)">
+                                <button class="nav-group-header" type="button" :aria-label="item.name" :title="item.name" @keydown.esc.stop.prevent="closeCollapsedMenus">
+                                    <el-icon v-if="item.icon && getIconComponent(item.icon)">
+                                        <component :is="getIconComponent(item.icon)" />
+                                    </el-icon>
+                                </button>
+                                <template #dropdown>
+                                    <el-dropdown-menu>
+                                        <el-dropdown-item v-for="child in item.children" :key="child.path" :command="child.path" :aria-current="currentRoute === child.path ? 'page' : undefined">{{ child.name }}</el-dropdown-item>
+                                    </el-dropdown-menu>
+                                </template>
+                            </el-dropdown>
+                            <button v-else class="nav-group-header" type="button" :aria-expanded="expandedSet.has(item.path)" :aria-controls="`admin-submenu-${item.path}`" @click="toggleExpand(item.path)">
                                 <el-icon v-if="item.icon && getIconComponent(item.icon)">
                                     <component :is="getIconComponent(item.icon)" />
                                 </el-icon>
@@ -19,8 +31,8 @@
                                 <el-icon v-if="!isCollapsed" class="expand-icon" :class="{ expanded: expandedSet.has(item.path) }">
                                     <ArrowDown />
                                 </el-icon>
-                            </div>
-                            <ul v-show="isCollapsed || expandedSet.has(item.path)" class="nav-children">
+                            </button>
+                            <ul v-show="!isCollapsed && expandedSet.has(item.path)" :id="`admin-submenu-${item.path}`" class="nav-children">
                                 <li v-for="child in item.children" :key="child.path"
                                     :class="{ active: currentRoute === child.path }"
                                     @click="$router.push(child.path)"
@@ -157,6 +169,7 @@ import type { Action } from 'element-plus'
 import { EditPen, TurnOff, Operation, ArrowDownBold, ArrowDown, Eleme, Plus, Compass as CompassIcon, User as UserIcon, UserFilled as UserFilledIcon, Grid as GridIcon, Goods as GoodsIcon, Tickets as TicketsIcon, ChatDotSquare as ChatDotSquareIcon } from "@element-plus/icons-vue"
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue"
 import { useRouter, useRoute } from 'vue-router'
+import type { DropdownInstance } from 'element-plus'
 import {
     getToken,
     clearRole,
@@ -332,6 +345,11 @@ const sidebarWidth = ref(getSidebarWidth() || DEFAULT_WIDTH)
 const isCollapsed = ref(window.innerWidth <= 600 || getSidebarCollapsed() || false)
 if (isCollapsed.value) sidebarWidth.value = COLLAPSED_WIDTH
 const isDragging = ref(false)
+const collapsedMenus = ref<DropdownInstance[]>([])
+const closeCollapsedMenus = (event: KeyboardEvent) => {
+    collapsedMenus.value.forEach(menu => menu.handleClose())
+    ;(event.currentTarget as HTMLElement).focus()
+}
 
 watch(isCollapsed, (newVal) => {
     if (newVal) {
@@ -529,7 +547,7 @@ onUnmounted(() => {
         line-height: 50px;
         cursor: pointer;
         color: #333;
-        transition: all 0.2s ease;
+        transition: background-color 0.2s ease, color 0.2s ease;
         white-space: nowrap;
         overflow: hidden;
 
@@ -545,7 +563,6 @@ onUnmounted(() => {
         .el-icon {
             font-size: 1.428571rem;
             flex-shrink: 0;
-            transition: margin 0.2s ease;
         }
 
         span {
@@ -562,6 +579,11 @@ onUnmounted(() => {
     line-height: normal !important;
 
     .nav-group-header {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        font: inherit;
+        text-align: left;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -570,7 +592,7 @@ onUnmounted(() => {
         line-height: 50px;
         cursor: pointer;
         color: #333;
-        transition: all 0.2s ease;
+        transition: background-color 0.2s ease;
         white-space: nowrap;
         overflow: hidden;
 
@@ -581,7 +603,6 @@ onUnmounted(() => {
         .el-icon {
             font-size: 1.428571rem;
             flex-shrink: 0;
-            transition: margin 0.2s ease;
         }
 
         .expand-icon {
@@ -610,7 +631,7 @@ onUnmounted(() => {
             line-height: 42px;
             cursor: pointer;
             color: #555;
-            transition: all 0.2s ease;
+            transition: background-color 0.2s ease, color 0.2s ease;
             white-space: nowrap;
             overflow: hidden;
 
@@ -629,6 +650,22 @@ onUnmounted(() => {
             }
         }
     }
+}
+
+.collapsed-group-menu {
+    display: flex;
+    width: 100%;
+    color: inherit;
+    font-size: inherit;
+}
+
+:global(.admin-submenu-popup) {
+    max-width: calc(100vw - 100px);
+}
+
+:global(.admin-submenu-popup .el-dropdown-menu) {
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
 }
 
 .sidebar.collapsed {
@@ -705,7 +742,6 @@ onUnmounted(() => {
     .sidebar {
         background-color: rgb(255, 255, 255);
         color: white;
-        transition: width 0.2s ease;
         display: flex;
         flex-direction: column;
         flex-shrink: 0;
@@ -719,19 +755,16 @@ onUnmounted(() => {
             gap: 6px;
             background-color: rgb(255, 255, 255);
             border-bottom: 1px solid rgb(232, 232, 232);
-            transition: all 0.2s ease;
 
             img {
                 width: 30px;
                 height: 30px;
-                transition: all 0.2s ease;
             }
 
             h2 {
                 margin: 0;
                 font-size: 1.285714rem;
                 color: #333;
-                transition: opacity 0.2s ease;
             }
         }
 

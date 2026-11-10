@@ -68,6 +68,9 @@
 | A33 | 上述每页/宽度在 200% 下收起再展开菜单 | 右侧仍保持可视；操作有明确按钮；侧栏宽度按字号适配且有上限 | 自动通过，16 组收起/展开往返 |
 | A34 | 游客/用户商品市场在 1440/1024/768/320 宽度及四档字号下检查筛选区 | 标签位于控件上方且左对齐；控件等高；按钮独立底行；表单不溢出；所测表单无自动无障碍扫描违规 | 自动通过，32 组合（2026-11-10） |
 | A35 | 输入关键词及 10—20 元价格范围并应用；将最低价改成 50；最后重置 | 请求使用去除首尾空白的关键词与正确价格；错误区间提示；重置清空条件和错误并恢复最新发布 | 自动通过，1 组组合交互（2026-11-10） |
+| A36 | 管理员在四种宽度、四档字号下分别展开/关闭商品子菜单，再收起/展开侧栏 | 收起后六个一级图标行等高、连续且无隐藏子菜单占位；重新展开保留子菜单状态 | 自动通过，16 组合、32 次往返 |
+| A37 | 开启正常动画偏好，逐帧记录侧栏重新展开后的标题位置、尺寸及侧栏宽度 | 从第一个渲染帧起布局稳定，没有先换行再向上跳动 | 自动通过，32 次展开，每次连续 18 帧 |
+| A38 | 收起状态通过 Enter 打开商品管理浮层、Esc 关闭，再用鼠标/方向键及 Enter 进入三个子页面 | 浮层完整可见；Esc 关闭并返回触发按钮；商品、订单、评价页面均可进入 | 自动通过，16 组合、48 次子页面导航 |
 
 人工验收记录：测试人员 ________；浏览器/版本 ________；日期 ________；通过用例 ________；问题及截图编号 ________。
 
@@ -91,6 +94,7 @@ node view/tests/reading-layout-browser.cjs
 node view/tests/navigation-browser.cjs
 node view/tests/admin-layout-browser.cjs
 node view/tests/product-filters-browser.cjs
+node view/tests/admin-sidebar-browser.cjs
 ```
 
 需要已安装 Microsoft Edge，以及独立测试库中的 `player2_tester` 测试账号（此前导入阶段创建）。脚本不注册新账号、不提交表单数据，仅登录、读取页面、检查空表单和打开/关闭地址弹窗。结果写入 `.local-backups/accessibility-results/`。人工测试发布/修改会改变测试库，请勿连接原库。
@@ -146,6 +150,16 @@ node view/tests/product-filters-browser.cjs
 ![标准字号筛选区](accessibility-evidence/product-filters-standard.png)
 
 ![超大字号筛选区](accessibility-evidence/product-filters-large.png)
+
+### 管理员侧栏更新（2026-11-10）
+
+收起侧栏后，商品子菜单退出页面布局，六个一级菜单图标连续排列；商品管理通过右侧浮层提供商品列表、订单管理和评价管理入口。重新展开保留原子菜单状态。取消侧栏宽度、标题区域及菜单间距的布局动画，保留悬停颜色和展开箭头效果。
+
+[侧栏专项结果](accessibility-evidence/admin-sidebar-results.json)：四种宽度 × 四档字号共 16 组合通过，覆盖状态保留、正常动画偏好下逐帧稳定性、浮层范围、Esc 焦点返回及鼠标/键盘导航。管理员原有 64 组页面布局及 16 次侧栏往返回归通过；类型检查和生产构建通过。本次为管理员侧栏交互与布局更新，不涉及数据库结构或业务数据变更。
+
+![200% 字号下收起的侧栏](accessibility-evidence/admin-sidebar-collapsed-200.png)
+
+![200% 字号下展开的侧栏](accessibility-evidence/admin-sidebar-expanded-200.png)
 
 ## 检查边界
 

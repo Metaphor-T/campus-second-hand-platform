@@ -1,0 +1,246 @@
+{
+  "time": "2026-11-10T05:26:01.360Z",
+  "results": [
+    {
+      "width": 1440,
+      "scale": 1,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 1440,
+      "scale": 1.25,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 1440,
+      "scale": 1.5,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 1440,
+      "scale": 2,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 1024,
+      "scale": 1,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 1024,
+      "scale": 1.25,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 1024,
+      "scale": 1.5,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 1024,
+      "scale": 2,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 768,
+      "scale": 1,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 768,
+      "scale": 1.25,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 768,
+      "scale": 1.5,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 768,
+      "scale": 2,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 320,
+      "scale": 1,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 320,
+      "scale": 1.25,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 320,
+      "scale": 1.5,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    },
+    {
+      "width": 320,
+      "scale": 2,
+      "passed": true,
+      "preservedStates": [
+        "open",
+        "closed"
+      ],
+      "destinations": [
+        "/admin-home/products/list",
+        "/admin-home/products/orders",
+        "/admin-home/products/reviews"
+      ],
+      "motion": "no-preference"
+    }
+  ],
+  "errors": []
+}
