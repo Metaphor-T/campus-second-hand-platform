@@ -1,699 +1,365 @@
 <template>
-  <div class="dashboard-container">
+  <div class="dashboard-container" :aria-busy="loading">
+    <div class="dashboard-heading">
+      <div><h1>平台数据概览</h1><p>基于本系统业务记录，查看平台规模与所选期间的业务情况。</p></div>
+      <button class="dashboard-button" type="button" :disabled="loading" @click="refresh">{{ loading ? '正在加载…' : '刷新数据' }}</button>
+    </div>
 
+    <section class="range-panel" aria-labelledby="range-title">
+      <h2 id="range-title">统计期间</h2>
+      <form class="range-form" @submit.prevent="applyRange">
+        <div class="range-presets segmented-control" :class="{ 'has-selection': selectedDays !== null }" :style="{ '--segment-index': [7, 30, 90].indexOf(selectedDays ?? 0), '--segment-count': 3 }" aria-label="快捷日期">
+          <span class="segmented-indicator" aria-hidden="true"></span>
+          <button v-for="days in [7, 30, 90]" :key="days" type="button" :aria-pressed="selectedDays === days" :disabled="loading" @click="selectDays(days)">近 {{ days }} 天</button>
+        </div>
+        <label for="stats-start">开始日期<input id="stats-start" v-model="draftStart" type="date" min="1000-01-01" :max="today" required :aria-invalid="!!rangeError" :aria-describedby="rangeError ? 'stats-range-error' : 'stats-range-help'" @input="selectedDays = null" /></label>
+        <label for="stats-end">结束日期<input id="stats-end" v-model="draftEnd" type="date" min="1000-01-01" :max="today" required :aria-invalid="!!rangeError" :aria-describedby="rangeError ? 'stats-range-error' : 'stats-range-help'" @input="selectedDays = null" /></label>
+        <button class="dashboard-button primary" type="submit" :disabled="loading">应用日期</button>
+      </form>
+      <p id="stats-range-help" class="muted">按北京时间统计，包含开始日与结束日，每次最多 366 天。日期筛选只影响期间统计，累计概览保持全量。</p>
+      <p v-if="rangeError" id="stats-range-error" class="error-text" role="alert">{{ rangeError }}</p>
+      <p v-else-if="dirty" class="draft-notice" role="status">日期已调整，请点击“应用日期”更新统计。</p>
+    </section>
 
-    <!-- ========== 统计卡片 ========== -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :xs="12" :sm="8" :md="6" :lg="4" v-for="card in statCards" :key="card.label">
-        <div class="stat-card">
-          <div class="stat-icon" :style="{ background: card.bg + '20', color: card.color }">
-            <el-icon :size="30"><component :is="card.icon" /></el-icon>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" :title="card.value + (card.unit || '')">
-              {{ card.value }}{{ card.unit || '' }}
-              <span v-if="card.today !== undefined" class="stat-today-badge" :style="{ color: card.color }">今日+{{ card.today }}</span>
+    <div v-if="error" class="load-error" role="alert">
+      <p>{{ error }}{{ snapshot ? ' 当前保留上次成功加载的数据，请留意下方统计期间和更新时间。' : ' 尚未取得统计数据。' }}</p>
+      <button class="dashboard-button" type="button" :disabled="loading" @click="retry">重新加载</button>
+    </div>
+    <p v-if="loading" class="muted" role="status">正在读取统计数据，请稍候…</p>
+
+    <template v-if="snapshot">
+      <div class="snapshot-meta" role="status">
+        <strong>当前期间：{{ snapshot.startDate }} 至 {{ snapshot.endDate }}</strong>
+        <span>数据更新时间：{{ updatedAt }}（北京时间）</span>
+      </div>
+      <details class="definitions">
+        <summary>查看统计口径</summary>
+        <ul>
+          <li>普通用户按基础账号去重：必须具有普通用户身份，排除管理员身份；包含被禁用的普通用户。</li>
+          <li>累计用户、商品、订单卡片中的“今日 +数字”，按北京时间当天的注册、发布、下单时间统计，与所选期间无关；无新增时显示“今日 +0”。</li>
+          <li>新增用户、新增商品和新建订单，分别按各自的创建时间归入期间。商品数按发布条目计数，不是库存件数，包含各审核状态；已删除的数据无法计入。创建时间为空的记录无法归入期间。</li>
+          <li>订单状态、完成数量和实付额，均指期间下单的订单在查询时的当前情况；不表示期间发生的支付、完成或退款流水。</li>
+          <li>“已完成”仅为当前状态为已完成的订单。实付额合计使用订单实付金额，包含运费；其他状态均不计入。</li>
+          <li>成交件数按已完成订单的购买数量相加；完成订单数按订单条数计算，两者分开展示。</li>
+          <li>分类采用商品当前分类；分类或商品不存在的订单归入“未分类 / 商品已删除”。图表最多显示前 10 类，表格包含全部分类。</li>
+          <li>业务比例的分子、分母分别列明；没有样本时显示“暂无样本”。百分比保留一位小数，合计可能有舍入差异。</li>
+          <li>统计只描述当前数据库中的业务记录，不代表真实收款、财务结算或平台综合健康评分。</li>
+        </ul>
+      </details>
+
+      <section aria-labelledby="overview-title">
+        <div class="section-title"><h2 id="overview-title">累计概览</h2><span>全量数据；今日角标按北京时间，不受日期筛选影响</span></div>
+        <div class="stats-row overview-cards">
+          <article v-for="card in overviewCards" :key="card.key" class="stat-card" :data-stat="`overview-${card.key}`">
+            <div class="stat-icon" :style="{ color: cardVisuals[card.key].color, backgroundColor: `${cardVisuals[card.key].color}20` }" aria-hidden="true"><el-icon><component :is="cardVisuals[card.key].icon" /></el-icon></div>
+            <div class="stat-info">
+              <div class="stat-value-row"><div class="stat-value">{{ card.value }}</div>
+                <span v-if="card.today !== undefined" class="stat-today-badge" :style="{ color: badgeTextColors[card.key], backgroundColor: `${cardVisuals[card.key].color}18` }" :title="`北京时间 ${snapshot.today} 新增，不受期间筛选影响`" :aria-label="`${card.label}，今日新增 ${number(card.today)}，统计日期 ${snapshot.today}，北京时间`">今日 +{{ number(card.today) }}</span>
+              </div>
+              <div class="stat-label">{{ card.label }}</div><p>{{ card.note }}</p>
             </div>
-            <div class="stat-label">{{ card.label }}</div>
-          </div>
+          </article>
         </div>
-      </el-col>
-    </el-row>
+      </section>
+      <section aria-labelledby="period-title">
+        <div class="section-title"><h2 id="period-title">期间统计</h2><span>订单按下单时间归组，状态取当前值</span></div>
+        <div class="stats-row period-cards">
+          <article v-for="card in periodCards" :key="card.key" class="stat-card" :data-stat="`period-${card.key}`">
+            <div class="stat-icon" :style="{ color: cardVisuals[card.key].color, backgroundColor: `${cardVisuals[card.key].color}20` }" aria-hidden="true"><el-icon><component :is="cardVisuals[card.key].icon" /></el-icon></div>
+            <div class="stat-info"><div class="stat-value">{{ card.value }}</div><div class="stat-label">{{ card.label }}</div><p>{{ card.note }}</p></div>
+          </article>
+        </div>
+      </section>
 
-    <!-- ========== 图表区域 ========== -->
-    <el-row :gutter="20" class="charts-row">
-      <!-- 趋势图（折线图） -->
-      <el-col :xs="24" :lg="12" class="chart-col">
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3>增长趋势</h3>
-            <div class="trend-toggle">
-              <div
-                v-for="opt in trendOptions"
-                :key="opt.value"
-                class="trend-item"
-                :class="{ active: trendDays === opt.value }"
-                @click="selectTrend(opt.value)"
-               role="button" tabindex="0" @keydown.enter.self.prevent="selectTrend(opt.value)" @keydown.space.self.prevent="selectTrend(opt.value)">{{ opt.label }}</div>
+      <div class="charts-row dashboard-charts">
+        <section class="chart-card" aria-labelledby="trend-title">
+          <div class="chart-header"><h2 id="trend-title">每日新增趋势</h2><span>{{ snapshot.trends.length }} 个自然日</span></div>
+          <div class="chart-card-body" tabindex="0" role="region" aria-labelledby="trend-title">
+          <p class="chart-note">新增用户、新增商品、新建订单；无新增的日期保留为 0。</p>
+          <div ref="trendRef" class="chart-box" aria-hidden="true"></div>
+          <details class="data-details"><summary>查看每日新增数据表</summary>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="每日新增数据表，可滚动">
+              <table data-table="trends"><caption>每日新增明细（与趋势图相同数据）</caption><thead><tr><th scope="col">日期</th><th scope="col">用户（人）</th><th scope="col">商品（条）</th><th scope="col">订单（单）</th></tr></thead>
+                <tbody><tr v-for="day in snapshot.trends" :key="day.date"><th scope="row">{{ day.date }}</th><td>{{ day.users }}</td><td>{{ day.products }}</td><td>{{ day.orders }}</td></tr></tbody>
+                <tfoot><tr><th scope="row">期间合计</th><td>{{ snapshot.period.users }}</td><td>{{ snapshot.period.products }}</td><td>{{ snapshot.period.orders }}</td></tr></tfoot>
+              </table>
             </div>
+          </details>
           </div>
-          <div ref="lineChartRef" class="chart-box"></div>
-        </div>
-      </el-col>
-
-      <!-- 分类销量（柱状图） -->
-      <el-col :xs="24" :lg="12" class="chart-col">
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3>分类销量排行</h3>
+        </section>
+        <section class="chart-card" aria-labelledby="category-title">
+          <div class="chart-header"><h2 id="category-title">分类数量与占比</h2></div>
+          <div class="chart-card-body" tabindex="0" role="region" aria-labelledby="category-title">
+            <div class="category-switch segmented-control has-selection" :style="{ '--segment-index': categoryMetric === 'products' ? 0 : 1, '--segment-count': 2 }" aria-label="分类图表指标">
+              <span class="segmented-indicator" aria-hidden="true"></span>
+              <button type="button" :aria-pressed="categoryMetric === 'products'" @click="categoryMetric = 'products'">新增商品</button>
+              <button type="button" :aria-pressed="categoryMetric === 'completedQuantity'" @click="categoryMetric = 'completedQuantity'">成交件数</button>
+            </div>
+          <p class="chart-note">图表展示当前指标前 10 类；占比以全部分类合计为分母。</p>
+          <div v-show="hasCategoryData" ref="categoryRef" class="chart-box" aria-hidden="true"></div>
+          <p v-if="!hasCategoryData" class="empty-data">所选期间暂无该指标数据</p>
+          <details class="data-details"><summary>查看全部分类数据表</summary>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="全部分类数据表，可横向滚动">
+              <table data-table="categories"><caption>分类明细（商品当前分类，包含全部分类）</caption><thead><tr><th scope="col">分类</th><th scope="col">新增商品（条）</th><th scope="col">商品占比</th><th scope="col">完成订单（单）</th><th scope="col">成交件数</th><th scope="col">件数占比</th><th scope="col">实付额（元）</th></tr></thead>
+                <tbody><tr v-for="category in snapshot.categories" :key="category.id"><th scope="row">{{ category.name }}</th><td>{{ category.products }}</td><td>{{ percent(category.productShare) }}</td><td>{{ category.completedOrders }}</td><td>{{ category.completedQuantity }}</td><td>{{ percent(category.quantityShare) }}</td><td>{{ money(category.completedAmount) }}</td></tr>
+                  <tr v-if="!snapshot.categories.length"><td colspan="7">所选期间暂无分类数据</td></tr></tbody>
+                <tfoot><tr><th scope="row">全部分类合计</th><td>{{ snapshot.period.products }}</td><td>{{ snapshot.period.products ? '100.0%' : '暂无样本' }}</td><td>{{ snapshot.period.completedOrders }}</td><td>{{ snapshot.period.completedQuantity }}</td><td>{{ snapshot.period.completedQuantity ? '100.0%' : '暂无样本' }}</td><td>{{ money(snapshot.period.completedAmount) }}</td></tr></tfoot>
+              </table>
+            </div>
+          </details>
           </div>
-          <div ref="barChartRef" class="chart-box"></div>
-        </div>
-      </el-col>
-
-      <!-- 订单状态（饼状图） -->
-      <el-col :xs="24" :lg="12" class="chart-col">
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3>订单状态分布</h3>
+        </section>
+        <section class="chart-card" aria-labelledby="status-title">
+          <div class="chart-header"><h2 id="status-title">订单当前状态分布</h2></div>
+          <div class="chart-card-body" tabindex="0" role="region" aria-labelledby="status-title">
+          <p class="chart-note">所选期间新建的 {{ number(snapshot.period.orders) }} 单订单，查看其当前状态。</p>
+          <div v-show="snapshot.period.orders > 0" ref="statusRef" class="chart-box" aria-hidden="true"></div>
+          <p v-if="snapshot.period.orders === 0" class="empty-data">所选期间没有新建订单</p>
+          <ul v-if="snapshot.period.orders > 0" class="status-legend" aria-label="各订单状态占比">
+            <li v-for="status in snapshot.orderStatus" :key="status.status" :data-status="status.status">
+              <span class="status-swatch" :style="{ backgroundColor: statusColor(status.status) }" aria-hidden="true"></span>
+              <span>{{ status.name }}</span><strong>{{ percent(status.share) }}</strong>
+            </li>
+          </ul>
+          <details class="data-details"><summary>查看订单状态数据表</summary>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="订单状态数据表，可滚动">
+              <table data-table="statuses"><caption>期间新建订单的当前状态</caption><thead><tr><th scope="col">状态</th><th scope="col">订单（单）</th><th scope="col">占比</th></tr></thead>
+                <tbody><tr v-for="status in snapshot.orderStatus" :key="status.status"><th scope="row">{{ status.name }}</th><td>{{ status.count }}</td><td>{{ percent(status.share) }}</td></tr></tbody>
+                <tfoot><tr><th scope="row">合计</th><td>{{ snapshot.period.orders }}</td><td>{{ snapshot.period.orders ? '100.0%' : '暂无样本' }}</td></tr></tfoot>
+              </table>
+            </div>
+          </details>
           </div>
-          <div ref="pieChartRef" class="chart-box"></div>
-        </div>
-      </el-col>
-
-      <!-- 平台健康（雷达图） -->
-      <el-col :xs="24" :lg="12" class="chart-col">
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3>平台健康评分</h3>
+        </section>
+        <section class="chart-card" aria-labelledby="ratios-title">
+          <div class="chart-header"><h2 id="ratios-title">业务比例</h2></div>
+          <div class="chart-card-body" tabindex="0" role="region" aria-labelledby="ratios-title">
+          <p class="chart-note">分别说明业务现象，不合成为平台健康评分。</p>
+          <dl class="ratio-list">
+            <div v-for="(ratio, index) in snapshot.ratios" :key="ratio.key" class="ratio-item" :data-ratio="ratio.key" :style="{ '--ratio-color': palette[index], '--ratio-text': ratioTextColors[index] }">
+              <dt>{{ ratio.name }}</dt><dd><div class="ratio-values"><strong>{{ percent(ratio.percent) }}</strong><span>分子 {{ number(ratio.numerator) }} / 分母 {{ number(ratio.denominator) }}</span></div>
+              <div class="ratio-track" aria-hidden="true"><div :style="{ width: `${ratio.percent ?? 0}%` }"></div></div>
+              <p>{{ ratio.definition }}</p></dd>
+            </div>
+          </dl>
           </div>
-          <div ref="radarChartRef" class="chart-box"></div>
-        </div>
-      </el-col>
-    </el-row>
+        </section>
+      </div>
+    </template>
   </div>
 </template>
 
-<script lang="ts" setup>
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as echarts from 'echarts'
-import { ShoppingCart, User, Goods, Coin, Tickets, WarningFilled } from '@element-plus/icons-vue'
-import { getOverviewStats, getTrends, getCategorySales, getOrderStatus, getRadarData } from '@/api/stats-api'
-import type { TrendItem, CategorySalesItem, OrderStatusItem, RadarData } from '@/types/stats'
+import { User, Goods, ShoppingCart, Coin, Tickets, WarningFilled } from '@element-plus/icons-vue'
+import type { Component } from 'vue'
+import { getDashboardStats } from '@/api/stats-api'
+import type { DashboardStats } from '@/types/stats'
 
-// ==================== 统计卡片 ====================
-interface StatCard {
-  label: string
-  value: string | number
-  unit?: string
-  today?: number
-  icon: any
-  color: string
-  bg: string
+const localToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+const today = ref(localToday())
+const draftStart = ref(''), draftEnd = ref(today.value), selectedDays = ref<number | null>(30)
+const snapshot = ref<DashboardStats | null>(null)
+const loading = ref(false), error = ref(''), rangeError = ref('')
+const categoryMetric = ref<'products' | 'completedQuantity'>('products')
+let lastRequest: { startDate: string; endDate: string } | undefined
+let requestId = 0, disposed = false
+const number = (value: number) => new Intl.NumberFormat('zh-CN').format(value)
+const money = (value: number) => new Intl.NumberFormat('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
+const percent = (value: number | null) => value === null ? '暂无样本' : `${value.toFixed(1)}%`
+const dirty = computed(() => !!snapshot.value && (draftStart.value !== snapshot.value.startDate || draftEnd.value !== snapshot.value.endDate))
+const updatedAt = computed(() => snapshot.value ? new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', dateStyle: 'short', timeStyle: 'medium', hour12: false }).format(new Date(snapshot.value.generatedAt)) : '')
+const cardVisuals: Record<string, { icon: Component; color: string }> = {
+  users: { icon: User, color: '#409EFF' }, products: { icon: Goods, color: '#67C23A' },
+  orders: { icon: ShoppingCart, color: '#E6A23C' }, completedAmount: { icon: Coin, color: '#F56C6C' },
+  pendingProducts: { icon: Tickets, color: '#909399' }, refundOrders: { icon: WarningFilled, color: '#FF5722' },
+  completedOrders: { icon: Tickets, color: '#67C23A' }, completedQuantity: { icon: Goods, color: '#E6A23C' },
 }
-
-const statCards = reactive<StatCard[]>([
-  { label: '用户总数', value: 0, icon: User, color: '#409EFF', bg: '#409EFF', today: 0 },
-  { label: '商品总数', value: 0, icon: Goods, color: '#67C23A', bg: '#67C23A', today: 0 },
-  { label: '订单总数', value: 0, icon: ShoppingCart, color: '#E6A23C', bg: '#E6A23C', today: 0 },
-  { label: '成交总额', value: 0, unit: '¥', icon: Coin, color: '#F56C6C', bg: '#F56C6C' },
-  { label: '待审核商品', value: 0, icon: Tickets, color: '#909399', bg: '#909399' },
-  { label: '待退款订单', value: 0, icon: WarningFilled, color: '#FF5722', bg: '#FF5722' },
-])
-
-// ==================== 图表 ref ====================
-const lineChartRef = ref<HTMLElement>()
-const barChartRef = ref<HTMLElement>()
-const pieChartRef = ref<HTMLElement>()
-const radarChartRef = ref<HTMLElement>()
-
-let lineChart: echarts.ECharts | null = null
-let barChart: echarts.ECharts | null = null
-let pieChart: echarts.ECharts | null = null
-let radarChart: echarts.ECharts | null = null
-
-const trendDays = ref(90)
-const trendOptions = [
-  { label: '近3个月', value: 90 },
-  { label: '近1年', value: 365 },
-  { label: '近10年', value: 3650 },
-]
-const selectTrend = (value: number) => {
-  trendDays.value = value
-  loadTrends()
-}
-let resizeObserver: ResizeObserver | null = null
-
-// ==================== 颜色方案 ====================
-const colors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#FF5722', '#9B59B6', '#1ABC9C']
-
-// 订单状态颜色
-const statusColorMap: Record<number, string> = {
-  0: '#F56C6C',
-  1: '#E6A23C',
-  2: '#409EFF',
-  3: '#67C23A',
-  4: '#909399',
-  5: '#FF5722',
-}
-
-// ==================== 加载数据 ====================
-
-/** 加载概览数据 */
-async function loadOverview() {
-  try {
-    const res = await getOverviewStats()
-    const data = res.data!
-    statCards[0].value = data.totalUsers ?? 0
-    statCards[0].today = data.todayNewUsers ?? 0
-    statCards[1].value = data.totalProducts ?? 0
-    statCards[2].value = data.totalOrders ?? 0
-    statCards[2].today = data.todayNewOrders ?? 0
-    statCards[3].value = formatMoney(data.totalRevenue ?? 0)
-    statCards[4].value = data.pendingReviewProducts ?? 0
-    statCards[5].value = data.pendingRefundOrders ?? 0
-  } catch (e) {
-    console.error('加载概览数据失败', e)
-  }
-}
-
-/** 加载趋势数据 */
-async function loadTrends() {
-  try {
-    const res = await getTrends(trendDays.value)
-    const data = res.data!
-    renderLineChart(data.userTrends, data.orderTrends)
-  } catch (e) {
-    console.error('加载趋势数据失败', e)
-  }
-}
-
-/** 加载分类销量 */
-async function loadCategorySales() {
-  try {
-    const res = await getCategorySales()
-    const data = res.data!
-    renderBarChart(data)
-  } catch (e) {
-    console.error('加载分类销量失败', e)
-  }
-}
-
-/** 加载订单状态 */
-async function loadOrderStatus() {
-  try {
-    const res = await getOrderStatus()
-    const data = res.data!
-    renderPieChart(data)
-  } catch (e) {
-    console.error('加载订单状态失败', e)
-  }
-}
-
-/** 加载雷达图数据 */
-async function loadRadar() {
-  try {
-    const res = await getRadarData()
-    const data = res.data!
-    renderRadarChart(data)
-  } catch (e) {
-    console.error('加载雷达图数据失败', e)
-  }
-}
-
-// ==================== 渲染图表 ====================
-
-/** 折线图：用户 & 订单趋势 */
-function renderLineChart(userTrends: TrendItem[], orderTrends: TrendItem[]) {
-  if (!lineChartRef.value) return
-  if (!lineChart) {
-    lineChart = echarts.init(lineChartRef.value)
-  }
-
-  // 过滤掉用户和订单均为 0 的日期，保留完整日期（年月日）
-  const filtered = userTrends
-    .map((u, i) => ({ date: u.date, userCount: u.count, orderCount: orderTrends[i]?.count ?? 0 }))
-    .filter((d) => d.userCount > 0 || d.orderCount > 0)
-
-  const dates = filtered.map((d) => d.date)
-  const userCounts = filtered.map((d) => d.userCount)
-  const orderCounts = filtered.map((d) => d.orderCount)
-
-  lineChart.setOption({
-    tooltip: { trigger: 'axis', backgroundColor: 'rgba(255,255,255,0.95)', borderColor: '#eee' },
-    legend: {
-      data: ['新增用户', '新增订单'],
-      bottom: 0,
-      icon: 'circle',
-      itemWidth: 8,
-      itemHeight: 8,
-    },
-    grid: { left: 50, right: 20, top: 30, bottom: 40 },
-    xAxis: {
-      type: 'category',
-      data: dates,
-      axisLine: { lineStyle: { color: '#ddd' } },
-      axisLabel: { color: '#909399' },
-    },
-    yAxis: {
-      type: 'value',
-      minInterval: 1,
-      splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
-      axisLabel: { color: '#909399' },
-    },
-    series: [
-      {
-        name: '新增用户',
-        type: 'line',
-        smooth: true,
-        data: userCounts,
-        symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: { width: 3, color: '#409EFF' },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(64,158,255,0.3)' },
-            { offset: 1, color: 'rgba(64,158,255,0.02)' },
-          ]),
-        },
-        itemStyle: { color: '#409EFF' },
-      },
-      {
-        name: '新增订单',
-        type: 'line',
-        smooth: true,
-        data: orderCounts,
-        symbol: 'diamond',
-        symbolSize: 6,
-        lineStyle: { width: 3, color: '#67C23A' },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(103,194,58,0.3)' },
-            { offset: 1, color: 'rgba(103,194,58,0.02)' },
-          ]),
-        },
-        itemStyle: { color: '#67C23A' },
-      },
-    ],
-  })
-}
-
-/** 柱状图：分类销量排行 */
-function renderBarChart(data: CategorySalesItem[]) {
-  if (!barChartRef.value) return
-  if (!barChart) {
-    barChart = echarts.init(barChartRef.value)
-  }
-
-  const names = data.map((d) => d.name)
-  const counts = data.map((d) => d.count)
-
-  barChart.setOption({
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderColor: '#eee',
-      formatter: (params: any) => {
-        const p = params[0]
-        return `<strong>${p.name}</strong><br/>销量: <strong>${p.value}</strong> 件`
-      },
-    },
-    grid: { left: 50, right: 20, top: 20, bottom: 30, containLabel: true },
-    xAxis: {
-      type: 'category',
-      data: names,
-      axisLabel: {
-        color: '#909399',
-        interval: 0,
-        rotate: names.length > 5 ? 25 : 0,
-      },
-      axisLine: { lineStyle: { color: '#ddd' } },
-    },
-    yAxis: {
-      type: 'value',
-      minInterval: 1,
-      splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
-      axisLabel: { color: '#909399' },
-    },
-    series: [
-      {
-        type: 'bar',
-        data: counts.map((v, i) => ({
-          value: v,
-          itemStyle: {
-            color: colors[i % colors.length],
-            borderRadius: [4, 4, 0, 0],
-          },
-        })),
-        barWidth: '50%',
-        label: {
-          show: true,
-          position: 'top',
-          color: '#606266',
-          fontSize: 12,
-        },
-      },
-    ],
-  })
-}
-
-/** 饼状图：订单状态分布 */
-function renderPieChart(data: OrderStatusItem[]) {
-  if (!pieChartRef.value) return
-  if (!pieChart) {
-    pieChart = echarts.init(pieChartRef.value)
-  }
-
-  const total = data.reduce((sum, d) => sum + d.count, 0)
-
-  pieChart.setOption({
-    tooltip: {
-      trigger: 'item',
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderColor: '#eee',
-      formatter: (params: any) => {
-        return `<strong>${params.name}</strong><br/>
-                数量: <strong>${params.value}</strong> 单<br/>
-                占比: <strong>${params.percent}%</strong>`
-      },
-    },
-    legend: {
-      orient: 'vertical',
-      right: '5%',
-      top: 'center',
-      itemWidth: 10,
-      itemHeight: 10,
-      textStyle: { color: '#606266', fontSize: 12 },
-    },
-    series: [
-      {
-        type: 'pie',
-        radius: ['40%', '65%'],
-        center: ['35%', '50%'],
-        avoidLabelOverlap: true,
-        padAngle: 2,
-        itemStyle: { borderRadius: 4 },
-        label: {
-          show: total > 0,
-          formatter: '{b}: {d}%',
-          color: '#606266',
-          fontSize: 11,
-        },
-        labelLine: { length: 10, length2: 15 },
-        emphasis: {
-          label: { fontSize: 14, fontWeight: 'bold' },
-          itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.15)' },
-        },
-        data: data.map((d) => ({
-          name: d.statusName,
-          value: d.count,
-          itemStyle: { color: statusColorMap[d.status] || '#909399' },
-        })),
-      },
-    ],
-  })
-}
-
-/** 雷达图：平台健康评分 */
-function renderRadarChart(data: RadarData) {
-  if (!radarChartRef.value) return
-  if (!radarChart) {
-    radarChart = echarts.init(radarChartRef.value)
-  }
-
-  const labels = ['用户活跃度', '商品丰富度', '交易完成率', '好评率', '平台响应度']
-  const values = [
-    data.userActivity ?? 0,
-    data.productRichness ?? 0,
-    data.orderCompletionRate ?? 0,
-    data.positiveRate ?? 0,
-    data.responseSpeed ?? 0,
+const badgeTextColors: Record<string, string> = { users: '#2368a2', products: '#3e7b23', orders: '#94610b' }
+const overviewCards = computed(() => {
+  const o = snapshot.value!.overview
+  return [
+    { key: 'users', label: '累计普通用户', value: number(o.users), today: o.todayUsers, note: '排除管理员，包含被禁用账号' },
+    { key: 'products', label: '累计商品', value: number(o.products), today: o.todayProducts, note: '包含各审核状态的现存商品' },
+    { key: 'orders', label: '累计订单', value: number(o.orders), today: o.todayOrders, note: '包含全部当前订单状态' },
+    { key: 'completedAmount', label: '累计完成订单实付额', value: `¥${money(o.completedAmount)}`, note: '当前已完成订单实付合计，含运费' },
+    { key: 'pendingProducts', label: '当前待审核商品', value: number(o.pendingProducts), note: '全量商品中当前待审核的数量' },
+    { key: 'refundOrders', label: '当前退款 / 售后订单', value: number(o.refundOrders), note: '全量订单中当前处于退款 / 售后状态' },
   ]
+})
+const periodCards = computed(() => {
+  const p = snapshot.value!.period
+  return [
+    { key: 'users', label: '期间新增普通用户', value: number(p.users), note: '按普通用户注册时间' },
+    { key: 'products', label: '期间新增商品', value: number(p.products), note: '每条发布记录计 1，包含各审核状态' },
+    { key: 'orders', label: '期间新建订单', value: number(p.orders), note: '按下单时间，包含全部状态' },
+    { key: 'completedOrders', label: '期间订单 · 当前已完成', value: number(p.completedOrders), note: '期间下单且当前已完成，单位：单' },
+    { key: 'completedQuantity', label: '期间订单 · 成交件数', value: number(p.completedQuantity), note: '上述已完成订单的购买数量合计' },
+    { key: 'completedAmount', label: '期间订单 · 已完成实付额', value: `¥${money(p.completedAmount)}`, note: '上述已完成订单实付合计，含运费' },
+  ]
+})
+const categoryRows = computed(() => [...(snapshot.value?.categories ?? [])].filter(row => row[categoryMetric.value] > 0).sort((a,b) => b[categoryMetric.value] - a[categoryMetric.value] || a.id - b.id).slice(0,10))
+const hasCategoryData = computed(() => categoryRows.value.length > 0)
 
-  const indicators = labels.map((name, i) => ({
-    name,
-    max: 100,
-    color: colors[i],
-  }))
+async function loadStats(range?: { startDate: string; endDate: string }) {
+  const id = ++requestId
+  loading.value = true; error.value = ''; lastRequest = range
+  try {
+    const response = await getDashboardStats(range)
+    if (id !== requestId || disposed) return
+    if (!response.data) throw new Error('统计接口未返回数据')
+    snapshot.value = response.data; today.value = response.data.today
+    draftStart.value = response.data.startDate; draftEnd.value = response.data.endDate
+    await nextTick(); renderCharts()
+  } catch (e: any) {
+    if (id === requestId && !disposed) error.value = e?.response?.data?.message || e?.message || '统计数据加载失败，请重试。'
+  } finally { if (id === requestId && !disposed) loading.value = false }
+}
+function applyRange() {
+  rangeError.value = ''
+  if (!draftStart.value || !draftEnd.value) { rangeError.value = '请选择开始日期和结束日期'; return }
+  if (draftStart.value > draftEnd.value) { rangeError.value = '开始日期不能晚于结束日期'; return }
+  if (draftEnd.value > today.value) { rangeError.value = '结束日期不能晚于今天（北京时间）'; return }
+  if ((Date.parse(draftEnd.value) - Date.parse(draftStart.value)) / 86400000 >= 366) { rangeError.value = '每次最多查询 366 个自然日'; return }
+  void loadStats({ startDate: draftStart.value, endDate: draftEnd.value })
+}
+function selectDays(days: number) {
+  const date = new Date(`${today.value}T00:00:00Z`); date.setUTCDate(date.getUTCDate() - days + 1)
+  draftStart.value = date.toISOString().slice(0,10); draftEnd.value = today.value; selectedDays.value = days
+  applyRange()
+}
+const refresh = () => { rangeError.value = ''; void loadStats(snapshot.value ? { startDate: snapshot.value.startDate, endDate: snapshot.value.endDate } : undefined) }
+const retry = () => { void loadStats(lastRequest) }
 
-  radarChart.setOption({
-    tooltip: {
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderColor: '#eee',
-      formatter: (params: any) => {
-        const rows = params.value
-          .map((v: number, i: number) => `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colors[i]};margin-right:6px"></span>${labels[i]}: <strong>${v}分</strong>`)
-          .join('<br/>')
-        return `<div style="font-weight:bold;margin-bottom:6px">平台健康评分</div>${rows}`
-      },
-    },
-    radar: {
-      indicator: indicators,
-      radius: '65%',
-      center: ['50%', '50%'],
-      shape: 'circle',
-      splitNumber: 4,
-      axisName: {
-        color: '#606266',
-        fontSize: 12,
-        borderRadius: 4,
-        padding: [0, 0],
-      },
-      splitLine: {
-        lineStyle: { color: '#e8e8e8' },
-      },
-      splitArea: {
-        areaStyle: {
-          color: ['rgba(64,158,255,0.02)', 'rgba(64,158,255,0.05)', 'rgba(64,158,255,0.08)', 'rgba(64,158,255,0.12)'],
-        },
-      },
-      axisLine: {
-        lineStyle: { color: '#e0e0e0' },
-      },
-    },
-    series: [
-      {
-        type: 'radar',
-        data: [
-          {
-            value: values,
-            name: '平台健康',
-            areaStyle: {
-              color: 'rgba(64,158,255,0.25)',
-            },
-            lineStyle: {
-              color: '#409EFF',
-              width: 2,
-            },
-            itemStyle: {
-              color: colors,
-            },
-          },
-        ],
-        symbol: 'circle',
-        symbolSize: 6,
-      },
-    ],
+const trendRef = ref<HTMLElement>(), categoryRef = ref<HTMLElement>(), statusRef = ref<HTMLElement>()
+const charts = new Map<HTMLElement, echarts.ECharts>()
+let resizeObserver: ResizeObserver | undefined, fontObserver: MutationObserver | undefined
+const palette = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#FF5722', '#9B59B6', '#1ABC9C']
+const ratioTextColors = ['#2368a2', '#3e7b23', '#94610b', '#b13b40', '#62676e']
+const statusColors: Record<number, string> = { 0: '#F56C6C', 1: '#E6A23C', 2: '#409EFF', 3: '#67C23A', 4: '#909399', 5: '#FF5722' }
+const statusColor = (status: number) => statusColors[status] ?? '#909399'
+function chart(el: HTMLElement | undefined, options: echarts.EChartsOption) {
+  if (!el || !el.clientWidth || disposed) return
+  let instance = charts.get(el)
+  if (!instance) { instance = echarts.init(el); charts.set(el,instance); resizeObserver?.observe(el) }
+  instance.setOption({ animation: !matchMedia('(prefers-reduced-motion: reduce)').matches, color: palette, textStyle: { fontSize: parseFloat(getComputedStyle(document.documentElement).fontSize) }, ...options }, true)
+  instance.resize()
+}
+function renderCharts() {
+  const data = snapshot.value
+  if (!data || disposed) return
+  const fontSize = parseFloat(getComputedStyle(document.documentElement).fontSize)
+  const axisLabel = { fontSize, color: '#555b64' }
+  const legend = { bottom: 0, textStyle: { fontSize, color: '#555b64' }, itemWidth: fontSize, itemHeight: fontSize * .7 }
+  const small = (trendRef.value?.clientWidth ?? 500) < 420
+  const base = { tooltip: { trigger: 'axis' as const, renderMode: 'richText' as const, confine: true, textStyle: { fontSize } }, grid: { left: 12, right: 18, top: 30, bottom: fontSize * 4, containLabel: true } }
+  chart(trendRef.value, { ...base, legend: { ...legend, data: ['新增用户', '新增商品', '新建订单'] },
+    xAxis: { type: 'category', data: data.trends.map(d => d.date), axisLabel: { ...axisLabel, formatter: (value: string) => value.slice(5), hideOverlap: true } },
+    yAxis: { type: 'value', minInterval: 1, axisLabel },
+    series: (['users','products','orders'] as const).map((key,i) => ({ name: ['新增用户','新增商品','新建订单'][i], type: 'line' as const, data: data.trends.map(d => d[key]), showSymbol: data.trends.length <= 31, connectNulls: false })),
+  })
+  const metric = categoryMetric.value, names = categoryRows.value.map(d => d.name)
+  if (hasCategoryData.value) chart(categoryRef.value, { ...base, grid: { left: 12, right: 36, top: 12, bottom: 28, containLabel: true },
+    xAxis: { type: 'value', minInterval: 1, name: metric === 'products' ? '条' : '件', axisLabel, nameTextStyle: { fontSize } },
+    yAxis: { type: 'category', inverse: true, data: names, axisLabel: { ...axisLabel, width: small ? 80 : 130, overflow: 'truncate' } },
+    series: [{ name: metric === 'products' ? '新增商品（条）' : '成交件数（件）', type: 'bar', data: categoryRows.value.map((d, index) => ({ value: d[metric], itemStyle: { color: palette[index % palette.length], borderRadius: [0,4,4,0] } })), label: { show: true, position: 'right', fontSize } }],
+  })
+  if (data.period.orders > 0) chart(statusRef.value, { tooltip: { trigger: 'item', renderMode: 'richText', confine: true, textStyle: { fontSize }, formatter: '{b}\n{c} 单（{d}%）' },
+    series: [{ type: 'pie', radius: ['36%','62%'], center: ['50%','50%'], percentPrecision: 1, avoidLabelOverlap: true,
+      label: { show: true, position: small || fontSize > 20 ? 'inside' : 'outside', fontSize, formatter: small || fontSize > 20 ? '{d}%' : '{b}: {d}%', color: '#303133', backgroundColor: 'rgba(255,255,255,.92)', borderRadius: 4, padding: [3,5] },
+      labelLine: { show: !small && fontSize <= 20, length: 10, length2: 10 },
+      data: data.orderStatus.filter(s => s.count > 0).map(s => ({ name: s.name, value: s.count, itemStyle: { color: statusColor(s.status), borderRadius: 4 } })) }],
   })
 }
-
-// ==================== 辅助函数 ====================
-
-/** 金额格式化：保留两位小数，加上千位分隔符 */
-function formatMoney(val: number): string {
-  const num = Number(val)
-  if (isNaN(num)) return '0.00'
-  const parts = num.toFixed(2).split('.')
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-  return parts.join('.')
-}
-
-// ==================== 生命周期 ====================
-
-onMounted(async () => {
-  await Promise.all([
-    loadOverview(),
-    loadTrends(),
-    loadCategorySales(),
-    loadOrderStatus(),
-    loadRadar(),
-  ])
-
-  // 监听容器 resize 自适应
-  await nextTick()
-  const chartElements = [lineChartRef.value, barChartRef.value, pieChartRef.value, radarChartRef.value]
-  const chartInstances = [lineChart!, barChart!, pieChart!, radarChart!]
-
-  resizeObserver = new ResizeObserver(() => {
-    chartInstances.forEach((chart) => {
-      chart?.resize()
-    })
-  })
-
-  chartElements.forEach((el) => {
-    if (el) resizeObserver?.observe(el)
-  })
+watch(categoryMetric, async () => { await nextTick(); renderCharts() })
+onMounted(() => {
+  resizeObserver = new ResizeObserver(renderCharts)
+  fontObserver = new MutationObserver(renderCharts)
+  fontObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-font-scale'] })
+  void loadStats()
 })
-
-onBeforeUnmount(() => {
-  ;[lineChart, barChart, pieChart, radarChart].forEach((chart) => {
-    chart?.dispose()
-  })
-  resizeObserver?.disconnect()
-})
+onBeforeUnmount(() => { disposed = true; requestId++; resizeObserver?.disconnect(); fontObserver?.disconnect(); charts.forEach(instance => instance.dispose()); charts.clear() })
 </script>
 
 <style scoped lang="scss">
-.dashboard-container {
-  padding: 6px 10px;
-}
-
-.page-title {
-  margin: 0 0 20px;
-  font-size: 1.571429rem;
-  font-weight: 600;
-  color: #303133;
-}
-
-// ========== 统计卡片 ==========
-.stats-row {
-  margin-bottom: 20px;
-
-  .stat-card {
-    background: #fff;
-    border-radius: 8px;
-    padding: 18px 16px;
-
-    transition: all 0.3s ease;
-    position: relative;
-    cursor: pointer;
-    height: 105px;
-    display: flex;
-    align-items: center;
-    box-sizing: border-box;
-
-    &:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .stat-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .stat-info {
-      margin-left: 12px;
-      flex: 1;
-      min-width: 0;
-
-      .stat-value {
-        font-size: 1.571429rem;
-        font-weight: 700;
-        color: #303133;
-        line-height: 1.3;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        position: relative;
-      }
-
-      .stat-today-badge {
-        display: inline-block;
-        font-size: 0.785714rem;
-        font-weight: 700;
-        margin-left: 6px;
-        vertical-align: super;
-        line-height: 1;
-      }
-
-      .stat-label {
-        font-size: 0.928571rem;
-        color: #909399;
-        margin-top: 2px;
-      }
-    }
-  }
-}
-
-// ========== 图表卡片 ==========
-.charts-row {
-  .chart-col {
-    margin-bottom: 20px;
-  }
-
-  .chart-card {
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-    padding: 20px;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
-    }
-
-    .chart-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-
-      h3 {
-        margin: 0;
-        font-size: 1.142857rem;
-        font-weight: 600;
-        color: #303133;
-      }
-
-      .trend-toggle {
-        display: flex;
-        background: rgb(240, 240, 240);
-        padding: 4px;
-        border-radius: 30px;
-
-        .trend-item {
-          padding: 4px 16px;
-          cursor: pointer;
-          border-radius: 20px;
-          font-size: 0.928571rem;
-          color: #606266;
-          transition: all 0.2s;
-          user-select: none;
-
-          &.active {
-            background: #fff;
-            font-weight: 600;
-            color: #303133;
-          }
-
-          &:not(.active):hover {
-            color: #303133;
-          }
-        }
-      }
-    }
-
-    .chart-box {
-      width: 100%;
-      height: 320px;
-    }
-  }
-}
-
-// ========== 响应式 ==========
-@media (max-width: 768px) {
-  .dashboard-container {
-    padding: 12px;
-  }
-
-  .stats-row {
-    .stat-card {
-      padding: 14px 12px;
-      height: 90px;
-
-      .stat-icon {
-        width: 44px;
-        height: 44px;
-      }
-
-      .stat-info {
-        .stat-value {
-          font-size: 1.285714rem;
-        }
-      }
-    }
-  }
-
-  .chart-card {
-    .chart-box {
-      height: 260px;
-    }
-  }
-}
+.dashboard-container { min-width:0; color:#303133; }
+h1 { margin:0; font-size:1.7rem; line-height:1.4; }
+h2 { margin:0; font-size:1.2rem; line-height:1.5; }
+p { line-height:1.7; }
+.dashboard-heading, .section-title, .chart-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.dashboard-heading { margin-bottom:20px; }
+.dashboard-heading p { color:#606266; margin:8px 0 0; }
+.dashboard-button, .segmented-control button { min-height:44px; padding:8px 14px; border:1px solid #dcdfe6; border-radius:8px; color:#606266; background:#fff; font:inherit; cursor:pointer; line-height:1.5; }
+button:disabled { cursor:wait; opacity:.65; }
+.dashboard-button.primary { border-color:#286fb4; color:#fff; background:#286fb4; }
+.dashboard-button:not(:disabled):hover { color:#2368a2; border-color:#a0cfff; background:#ecf5ff; }
+.dashboard-button.primary:not(:disabled):hover { color:#fff; background:#2368a2; }
+.range-panel, .definitions { padding:20px; border:1px solid #ebeef5; border-radius:10px; background:#fff; margin-bottom:20px; }
+.range-form { display:flex; align-items:end; flex-wrap:wrap; gap:16px; margin-top:16px; }
+.range-form label { display:flex; flex:1 1 12rem; flex-direction:column; gap:8px; min-width:0; }
+.range-form input { width:100%; min-width:0; box-sizing:border-box; min-height:44px; padding:8px 12px; border:1px solid #c0c4cc; border-radius:8px; color:#303133; background:#fff; font:inherit; line-height:1.5; }
+.segmented-control { position:relative; isolation:isolate; display:grid; grid-template-columns:repeat(var(--segment-count),minmax(0,1fr)); padding:4px; gap:0; border-radius:28px; background:#f0f0f0; max-width:100%; box-sizing:border-box; }
+.segmented-control button { position:relative; z-index:1; border:0; border-radius:24px; background:transparent; min-width:0; padding:8px 12px; overflow-wrap:anywhere; }
+.segmented-control button[aria-pressed="true"] { color:#303133; font-weight:600; }
+.segmented-control button:not(:disabled):hover { color:#2368a2; }
+.segmented-indicator { position:absolute; z-index:0; top:4px; bottom:4px; left:4px; width:calc((100% - 8px) / var(--segment-count)); border-radius:24px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.08); opacity:0; transform:translateX(calc(var(--segment-index) * 100%)); transition:transform .25s ease,opacity .15s ease; pointer-events:none; }
+.has-selection .segmented-indicator { opacity:1; }
+.range-presets { flex:0 1 24rem; }
+.category-switch { width:min(100%,22rem); margin-bottom:12px; }
+.muted, .chart-note, .section-title > span { color:#606266; font-size:1rem; }
+.muted { margin:12px 0 0; }
+.draft-notice { color:#2368a2; margin-bottom:0; }
+.error-text { color:#a61d24; margin-bottom:0; }
+.load-error { border:1px solid #d4a09e; border-radius:10px; padding:16px; color:#93252a; background:#fff5f4; margin-bottom:20px; }
+.load-error p { margin-top:0; }
+.snapshot-meta { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 20px; margin:20px 0 12px; font-size:1rem; color:#62666c; }
+.snapshot-meta strong { color:#41464d; }
+summary { cursor:pointer; min-height:44px; line-height:1.6; display:list-item; align-content:center; font-weight:600; }
+.definitions { background:#f6f8fb; padding:8px 20px; }
+.definitions ul { padding-left:1.5em; line-height:1.8; }
+.definitions li + li { margin-top:8px; }
+.section-title { margin:24px 0 12px; }
+.stats-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin:0 0 20px !important; }
+.stat-card { display:flex; flex-wrap:wrap; align-items:center; gap:12px; border:1px solid #f0f2f5; border-radius:10px; padding:18px 16px; background:#fff; min-width:0; height:auto; box-shadow:0 2px 12px rgba(0,0,0,.04); transition:box-shadow .2s ease; }
+.stat-card:hover { box-shadow:0 6px 20px rgba(0,0,0,.08); }
+.stat-icon { display:grid; place-items:center; flex:0 0 52px; width:52px; height:52px; border-radius:10px; font-size:30px; }
+.stat-info { flex:1 1 10rem; min-width:0; }
+.stat-value-row { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:4px 8px; margin-bottom:4px; }
+.stat-value-row .stat-value { min-width:0; margin-bottom:0; }
+.stat-today-badge { max-width:100%; box-sizing:border-box; margin-left:auto; padding:3px 8px; border-radius:12px; font-size:.9rem; font-weight:600; line-height:1.5; overflow-wrap:anywhere; }
+.stat-label { color:#606266; line-height:1.6; }
+.stat-value { font-size:1.65rem; line-height:1.5; font-weight:700; color:#303133; overflow-wrap:anywhere; margin:0 0 4px; }
+.stat-card p { font-size:.93rem; color:#606266; margin:6px 0 0; }
+.dashboard-charts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:stretch; }
+.chart-card { display:flex; flex-direction:column; box-sizing:border-box; height:clamp(460px,calc(380px + 6rem),560px); min-width:0; min-height:0; padding:20px; background:#fff; border:1px solid #f0f2f5; border-radius:10px; box-shadow:0 2px 12px rgba(0,0,0,.06); overflow:hidden; transition:box-shadow .2s ease; }
+.chart-card:hover { box-shadow:0 6px 24px rgba(0,0,0,.1); }
+.chart-header { min-height:44px; flex:0 0 auto; padding-bottom:8px; }
+.chart-card-body { flex:1 1 0%; min-height:0; min-width:0; overflow:auto; overscroll-behavior:contain; scrollbar-gutter:stable; padding:0 4px 4px; }
+.chart-note { margin:8px 0 12px; line-height:1.7; }
+.chart-box { height:clamp(280px,20rem,400px); width:100%; }
+.empty-data { display:grid; place-content:center; min-height:200px; color:#656a72; text-align:center; }
+.data-details { margin-top:12px; border-top:1px solid #ebeef5; padding-top:8px; }
+.table-scroll { overflow:auto; border-radius:6px; }
+table { border-collapse:collapse; min-width:100%; font-size:1rem; font-variant-numeric:tabular-nums; }
+caption { text-align:left; color:#5d626a; padding:8px 0; line-height:1.6; }
+th, td { padding:12px; border-bottom:1px solid #d9dde2; line-height:1.6; text-align:right; white-space:nowrap; }
+th:first-child { text-align:left; }
+thead, tfoot { background:#f5f7fa; }
+.status-legend { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr)); gap:10px 16px; padding:8px 0; margin:0; list-style:none; }
+.status-legend li { display:flex; align-items:center; flex-wrap:wrap; gap:6px; font-size:1rem; color:#606266; }
+.status-legend strong { color:#303133; margin-left:auto; }
+.status-swatch { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+.ratio-list { margin:0; }
+.ratio-item { padding:14px 0; border-top:1px solid #ebeef5; }
+.ratio-item dt { font-weight:600; line-height:1.6; }
+.ratio-item dd { margin:6px 0; }
+.ratio-values { display:flex; align-items:baseline; flex-wrap:wrap; gap:8px 16px; justify-content:space-between; }
+.ratio-item dd strong { color:var(--ratio-text); font-size:1.4rem; }
+.ratio-item dd span, .ratio-item p { color:#60656d; font-size:.93rem; }
+.ratio-item p { margin:8px 0 0; }
+.ratio-track { height:6px; border-radius:3px; background:#f0f2f5; overflow:hidden; }
+.ratio-track > div { height:100%; background:var(--ratio-color); }
+@media (max-width:1100px) { .dashboard-charts { grid-template-columns:minmax(0,1fr); } .stats-row { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:600px) { .range-panel, .chart-card { padding:14px; } .range-form > button { width:100%; } .range-presets { flex-basis:100%; } .stats-row { grid-template-columns:minmax(0,1fr); } }
 </style>

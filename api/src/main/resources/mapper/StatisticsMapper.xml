@@ -1,131 +1,79 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE mapper
-        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.mapper.StatisticsMapper">
-
-    <!-- ========== 概览统计 ========== -->
-
-    <select id="selectTotalUsers" resultType="integer">
-        SELECT COUNT(*)
-        FROM base_user
-    </select>
-
-    <select id="selectTodayNewUsers" resultType="integer">
-        SELECT COUNT(*)
-        FROM base_user
-        WHERE DATE(create_time) = CURDATE()
-    </select>
-
-    <select id="selectTotalProducts" resultType="integer">
-        SELECT COUNT(*)
-        FROM product
-    </select>
-
-    <select id="selectPendingReviewProducts" resultType="integer">
-        SELECT COUNT(*)
-        FROM product
-        WHERE `status` = 0
-    </select>
-
-    <select id="selectTotalOrders" resultType="integer">
-        SELECT COUNT(*)
-        FROM `order`
-    </select>
-
-    <select id="selectTodayNewOrders" resultType="integer">
-        SELECT COUNT(*)
-        FROM `order`
-        WHERE DATE(create_time) = CURDATE()
-    </select>
-
-    <select id="selectTotalRevenue" resultType="java.math.BigDecimal">
-        SELECT COALESCE(SUM(pay_amount), 0)
-        FROM `order`
-        WHERE order_status = 3
-    </select>
-
-    <select id="selectPendingRefundOrders" resultType="integer">
-        SELECT COUNT(*)
-        FROM `order`
-        WHERE order_status = 5
-    </select>
-
-    <!-- ========== 趋势图数据 ========== -->
-
-    <select id="selectDailyNewUsers" resultType="java.util.Map">
+    <!-- 普通用户：有 user 身份、基础账号仍存在，且没有 admin 身份。包含被禁用的普通账号。 -->
+    <sql id="ordinaryUser">
+        EXISTS (SELECT 1 FROM `user` u WHERE u.base_user_id = b.id)
+        AND NOT EXISTS (SELECT 1 FROM admin a WHERE a.base_user_id = b.id)
+    </sql>
+    <select id="selectTotals" resultType="java.util.Map">
         SELECT
-            DATE(create_time) AS `date`,
-            COUNT(*) AS `count`
-        FROM base_user
-        WHERE create_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
-        GROUP BY DATE(create_time)
-        ORDER BY `date` ASC
+            (SELECT COUNT(*) FROM base_user b WHERE <include refid="ordinaryUser"/>) AS users,
+            (SELECT COUNT(*) FROM product) AS products,
+            (SELECT COUNT(*) FROM `order`) AS orders,
+            (SELECT COALESCE(SUM(pay_amount),0) FROM `order` WHERE order_status=3) AS completedAmount,
+            (SELECT COUNT(*) FROM product WHERE status=0) AS pendingProducts,
+            (SELECT COUNT(*) FROM `order` WHERE order_status=5) AS refundOrders
     </select>
-
-    <select id="selectDailyNewOrders" resultType="java.util.Map">
+    <select id="selectPeriod" resultType="java.util.Map">
         SELECT
-            DATE(create_time) AS `date`,
-            COUNT(*) AS `count`
-        FROM `order`
-        WHERE create_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
-        GROUP BY DATE(create_time)
-        ORDER BY `date` ASC
+            (SELECT COUNT(*) FROM base_user b WHERE <include refid="ordinaryUser"/>
+                AND b.create_time &gt;= #{start} AND b.create_time &lt; #{end}) AS users,
+            (SELECT COUNT(*) FROM product WHERE create_time &gt;= #{start} AND create_time &lt; #{end}) AS products,
+            COUNT(*) AS orders,
+            COALESCE(SUM(CASE WHEN order_status=3 THEN 1 ELSE 0 END),0) AS completedOrders,
+            COALESCE(SUM(CASE WHEN order_status=3 THEN quantity ELSE 0 END),0) AS completedQuantity,
+            COALESCE(SUM(CASE WHEN order_status=3 THEN pay_amount ELSE 0 END),0) AS completedAmount
+        FROM `order` WHERE create_time &gt;= #{start} AND create_time &lt; #{end}
     </select>
-
-    <!-- ========== 分类销量排行 ========== -->
-
-    <select id="selectCategorySales" resultType="java.util.Map">
+    <select id="selectDailyActivity" resultType="java.util.Map">
+        SELECT date, SUM(users) AS users, SUM(products) AS products, SUM(orders) AS orders
+        FROM (
+            SELECT DATE(b.create_time) AS date, COUNT(*) AS users, 0 AS products, 0 AS orders
+            FROM base_user b WHERE <include refid="ordinaryUser"/>
+                AND b.create_time &gt;= #{start} AND b.create_time &lt; #{end} GROUP BY DATE(b.create_time)
+            UNION ALL
+            SELECT DATE(create_time),0,COUNT(*),0 FROM product
+                WHERE create_time &gt;= #{start} AND create_time &lt; #{end} GROUP BY DATE(create_time)
+            UNION ALL
+            SELECT DATE(create_time),0,0,COUNT(*) FROM `order`
+                WHERE create_time &gt;= #{start} AND create_time &lt; #{end} GROUP BY DATE(create_time)
+        ) activity GROUP BY date ORDER BY date
+    </select>
+    <!-- UNION 避免订单与商品相乘；LEFT JOIN 保留分类/商品已删除的订单，不截断前十名。 -->
+    <select id="selectCategories" resultType="java.util.Map">
+        SELECT id,name,SUM(products) AS products,SUM(completedOrders) AS completedOrders,
+            SUM(completedQuantity) AS completedQuantity,SUM(completedAmount) AS completedAmount
+        FROM (
+            SELECT COALESCE(c.id,0) AS id,COALESCE(c.name,'未分类 / 商品已删除') AS name,
+                COUNT(*) AS products,0 AS completedOrders,0 AS completedQuantity,0 AS completedAmount
+            FROM product p LEFT JOIN category c ON p.category_id=c.id
+            WHERE p.create_time &gt;= #{start} AND p.create_time &lt; #{end} GROUP BY c.id,c.name
+            UNION ALL
+            SELECT COALESCE(c.id,0),COALESCE(c.name,'未分类 / 商品已删除'),0,COUNT(*),
+                COALESCE(SUM(o.quantity),0),COALESCE(SUM(o.pay_amount),0)
+            FROM `order` o LEFT JOIN product p ON o.product_id=p.id LEFT JOIN category c ON p.category_id=c.id
+            WHERE o.create_time &gt;= #{start} AND o.create_time &lt; #{end} AND o.order_status=3
+            GROUP BY c.id,c.name
+        ) category_activity GROUP BY id,name ORDER BY completedQuantity DESC,products DESC,id ASC
+    </select>
+    <select id="selectOrderStatuses" resultType="java.util.Map">
+        SELECT COALESCE(CAST(order_status AS SIGNED),-1) AS status,COUNT(*) AS count FROM `order`
+        WHERE create_time &gt;= #{start} AND create_time &lt; #{end} GROUP BY order_status ORDER BY status
+    </select>
+    <select id="selectParticipation" resultType="java.util.Map">
+        SELECT COUNT(*) AS eligibleUsers,
+            COALESCE(SUM(EXISTS (SELECT 1 FROM `order` o WHERE o.buyer_id=b.id AND o.create_time &gt;= #{start} AND o.create_time &lt; #{end})),0) AS buyers,
+            COALESCE(SUM(EXISTS (SELECT 1 FROM product p WHERE p.user_id=b.id AND p.create_time &gt;= #{start} AND p.create_time &lt; #{end})),0) AS publishers
+        FROM base_user b WHERE <include refid="ordinaryUser"/> AND b.create_time &lt; #{end}
+    </select>
+    <select id="selectReviews" resultType="java.util.Map">
         SELECT
-            c.name AS `name`,
-            COUNT(*) AS `count`
-        FROM `order` o
-        INNER JOIN product p ON o.product_id = p.id
-        INNER JOIN category c ON p.category_id = c.id
-        WHERE o.order_status IN (1, 2, 3)
-        GROUP BY c.id, c.name, c.sort
-        ORDER BY `count` DESC, c.sort ASC
-        LIMIT 10
+            (SELECT COUNT(*) FROM product_review WHERE status=1 AND rating BETWEEN 1 AND 5
+                AND create_time &gt;= #{start} AND create_time &lt; #{end}) AS visibleReviews,
+            (SELECT COUNT(*) FROM product_review WHERE status=1 AND rating BETWEEN 4 AND 5
+                AND create_time &gt;= #{start} AND create_time &lt; #{end}) AS positiveReviews,
+            (SELECT COUNT(*) FROM `order` o WHERE o.order_status=3 AND o.create_time &gt;= #{start} AND o.create_time &lt; #{end}
+                AND EXISTS (SELECT 1 FROM product_review r WHERE r.order_id=o.id AND r.status=1 AND r.rating BETWEEN 1 AND 5)) AS reviewedCompletedOrders
     </select>
-
-    <!-- ========== 订单状态分布 ========== -->
-
-    <select id="selectOrderStatusCount" resultType="java.util.Map">
-        SELECT
-            CAST(order_status AS SIGNED) AS `status`,
-            COUNT(*) AS `count`
-        FROM `order`
-        GROUP BY order_status
-        ORDER BY order_status ASC
-    </select>
-
-    <!-- ========== 雷达图指标 ========== -->
-
-    <select id="selectAverageRating" resultType="java.math.BigDecimal">
-        SELECT COALESCE(AVG(rating), 0)
-        FROM product
-        WHERE `status` = 1
-    </select>
-
-    <select id="selectActiveUserCount" resultType="integer">
-        SELECT COUNT(DISTINCT buyer_id)
-        FROM `order`
-    </select>
-
-    <select id="selectProductPublisherCount" resultType="integer">
-        SELECT COUNT(DISTINCT user_id)
-        FROM product
-    </select>
-
-    <select id="selectHighRatedProductCount" resultType="integer">
-        SELECT COUNT(*)
-        FROM product
-        WHERE rating >= 4.0
-    </select>
-
-    <select id="selectReviewedOrderCount" resultType="integer">
-        SELECT COUNT(DISTINCT order_id)
-        FROM product_review
-    </select>
-
 </mapper>

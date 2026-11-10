@@ -1,186 +1,76 @@
 package com.example.service;
 
 import com.example.mapper.StatisticsMapper;
+import com.example.pojo.vo.StatisticsDashboardVO;
+import com.example.pojo.vo.StatisticsDashboardVO.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-/**
- * 统计分析业务逻辑
- */
 @Service
 @RequiredArgsConstructor
 public class StatisticsService {
-
+    private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
+    private static final List<String> STATUS_NAMES = List.of("待付款", "待发货", "待收货", "已完成", "已取消", "退款/售后");
     private final StatisticsMapper statisticsMapper;
 
-    /**
-     * 概览统计
-     */
-    public Map<String, Object> getOverview() {
-        Map<String, Object> overview = new LinkedHashMap<>();
-        overview.put("totalUsers", statisticsMapper.selectTotalUsers());
-        overview.put("totalProducts", statisticsMapper.selectTotalProducts());
-        overview.put("totalOrders", statisticsMapper.selectTotalOrders());
-        overview.put("totalRevenue", statisticsMapper.selectTotalRevenue());
-        overview.put("pendingReviewProducts", statisticsMapper.selectPendingReviewProducts());
-        overview.put("pendingRefundOrders", statisticsMapper.selectPendingRefundOrders());
-        overview.put("todayNewUsers", statisticsMapper.selectTodayNewUsers());
-        overview.put("todayNewOrders", statisticsMapper.selectTodayNewOrders());
-        return overview;
+    /** 一次请求、一个一致性只读快照，避免各图分别请求时总数互相对不上。 */
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public StatisticsDashboardVO getDashboard(String startDate, String endDate) {
+        var now = ZonedDateTime.now(ZONE);
+        var range = StatisticsRange.resolve(startDate, endDate, now.toLocalDate());
+        var start = range.start(); var end = range.endExclusive();
+        var total = statisticsMapper.selectTotals();
+        var p = statisticsMapper.selectPeriod(start, end);
+        // 今日角标始终使用北京时间的自然日，不能从用户选择的统计期间取值。
+        var todayStart = now.toLocalDate().atStartOfDay();
+        var todayCounts = statisticsMapper.selectPeriod(todayStart, todayStart.plusDays(1));
+        var overview = new Overview(n(total,"users"),n(total,"products"),n(total,"orders"),money(total,"completedAmount"),
+            n(total,"pendingProducts"),n(total,"refundOrders"),n(todayCounts,"users"),n(todayCounts,"products"),n(todayCounts,"orders"));
+        var period = new Period(n(p,"users"),n(p,"products"),n(p,"orders"),n(p,"completedOrders"),n(p,"completedQuantity"),money(p,"completedAmount"));
+        Map<String, Map<String,Object>> daily = new HashMap<>();
+        for (var row : statisticsMapper.selectDailyActivity(start,end)) daily.put(row.get("date").toString(), row);
+        List<Daily> trends = new ArrayList<>();
+        for (LocalDate date=range.startDate(); !date.isAfter(range.endDate()); date=date.plusDays(1)) {
+            var row=daily.getOrDefault(date.toString(),Map.of());
+            trends.add(new Daily(date.toString(),n(row,"users"),n(row,"products"),n(row,"orders")));
+        }
+        List<Category> categories = statisticsMapper.selectCategories(start,end).stream().map(row ->
+            new Category(n(row,"id"),row.get("name").toString(),n(row,"products"),percent(n(row,"products"),period.products()),
+                n(row,"completedOrders"),n(row,"completedQuantity"),percent(n(row,"completedQuantity"),period.completedQuantity()),money(row,"completedAmount"))).toList();
+        Map<Integer,Long> counts = new TreeMap<>();
+        for (var row : statisticsMapper.selectOrderStatuses(start,end)) counts.put((int)n(row,"status"),n(row,"count"));
+        List<OrderStatus> statuses = new ArrayList<>();
+        for (int i=0;i<STATUS_NAMES.size();i++) statuses.add(new OrderStatus(i,STATUS_NAMES.get(i),counts.getOrDefault(i,0L),percent(counts.getOrDefault(i,0L),period.orders())));
+        long unknown=counts.entrySet().stream().filter(e -> e.getKey()<0 || e.getKey()>=STATUS_NAMES.size()).mapToLong(Map.Entry::getValue).sum();
+        if (unknown>0) statuses.add(new OrderStatus(-1,"未知状态",unknown,percent(unknown,period.orders())));
+        var participation=statisticsMapper.selectParticipation(start,end);
+        var reviews=statisticsMapper.selectReviews(start,end);
+        long eligible=n(participation,"eligibleUsers");
+        List<Ratio> ratios=List.of(
+            ratio("buyers","下单用户占比",n(participation,"buyers"),eligible,"期间下过单的普通用户（去重，含后续取消）÷ 截至结束日期已注册的普通用户"),
+            ratio("publishers","发布用户占比",n(participation,"publishers"),eligible,"期间发布过商品的普通用户（去重，含各审核状态）÷ 截至结束日期已注册的普通用户"),
+            ratio("completion","订单完成占比",period.completedOrders(),period.orders(),"期间新建且当前已完成的订单 ÷ 期间全部新建订单"),
+            ratio("positiveReviews","可见评价好评占比",n(reviews,"positiveReviews"),n(reviews,"visibleReviews"),"期间新增的可见 4—5 星评价 ÷ 期间新增的可见有效评价（1—5 星）；隐藏评价不计入"),
+            ratio("reviewCoverage","完成订单评价覆盖率",n(reviews,"reviewedCompletedOrders"),period.completedOrders(),"当前已有可见有效评价的期间已完成订单（按订单去重）÷ 期间已完成订单；评价时间不限")
+        );
+        return new StatisticsDashboardVO(now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),ZONE.getId(),now.toLocalDate().toString(),
+            range.startDate().toString(),range.endDate().toString(),overview,period,trends,categories,statuses,ratios);
     }
-
-    /**
-     * 近N天每日新增用户和订单趋势
-     */
-    public Map<String, Object> getTrends(Integer days) {
-        if (days == null || days <= 0) {
-            days = 7;
-        }
-
-        // 查询原始数据
-        List<Map<String, Object>> userRaw = statisticsMapper.selectDailyNewUsers(days);
-        List<Map<String, Object>> orderRaw = statisticsMapper.selectDailyNewOrders(days);
-
-        // 转换为日期->数量Map
-        Map<String, Integer> userMap = new LinkedHashMap<>();
-        for (Map<String, Object> row : userRaw) {
-            userMap.put(row.get("date").toString(), ((Number) row.get("count")).intValue());
-        }
-        Map<String, Integer> orderMap = new LinkedHashMap<>();
-        for (Map<String, Object> row : orderRaw) {
-            orderMap.put(row.get("date").toString(), ((Number) row.get("count")).intValue());
-        }
-
-        // 补全缺失日期（增序：从最远到最近）
-        List<Map<String, Object>> userTrends = new ArrayList<>();
-        List<Map<String, Object>> orderTrends = new ArrayList<>();
-        for (int i = days - 1; i >= 0; i--) {
-            // 每次迭代创建新实例，避免 add() 累积导致日期偏移 bug
-            Calendar day = Calendar.getInstance();
-            day.set(Calendar.HOUR_OF_DAY, 0);
-            day.set(Calendar.MINUTE, 0);
-            day.set(Calendar.SECOND, 0);
-            day.set(Calendar.MILLISECOND, 0);
-            day.add(Calendar.DAY_OF_YEAR, -i);
-
-            String dateStr = String.format("%tF", day);
-            int userCount = userMap.getOrDefault(dateStr, 0);
-            int orderCount = orderMap.getOrDefault(dateStr, 0);
-
-            Map<String, Object> uItem = new LinkedHashMap<>();
-            uItem.put("date", dateStr);
-            uItem.put("count", userCount);
-            userTrends.add(uItem);
-
-            Map<String, Object> oItem = new LinkedHashMap<>();
-            oItem.put("date", dateStr);
-            oItem.put("count", orderCount);
-            orderTrends.add(oItem);
-        }
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("userTrends", userTrends);
-        result.put("orderTrends", orderTrends);
-        return result;
+    private static long n(Map<String,Object> row,String key) { return row.get(key) instanceof Number value ? value.longValue() : 0; }
+    private static BigDecimal money(Map<String,Object> row,String key) { return new BigDecimal(row.getOrDefault(key,BigDecimal.ZERO).toString()).setScale(2,RoundingMode.HALF_UP); }
+    private static BigDecimal percent(long numerator,long denominator) {
+        return denominator==0 ? null : BigDecimal.valueOf(numerator).multiply(BigDecimal.valueOf(100)).divide(BigDecimal.valueOf(denominator),1,RoundingMode.HALF_UP);
     }
-
-    /**
-     * 各分类销量排行
-     */
-    public List<Map<String, Object>> getCategorySales() {
-        return statisticsMapper.selectCategorySales();
-    }
-
-    /**
-     * 订单状态分布
-     */
-    public List<Map<String, Object>> getOrderStatusDistribution() {
-        List<Map<String, Object>> raw = statisticsMapper.selectOrderStatusCount();
-        // 状态映射
-        Map<Integer, String> statusMap = new HashMap<>();
-        statusMap.put(0, "待付款");
-        statusMap.put(1, "待发货");
-        statusMap.put(2, "待收货");
-        statusMap.put(3, "已完成");
-        statusMap.put(4, "已取消");
-        statusMap.put(5, "退款/售后");
-
-        for (Map<String, Object> item : raw) {
-            Integer status = toInt(item.get("status"));
-            item.put("statusName", statusMap.getOrDefault(status, "未知"));
-        }
-        return raw;
-    }
-
-    /**
-     * 雷达图 — 平台健康综合指标（满分100）
-     */
-    public Map<String, Object> getRadarData() {
-        Integer totalUsers = statisticsMapper.selectTotalUsers();
-        Integer totalProducts = statisticsMapper.selectTotalProducts();
-        Integer totalOrders = statisticsMapper.selectTotalOrders();
-        Integer activeUsers = statisticsMapper.selectActiveUserCount();
-        Integer publishers = statisticsMapper.selectProductPublisherCount();
-
-        BigDecimal avgRating = statisticsMapper.selectAverageRating();
-        Integer highRatedCount = statisticsMapper.selectHighRatedProductCount();
-        Integer totalApproved = statisticsMapper.selectTotalProducts() != null
-                ? statisticsMapper.selectTotalProducts() : 0;
-
-        // 用户活跃度: 有交易行为的用户占比
-        double userActivity = totalUsers > 0
-                ? round((double) activeUsers / totalUsers * 100, 1)
-                : 0;
-
-        // 商品丰富度: 发布商品用户占比
-        double productRichness = totalUsers > 0
-                ? round((double) publishers / totalUsers * 100, 1)
-                : 0;
-
-        // 交易完成率: 已完成订单占比
-        Integer completedOrders = 0;
-        for (Map<String, Object> item : statisticsMapper.selectOrderStatusCount()) {
-            if (toInt(item.get("status")) == 3) {
-                completedOrders = toInt(item.get("count"));
-                break;
-            }
-        }
-        double orderCompletionRate = totalOrders > 0
-                ? round((double) completedOrders / totalOrders * 100, 1)
-                : 0;
-
-        // 商品好评率: 高评分商品占比（综合评分 >= 4.0）
-        double positiveRate = totalApproved > 0
-                ? round((double) highRatedCount / totalApproved * 100, 1)
-                : 0;
-
-        // 平台响应度: 平均评分转为百分制
-        double responseSpeed = round(avgRating.doubleValue() / 5.0 * 100, 1);
-
-        Map<String, Object> radar = new LinkedHashMap<>();
-        radar.put("userActivity", userActivity);
-        radar.put("productRichness", productRichness);
-        radar.put("orderCompletionRate", orderCompletionRate);
-        radar.put("positiveRate", positiveRate);
-        radar.put("responseSpeed", responseSpeed);
-        return radar;
-    }
-
-    /**
-     * 安全地从 Map 值中提取 int，兼容 MySQL TINYINT(1) 被 JDBC 映射为 Boolean 的情况
-     */
-    private int toInt(Object value) {
-        if (value instanceof Boolean) {
-            return (Boolean) value ? 1 : 0;
-        }
-        return ((Number) value).intValue();
-    }
-
-    private double round(double value, int places) {
-        return BigDecimal.valueOf(value).setScale(places, RoundingMode.HALF_UP).doubleValue();
+    private static Ratio ratio(String key,String name,long numerator,long denominator,String definition) {
+        return new Ratio(key,name,numerator,denominator,percent(numerator,denominator),definition);
     }
 }

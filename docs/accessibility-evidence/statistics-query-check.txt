@@ -1,0 +1,13 @@
+database_name	database_account	start_inclusive	end_exclusive
+campus_system_dev_test	campus_dev_test@localhost	2026-10-12	2026-11-11
+cumulative_ordinary_users	period_new_users	today_new_users
+20	16	0
+cumulative_products	period_new_products
+88	37
+today_new_products	today_new_orders
+0	0
+order_status	order_count	quantity	pay_amount
+0	7	12	148.08
+4	23	34	419.56
+period_completed_orders	period_completed_quantity	period_completed_amount
+0	0	0.00
