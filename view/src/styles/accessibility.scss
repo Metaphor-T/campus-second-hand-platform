@@ -79,6 +79,9 @@ html .el-form-item__label { height:auto; min-height:2rem; line-height:1.6; overf
 html .el-form-item__error { position:static; font-size:.928571rem; line-height:1.5; }
 html .el-form-item { margin-bottom:1.5rem; }
 html .el-form-item__content { min-width:0; line-height:1.6; }
+/* 仅标准字号：管理员筛选栏标签随已增高的控件垂直居中。 */
+html[data-font-scale="1"] .admin-layout .search-card .el-form--inline .el-form-item { align-items:center; }
+html[data-font-scale="1"] .admin-layout .search-card .el-form--inline .el-form-item__label { align-self:stretch; align-items:center; }
 html :is(.el-checkbox, .el-radio) { height:auto; min-height:44px; white-space:normal; }
 html :is(.el-checkbox__label, .el-radio__label) { white-space:normal; }
 html .el-table { font-size:1rem; }
