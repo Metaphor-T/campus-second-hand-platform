@@ -1,5 +1,7 @@
 # 成员一：独立个人中心与校园资料
 
+> 2026-11-11 发布说明：旧 SQL 已统一为 `sql/db.sql`。本页涉及旧迁移或核对脚本的步骤只保留为历史测试记录，不再作为当前导入步骤；请按[数据库安装说明](database-installation.md)在空库导入完整快照。
+
 本次开发、测试仅在 `campus-system-dev` 和独立测试库 `campus_system_dev_test` 完成。验收后的稳定项目同步按文件清单执行，保留本机配置、上传文件与既有 Git 历史；校园资料表使用单独的增量迁移，不复制测试业务数据。
 
 ## 功能与范围
@@ -22,7 +24,7 @@
 
 ## 数据库迁移
 
-[20261110_user_campus_profile.sql](../sql/migrations/20261110_user_campus_profile.sql) 只新增独立资料表，关联基础账号并在账号被删除时级联清理对应校园资料，不复制或覆盖其他表。
+`20261110_user_campus_profile.sql`（历史脚本，已合并） 只新增独立资料表，关联基础账号并在账号被删除时级联清理对应校园资料，不复制或覆盖其他表。
 
 开发库迁移结果：[执行与重复执行验证](accessibility-evidence/profile-migration-results.json)。执行账号为 `campus_dev_test`，数据库为 `campus_system_dev_test`；原有 15 张表执行前后校验值相同，重复执行成功。老账号没有校园资料行时仍能登录并读取个人中心，字段显示“未填写”。
 

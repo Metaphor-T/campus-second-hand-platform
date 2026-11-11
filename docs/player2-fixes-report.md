@@ -1,5 +1,7 @@
 # 成员二版本：五项缺陷修复与复验报告
 
+> 2026-11-11 发布说明：旧 SQL 已统一为 `sql/db.sql`。本页涉及旧迁移或核对脚本的步骤只保留为历史测试记录，不再作为当前导入步骤；请按[数据库安装说明](database-installation.md)在空库导入完整快照。
+
 日期：2026-11-09（Asia/Shanghai）。工作目录：`campus-system-dev`；分支：`codex/test-player-2`。
 
 ## 当前结论
@@ -24,7 +26,7 @@
 
 ## 数据库迁移与历史订单
 
-迁移文件：[20261109_order_stock_deducted_quantity.sql](../sql/migrations/20261109_order_stock_deducted_quantity.sql)。只对 `order` 增加 `stock_deducted_quantity` 可空非负整数字段：
+迁移文件：`20261109_order_stock_deducted_quantity.sql`（历史脚本，已合并）。只对 `order` 增加 `stock_deducted_quantity` 可空非负整数字段：
 
 - 新订单：有限库存填写实际扣减数量；不限库存填写 0。
 - 取消/退款成功后清为 0，防止二次返还。

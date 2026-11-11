@@ -1,0 +1,115 @@
+{
+  "date": "2026-11-11",
+  "mysql": "8.0",
+  "source": "stable project database read-only snapshot",
+  "target": "campus_system_dev_test isolated prefixed tables",
+  "verified_tables": 17,
+  "rows": 504,
+  "tables": [
+    {
+      "table": "address",
+      "rows": 4,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "admin",
+      "rows": 1,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "base_user",
+      "rows": 6,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "campus_verification",
+      "rows": 0,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "category",
+      "rows": 8,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "chat_message",
+      "rows": 33,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "item_similarity",
+      "rows": 26,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "order",
+      "rows": 13,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "product",
+      "rows": 52,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "product_favorite",
+      "rows": 15,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "product_image",
+      "rows": 132,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "product_review",
+      "rows": 6,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "product_view",
+      "rows": 176,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "product_want",
+      "rows": 17,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "review_image",
+      "rows": 9,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "user",
+      "rows": 5,
+      "schema_identical": true,
+      "data_identical": true
+    },
+    {
+      "table": "user_campus_profile",
+      "rows": 1,
+      "schema_identical": true,
+      "data_identical": true
+    }
+  ],
+  "temporary_tables_removed": true,
+  "source_database_modified": false,
+  "sha256": "016720dc6eeb84310a10d001e4da0dc473faa5061e06f84fe1dff0050f73251d"
+}
