@@ -42,6 +42,7 @@
               v-for="role in roleList"
               :key="`idx-${role}`" :aria-pressed="roleActive === role"
               :class="['item-role', { active: roleActive === role }]"
+              :disabled="isSubmitting"
               @click="roleChoose(role)"
             >
               {{ role }}
@@ -51,7 +52,7 @@
 
         <div class="input-group">
           <p id="auth-help" class="sr-only">请填写以下信息，错误会在表单中提示。</p>
-          <p id="auth-error" class="auth-error" role="alert">{{ formError }}</p>
+          <p id="auth-error" class="auth-error" :class="{ 'login-error-visible': formError }" role="alert" aria-atomic="true">{{ formError }}</p>
           <div class="input-field">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -71,8 +72,8 @@
         </div>
 
         <div class="login-action">
-          <button class="login-btn" @click="goLogin">
-            <span>立即登录</span>
+          <button class="login-btn" :disabled="isSubmitting" :aria-busy="isSubmitting" @click="goLogin">
+            <span>{{ isSubmitting ? '正在登录…' : '立即登录' }}</span>
           </button>
         </div>
 
@@ -87,19 +88,20 @@
 
 <script setup lang="ts">
 import AccessibilitySettings from '@/components/AccessibilitySettings.vue'
-import { ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { setRole, setToken, setUserInfo, clearUserInfo } from '@/utils/localStorage'
 import { userLoginApi, userTokenAuthApi } from "@/api/user-api"
 import { loginApi } from "@/api/admin-api"
 
 const formError = ref('')
+const isSubmitting = ref(false)
 const account = ref('')
 const password = ref('')
 const router = useRouter()
 const roleList = ['管理员', '用户']
 const roleActive = ref<string>('管理员')
+watch([account, password, roleActive], () => { formError.value = '' })
 
 const roleChoose = (role: string) => {
   roleActive.value = role
@@ -122,33 +124,38 @@ const loginSuccess = async (role: string, token: string, path: string) => {
   router.push(path)
 }
 
+const loginErrorMessage = (error: any): string => {
+  const message = error?.response?.data?.message || error?.message
+  if (typeof message === 'string' && /[\u3400-\u9fff]/.test(message)) return message
+  if (error?.code === 'ECONNABORTED' || error?.code === 'ETIMEDOUT') return '登录请求超时，请稍后重试'
+  if (error?.response?.status === 401) return '账号或密码不正确，请重新输入'
+  if (error?.response) return '登录服务暂时不可用，请稍后重试'
+  if (error?.isAxiosError) return '无法连接服务器，请检查网络或后端是否启动'
+  return '登录失败，请稍后重试'
+}
+
 const goLogin = async () => {
+  if (isSubmitting.value) return
   formError.value = ''
+  if (!account.value.trim()) { formError.value = '账号不能为空'; return }
+  if (!password.value) { formError.value = '密码不能为空'; return }
+  isSubmitting.value = true
   try {
-    if (!account.value) {
-      formError.value = '账号不能为空'
-      ElMessage.warning(formError.value)
-      return
-    }
-    if (!password.value) {
-      formError.value = '密码不能为空'
-      ElMessage.warning(formError.value)
-      return
-    }
     const userLoginDTO = {
       account: account.value,
       password: password.value
     }
     if (roleActive.value === '管理员') {
       const { data } = await loginApi(userLoginDTO)
-      loginSuccess(data?.role ?? '', data?.token ?? '', '/admin-home')
+      await loginSuccess(data?.role ?? '', data?.token ?? '', '/admin-home')
     } else if (roleActive.value === '用户') {
       const { data } = await userLoginApi(userLoginDTO)
-      loginSuccess(data?.role ?? '', data?.token ?? '', '/user-home')
+      await loginSuccess(data?.role ?? '', data?.token ?? '', '/user-home')
     }
   } catch (error: any) {
-    formError.value = error.message || '请求失败，请重试'
-    ElMessage.warning(formError.value)
+    formError.value = loginErrorMessage(error)
+  } finally {
+    isSubmitting.value = false
   }
 }
 </script>
@@ -166,6 +173,10 @@ $color-white: #ffffff;
 $color-text: #1d1d1f;
 $color-text-light: #86868b;
 $color-border: #e5e5ea;
+
+.auth-error:empty { display:none; }
+.login-error-visible { padding:12px 16px; margin:0 0 18px; background:#fff0ee; border:1px solid #edb2aa; border-left:4px solid #a61b1b; border-radius:10px; color:#a61b1b; font-weight:600; overflow-wrap:anywhere; }
+.login-btn:disabled, .item-role:disabled { cursor:wait; opacity:.7; }
 
 .login-container {
   width: 100%;

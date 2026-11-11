@@ -13,7 +13,7 @@ import request from "@/utils/request"
 
 // 管理员登录接口
 export const loginApi = (params: UserLoginDTO) => {
-    return request.post<Result<UserLoginResponseVO>>('/admin/login', params)
+    return request.post<Result<UserLoginResponseVO>>('/admin/login', params, { silentError: true })
 }
 
 // 管理员修改密码

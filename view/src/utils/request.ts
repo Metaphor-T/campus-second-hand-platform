@@ -1,8 +1,13 @@
 // src/utils/request.ts
-import axios, { AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+import axios, { AxiosResponse, InternalAxiosRequestConfig, type AxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
 import { getToken, clearToken, clearRole, clearLastVisitedPath } from './localStorage'
 import wsService from './websocket'
+
+export interface RequestOptions extends AxiosRequestConfig {
+  // 页面自行展示错误时，避免全局消息与页面提示重复。
+  silentError?: boolean
+}
 
 // 创建 axios 实例
 const instance = axios.create({
@@ -34,15 +39,17 @@ instance.interceptors.response.use(
       const login = new URL(`${import.meta.env.BASE_URL}login`, window.location.origin)
       if (window.location.pathname !== login.pathname) window.location.replace(login.href)
     }
-    ElMessage.error(error.response?.data?.message || error.message || '请求失败')
+    if (!error.config?.silentError) {
+      ElMessage.error(error.response?.data?.message || error.message || '请求失败')
+    }
     return Promise.reject(error)
   }
 )
 
 // 封装 request 方法
 const request = {
-  post: <T = any>(url: string, data?: any): Promise<T> => {
-    return instance.post(url, data)
+  post: <T = any>(url: string, data?: any, options?: RequestOptions): Promise<T> => {
+    return instance.post(url, data, options)
   },
   get: <T = any>(url: string, params?: any): Promise<T> => {
     return instance.get(url, { params })

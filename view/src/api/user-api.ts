@@ -13,7 +13,7 @@ import request from "@/utils/request"
 
 // 用户登录接口
 export const userLoginApi = (params: UserLoginDTO) => {
-    return request.post<Result<UserLoginResponseVO>>('/user/login', params)
+    return request.post<Result<UserLoginResponseVO>>('/user/login', params, { silentError: true })
 }
 
 // 用户注册接口

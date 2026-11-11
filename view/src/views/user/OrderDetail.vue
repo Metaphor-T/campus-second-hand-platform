@@ -12,7 +12,6 @@
         <h2 id="next-step-title">{{ overview.nextStep.title }}</h2><p>{{ overview.nextStep.description }}</p>
         <RouterLink class="detail-button primary" :to="actionLink">{{ overview.nextStep.responsibleRole === 'NONE' ? '前往订单中心查看本单' : overview.nextStep.yours ? '前往订单中心处理本单' : '前往订单中心查看本单' }}</RouterLink>
       </section>
-      <p class="simulation-note">本平台仅记录交易与协商信息，不接入真实支付，不提供资金担保或退款仲裁。</p>
       <div v-for="notice in overview.notices" :key="notice" class="history-notice" role="note">{{ notice }}</div>
       <div class="detail-layout">
         <div class="detail-main">
@@ -105,7 +104,7 @@ p { line-height:1.7; } .eyebrow { margin:0 0 6px; color:#9f421c; font-weight:600
 .detail-button.primary { background:#9f421c; border-color:#9f421c; color:#fff; } .detail-button:disabled { opacity:.65; cursor:wait; }
 .next-step { border:1px solid #e4d8ce; background:#fff7f0; padding:24px; border-radius:16px; } .next-step.your-turn { border-color:#ba7551; }
 .status-line { margin-bottom:14px; line-height:1.6; } .status-tag,.turn-tag { border-radius:20px; padding:4px 12px; color:#853416; background:#f4e4d9; font-weight:600; } .turn-tag { background:#fff; border:1px solid #d9bba7; }
-.simulation-note,.history-notice { padding:12px 16px; background:#f2f5f8; border-radius:10px; color:#53616f; } .history-notice { background:#fff3e7; color:#78451e; margin-bottom:14px; line-height:1.7; }
+.history-notice { padding:12px 16px; border-radius:10px; background:#fff3e7; color:#78451e; margin-bottom:14px; line-height:1.7; }
 .detail-layout { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(18rem,1fr); gap:20px; align-items:start; margin-top:22px; } .detail-main { display:grid; gap:20px; min-width:0; }
 .detail-card { min-width:0; padding:24px; background:#fff; border:1px solid #e8e8ee; border-radius:16px; box-shadow:0 3px 16px #20263006; }
 .product-summary { display:flex; align-items:center; gap:18px; margin-bottom:22px; min-width:0; } .product-summary > div:last-child { min-width:0; }
