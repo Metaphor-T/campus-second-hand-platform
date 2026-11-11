@@ -18,6 +18,8 @@ import java.util.Map;
  */
 @Mapper
 public interface OrderMapper extends BaseMapper<Order> {
+    /** 尚未结束的扣库订单可能取消/退款，为返还数量保留空间。 */
+    long restorableStockQuantity(@Param("productId") Integer productId);
     /** 在事务内串行处理同一订单的状态转换，防止重复取消/退款返还库存。 */
     @Select("SELECT * FROM `order` WHERE id = #{id} FOR UPDATE")
     Order selectForUpdate(@Param("id") Integer id);

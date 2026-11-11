@@ -61,6 +61,8 @@ public interface ProductService extends IService<Product> {
      * @param userId    操作者ID
      * @param productId 商品ID
      */
+    boolean canViewDetail(ProductVO product, Integer viewerId, String role);
+
     void down(Integer userId, Integer productId);
 
     /**
@@ -69,7 +71,7 @@ public interface ProductService extends IService<Product> {
      * @param userId    操作者ID
      * @param productId 商品ID
      */
-    void up(Integer userId, Integer productId);
+    void up(Integer userId, Integer productId, ProductUpdateDTO confirmation);
 
     /**
      * 删除商品（管理员可删任意，用户仅删自己的）

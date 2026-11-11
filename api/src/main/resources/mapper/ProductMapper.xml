@@ -25,6 +25,7 @@
         <result property="reviewCount" column="review_count"/>
         <result property="rating" column="rating"/>
         <result property="stock" column="stock"/>
+        <result property="stockMode" column="stock_mode"/>
         <result property="version" column="version"/>
         <result property="auditRemark" column="audit_remark"/>
         <result property="auditTime" column="audit_time"/>
@@ -60,6 +61,7 @@
             p.review_count,
             p.rating,
             p.stock,
+            p.stock_mode,
             p.version,
             p.audit_remark,
             p.audit_time,
@@ -160,6 +162,7 @@
             p.review_count,
             p.rating,
             p.stock,
+            p.stock_mode,
             p.version,
             p.audit_remark,
             p.audit_time,
@@ -204,6 +207,7 @@
             p.review_count,
             p.rating,
             p.stock,
+            p.stock_mode,
             p.version,
             p.audit_remark,
             p.audit_time,
@@ -220,23 +224,22 @@
 
     <!-- ========== 库存操作（乐观锁防超卖） ========== -->
 
-    <!-- 扣减库存（乐观锁：version 一致性校验，防止并发超卖）
-         库存为 0 时不扣减（0 表示不限库存）
-         扣减后库存 ≤ 0 且商品状态为 1（上架中）时自动下架 -->
+    <!-- 有限库存扣减到0仍保留上架；不限库存仅更新版本，防止与下架/编辑并发。 -->
     <update id="deductStock">
         UPDATE product
-        SET stock = stock - #{quantity},
-            `version` = `version` + 1,
-            status = IF(status = 1 AND stock &lt;= 0, 3, status)
-        WHERE id = #{id} AND stock &gt;= #{quantity} AND `version` = #{version}
+        SET stock = IF(stock_mode = 0, stock - #{quantity}, stock),
+            `version` = COALESCE(`version`, 0) + 1
+        WHERE id = #{id} AND status = 1 AND stock_mode IN (0,1)
+          AND (stock_mode = 1 OR stock &gt;= #{quantity})
+          AND COALESCE(`version`, 0) = #{version}
     </update>
 
     <!-- 归还库存（订单取消/退款时回滚） -->
     <update id="restoreStock">
         UPDATE product
         SET stock = stock + #{quantity},
-            `version` = `version` + 1
-        WHERE id = #{id}
+            `version` = COALESCE(`version`,0) + 1
+        WHERE id = #{id} AND stock_mode = 0 AND stock &lt;= 999999 - #{quantity}
     </update>
 
 </mapper>

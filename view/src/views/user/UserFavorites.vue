@@ -28,6 +28,7 @@
                 </div>
                 <div class="card-info">
                     <p class="card-title">{{ item.title || '未命名商品' }}</p>
+                            <el-tag v-if="stockNotice(item)" size="small" type="info">{{ stockNotice(item) }}</el-tag>
                     <div class="card-meta">
                         <span class="meta-time">{{ formatTime(item.createTime) }}</span>
                     </div>
@@ -52,6 +53,7 @@
 </template>
 
 <script lang="ts" setup>
+import { stockNotice } from '@/utils/product-stock'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -92,7 +94,7 @@ const formatTime = (t?: string) => {
 
 const goDetail = (id?: number) => {
     if (id) {
-        router.push(`/user-home/product-detail/${id}`)
+        router.push({path:`/user-home/product-detail/${id}`,query:{from:'favorites'}})
     }
 }
 

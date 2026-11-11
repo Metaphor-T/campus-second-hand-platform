@@ -19,7 +19,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class StatisticsService {
     private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
-    private static final List<String> STATUS_NAMES = List.of("待付款", "待发货", "待收货", "已完成", "已取消", "退款/售后");
+    private static final List<String> STATUS_NAMES = List.of("待付款", "待发货", "待收货", "已完成", "已结束", "退款/售后");
     private final StatisticsMapper statisticsMapper;
 
     /** 一次请求、一个一致性只读快照，避免各图分别请求时总数互相对不上。 */
@@ -58,9 +58,9 @@ public class StatisticsService {
         List<Ratio> ratios=List.of(
             ratio("buyers","下单用户占比",n(participation,"buyers"),eligible,"期间下过单的普通用户（去重，含后续取消）÷ 截至结束日期已注册的普通用户"),
             ratio("publishers","发布用户占比",n(participation,"publishers"),eligible,"期间发布过商品的普通用户（去重，含各审核状态）÷ 截至结束日期已注册的普通用户"),
-            ratio("completion","订单完成占比",period.completedOrders(),period.orders(),"期间新建且当前已完成的订单 ÷ 期间全部新建订单"),
+            ratio("completion","订单完成占比",period.completedOrders(),period.orders(),"期间新建且当前已完成、无处理中售后的订单 ÷ 期间全部新建订单"),
             ratio("positiveReviews","可见评价好评占比",n(reviews,"positiveReviews"),n(reviews,"visibleReviews"),"期间新增的可见 4—5 星评价 ÷ 期间新增的可见有效评价（1—5 星）；隐藏评价不计入"),
-            ratio("reviewCoverage","完成订单评价覆盖率",n(reviews,"reviewedCompletedOrders"),period.completedOrders(),"当前已有可见有效评价的期间已完成订单（按订单去重）÷ 期间已完成订单；评价时间不限")
+            ratio("reviewCoverage","完成订单评价覆盖率",n(reviews,"reviewedCompletedOrders"),period.completedOrders(),"当前已有可见有效评价且无处理中售后的期间已完成订单（按订单去重）÷ 期间已完成订单；评价时间不限")
         );
         return new StatisticsDashboardVO(now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),ZONE.getId(),now.toLocalDate().toString(),
             range.startDate().toString(),range.endDate().toString(),overview,period,trends,categories,statuses,ratios);

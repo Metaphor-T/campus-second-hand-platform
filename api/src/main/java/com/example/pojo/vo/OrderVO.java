@@ -112,4 +112,16 @@ public class OrderVO {
     /** 更新时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime updateTime;
+    /** 下单时库存模式快照，不随商品后续编辑变化。 */
+    private Integer stockModeSnapshot;
+    /** 已释放的扣库数量及处理方式，零数量不等同于不限库存。 */
+    private Integer stockReleasedQuantity;
+    private String stockReleaseDisposition;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private LocalDateTime afterSaleDeadline;
+    private com.example.pojo.entity.OrderAfterSale afterSale;
+    private java.util.List<com.example.pojo.entity.OrderAfterSale> afterSaleHistory;
+    private String afterSaleEligibility;
+    private String afterSaleMessage;
+
 }

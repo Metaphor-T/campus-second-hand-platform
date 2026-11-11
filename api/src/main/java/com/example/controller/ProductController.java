@@ -144,9 +144,10 @@ public class ProductController {
      */
     @Auth({RoleEnum.USER})
     @PutMapping(value = "/up/{id}")
-    public Result<Void> up(@PathVariable Integer id) {
+    public Result<Void> up(@PathVariable Integer id, @Valid @RequestBody ProductUpdateDTO confirmation) {
         Integer userId = UserContext.getUserId();
-        productService.up(userId, id);
+        if (!id.equals(confirmation.getId())) throw new com.example.exception.BusinessException("确认信息与商品编号不一致",400);
+        productService.up(userId, id, confirmation);
         return Result.success();
     }
 
@@ -238,9 +239,7 @@ public class ProductController {
     @GetMapping(value = "/public/detail/{id}")
     public Result<ProductVO> publicDetail(@PathVariable Integer id) {
         ProductVO vo = productService.getDetail(id);
-        if (vo == null || (!Integer.valueOf(1).equals(vo.getStatus())
-                && !java.util.Objects.equals(vo.getUserId(), UserContext.getUserId())
-                && !"ADMIN".equalsIgnoreCase(UserContext.getRole()))) {
+        if (!productService.canViewDetail(vo, UserContext.getUserId(), UserContext.getRole())) {
             throw new com.example.exception.BusinessException("商品不存在或暂不可查看", 404);
         }
         return Result.success(vo);

@@ -54,7 +54,7 @@
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="stock" label="库存" width="90" align="center"><template #default="{ row }">{{ row.stock === 0 ? '不限库存' : row.stock }}</template></el-table-column>
+                <el-table-column prop="stock" label="库存" width="90" align="center"><template #default="{ row }">{{ stockLabel(row) }}</template></el-table-column>
                 <el-table-column prop="createTime" label="发布时间" min-width="150" align="center" />
                 <el-table-column label="操作" width="220" align="center" fixed="right">
                     <template #default="{ row }">
@@ -83,13 +83,13 @@
         <!-- 发布/编辑弹窗 -->
         <el-dialog
             v-model="dialogVisible"
-            :title="isEditing ? '编辑商品' : '发布商品'"
+            :title="isRelisting ? '确认商品信息并重新上架' : isEditing ? '编辑商品' : '发布商品'"
             width="min(680px, 94vw)"
             :before-close="closeDialog"
             destroy-on-close
         >
             <el-alert v-if="categoryLoadError" title="分类加载失败，请重试后再发布或保存" type="error" :closable="false"><el-button @click="loadCategories">重试分类</el-button></el-alert>
-            <el-alert v-if="isEditing" title="保存后将重新审核；已下架商品保持下架。失败时会保留你的输入。" type="info" :closable="false" />
+            <el-alert v-if="isEditing" :title="isRelisting ? '请确认商品信息和库存；提交后进入待审核，通过审核后才会上架。' : '保存后将重新审核；已下架商品保持下架。失败时会保留你的输入。'" type="info" :closable="false" />
             <el-form ref="formRef" :model="formData" :rules="formRules" label-width="90px">
                 <el-form-item label="商品标题" prop="title">
                     <el-input v-model="formData.title" placeholder="请输入商品标题" maxlength="200" />
@@ -133,9 +133,14 @@
                     </el-col>
                 </el-row>
 
-                <el-form-item label="库存" prop="stock">
-                    <el-input-number v-model="formData.stock" :min="0" :max="999999" :precision="0" aria-label="商品库存数量" />
-                    <span class="stock-tip">0表示不限库存；填写正整数表示可售数量。</span>
+                <el-form-item label="库存模式" prop="stockMode">
+                    <el-select v-model="formData.stockMode" placeholder="请选择库存模式" aria-label="库存模式" @change="onStockModeChange">
+                        <el-option label="有限库存" :value="0" /><el-option label="不限库存" :value="1" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item v-if="formData.stockMode === 0" label="可售数量" prop="stock">
+                    <el-input-number v-model="formData.stock" :min="0" :precision="0" :step-strictly="true" aria-label="商品库存数量" />
+                    <span class="stock-tip">最多999999件；发布或重新上架时至少1件，0表示已售罄。</span>
                 </el-form-item>
                 <el-form-item label="交易方式" prop="tradeType">
                     <el-radio-group v-model="formData.tradeType">
@@ -186,7 +191,7 @@
             <template #footer>
                 <div class="dialog-footer">
                     <el-button :disabled="submitLoading || uploadingCount > 0" @click="closeDialog()">取消</el-button>
-                    <el-button type="primary" :loading="submitLoading" :disabled="uploadingCount > 0 || categoryLoadError" @click="handleSubmit">{{ isEditing ? '保存修改' : '提交发布' }}</el-button>
+                    <el-button type="primary" :loading="submitLoading" :disabled="uploadingCount > 0 || categoryLoadError" @click="handleSubmit">{{ isRelisting ? '确认信息并提交审核' : isEditing ? '保存修改' : '提交发布' }}</el-button>
                 </div>
             </template>
         </el-dialog>
@@ -202,6 +207,7 @@ import { categoryListAllApi } from '@/api/category-api'
 import type { ProductVO, ProductAddDTO, ProductUpdateDTO, ProductImageDTO } from '@/types/product'
 import type { CategoryVO } from '@/types/category'
 import ProductExperienceToolbar from '@/components/ProductExperienceToolbar.vue'
+import { stockLabel } from '@/utils/product-stock'
 import { productImageUrl, productErrorMessage, validateProductImage, useProductReadability } from '@/utils/product-experience'
 
 const largeText = useProductReadability()
@@ -210,6 +216,7 @@ const submitLoading = ref(false)
 const uploadingCount = ref(0)
 const dialogVisible = ref(false)
 const isEditing = ref(false)
+const isRelisting = ref(false)
 const tableData = ref<ProductVO[]>([])
 const total = ref(0)
 const listError = ref('')
@@ -219,7 +226,7 @@ const categoryTree = ref<CategoryVO[]>([])
 const categoryLoadError = ref(false)
 const queryDTO = reactive({ current:1, size:10, title:'', status:undefined as number | undefined })
 const getImageUrl = productImageUrl
-const statusLabel = (v?:number) => ['待审核','审核通过','审核拒绝','已下架'][v ?? 0] || '-'
+const statusLabel = (v?:number) => ['待审核','上架中','审核拒绝','已下架'][v ?? 0] || '-'
 const statusType = (v?:number): 'warning' | 'success' | 'danger' | 'info' => (['warning','success','danger','info'] as const)[v ?? 0] || 'info'
 const coverImage = (row:ProductVO) => row.images?.find(i => i.isCover === 1)?.imageUrl ?? row.images?.[0]?.imageUrl
 const buildCategoryTree = (flat:CategoryVO[]):CategoryVO[] => {
@@ -235,7 +242,7 @@ const buildCategoryTree = (flat:CategoryVO[]):CategoryVO[] => {
     })
     return roots
 }
-const formData = reactive<ProductAddDTO & { id?:number; version?:number }>({ title:'', description:'', condition:1, tradeType:1, stock:0, images:[] })
+const formData = reactive<ProductAddDTO & { id?:number; version?:number }>({ title:'', description:'', condition:1, tradeType:1, stockMode:0,stock:1, images:[] })
 const validateMoney = (_rule:unknown, value:unknown, callback:(error?:Error)=>void) => {
     if (value == null || value === '') { callback(); return }
     const n = Number(value)
@@ -249,7 +256,8 @@ const formRules:FormRules = {
     description:[{ max:2000,message:'描述最多2000字',trigger:'blur' }],
     condition:[{ required:true,message:'请选择新旧程度',trigger:'change' }],
     tradeType:[{ required:true,message:'请选择交易方式',trigger:'change' }],
-    stock:[{ required:true,type:'integer',min:0,max:999999,message:'库存应为0至999999的整数',trigger:'blur' }],
+    stockMode:[{required:true,message:'请选择库存模式',trigger:'change'}],
+    stock:[{validator:(_rule:unknown,value:unknown,callback:(error?:Error)=>void)=>{ const n=Number(value); callback(formData.stockMode !== 0 || (value != null && Number.isInteger(n) && n >= ((!isEditing.value || isRelisting.value)?1:0) && n <= 999999) ? undefined : new Error('可售数量必须为整数，发布或上架为1至999999件')); },trigger:'blur'}],
     images:[{ required:true,type:'array',min:1,max:9,message:'请保留1至9张商品图片',trigger:'change' }],
 }
 let listRequest = 0
@@ -276,10 +284,11 @@ const handleSearch = () => { queryDTO.current = 1; fetchData() }
 const handleReset = () => { queryDTO.title = ''; queryDTO.status = undefined; handleSearch() }
 let openedSnapshot = ''
 const resetForm = () => {
-    Object.assign(formData,{ id:undefined,version:undefined,categoryId:undefined,title:'',description:'',price:undefined,originalPrice:undefined,condition:1,tradeType:1,stock:0,images:[] })
+    Object.assign(formData,{ id:undefined,version:undefined,categoryId:undefined,title:'',description:'',price:undefined,originalPrice:undefined,condition:1,tradeType:1,stockMode:0,stock:1,images:[] })
     formRef.value?.clearValidate()
 }
 const handleAdd = () => {
+    isRelisting.value=false
     if (dialogVisible.value) return
     resetForm(); isEditing.value = false; openedSnapshot = JSON.stringify(formData); dialogVisible.value = true
     if (categoryLoadError.value) loadCategories()
@@ -288,30 +297,31 @@ const handleEdit = async (row:ProductVO) => {
     if (rowBusy.value != null || !row.id) return
     rowBusy.value = row.id
     try {
-        const res = await getProductDetailApi(row.id)
+        const res = await getProductDetailApi(row.id, { silentError: true })
         const current = res.data
         if (!current) { ElMessage.error('商品不存在，请刷新列表'); return }
-        resetForm(); isEditing.value = true
-        Object.assign(formData,{ id:current.id,version:current.version,categoryId:current.categoryId,title:current.title || '',description:current.description || '',price:current.price,originalPrice:current.originalPrice,condition:current.condition ?? 1,tradeType:current.tradeType ?? 1,stock:current.stock ?? 0,images:(current.images ?? []).map((image,index)=>({ imageUrl:image.imageUrl,isCover:image.isCover ?? 0,sort:index })) })
+        resetForm(); isEditing.value = true; isRelisting.value = false
+        Object.assign(formData,{ id:current.id,version:current.version ?? 0,categoryId:current.categoryId,title:current.title || '',description:current.description || '',price:current.price,originalPrice:current.originalPrice,condition:current.condition ?? 1,tradeType:current.tradeType ?? 1,stockMode:current.stockMode ?? undefined,stock:current.stock ?? 0,images:(current.images ?? []).map((image,index)=>({ imageUrl:image.imageUrl,isCover:image.isCover ?? 0,sort:index })) })
         openedSnapshot = JSON.stringify(formData); dialogVisible.value = true
         if (categoryLoadError.value) loadCategories()
     } catch (e) { ElMessage.error(productErrorMessage(e,'商品详情加载失败')) }
     finally { rowBusy.value = undefined }
 }
-const operate = async (row:ProductVO, action:'down'|'up'|'delete') => {
+const operate = async (row:ProductVO, action:'down'|'delete') => {
     if (rowBusy.value != null || !row.id) return
-    const messages = { down:'下架后其他用户将看不到该商品，是否继续？',up:'重新上架后需要审核，是否继续？',delete:'删除后不可恢复；已有订单的商品请使用下架。是否继续？' }
+    const messages = { down:'下架后其他用户将看不到该商品，是否继续？',delete:'删除后不可恢复；已有订单的商品请使用下架。是否继续？' }
     try { await ElMessageBox.confirm(`“${row.title}”：${messages[action]}`,'操作确认',{ confirmButtonText:'确认',cancelButtonText:'取消',type:'warning' }) }
     catch { return }
     rowBusy.value = row.id
     try {
-        await ({ down:downProductApi,up:upProductApi,delete:deleteMyProductApi })[action](row.id)
-        ElMessage.success(action === 'up' ? '已提交，等待审核' : '操作成功'); await fetchData()
+        await ({ down:downProductApi,delete:deleteMyProductApi })[action](row.id, { silentError: true })
+        ElMessage.success('操作成功'); await fetchData()
     } catch (e) { ElMessage.error(productErrorMessage(e,'操作失败，请重试')) }
     finally { rowBusy.value = undefined }
 }
 const handleDown = (row:ProductVO) => operate(row,'down')
-const handleUp = (row:ProductVO) => operate(row,'up')
+const handleUp = async (row:ProductVO) => { await handleEdit(row); if(dialogVisible.value && formData.id===row.id)isRelisting.value=true }
+const onStockModeChange = () => { if(formData.stockMode===1)formData.stock=0; else if(formData.stock==null)formData.stock=1 }
 const handleDelete = (row:ProductVO) => operate(row,'delete')
 const beforeImageUpload:UploadProps['beforeUpload'] = file => {
     const error = validateProductImage(file,(formData.images?.length ?? 0) + uploadingCount.value)
@@ -338,7 +348,7 @@ const removeImage = (index:number) => {
     if (formData.images?.length && !formData.images.some(img => img.isCover === 1)) formData.images[0].isCover = 1
     formData.images?.forEach((img,i)=>{ img.sort = i })
 }
-const finishClose = () => { dialogVisible.value = false; resetForm(); openedSnapshot = '' }
+const finishClose = () => { dialogVisible.value = false; isRelisting.value=false; resetForm(); openedSnapshot = '' }
 const closeDialog = async (done?:()=>void) => {
     if (submitLoading.value || uploadingCount.value) { ElMessage.info('请等待保存或上传完成'); return }
     if (JSON.stringify(formData) !== openedSnapshot) {
@@ -357,11 +367,14 @@ const handleSubmit = async () => {
         if (!valid) return
         const images:ProductImageDTO[] = (formData.images ?? []).map((img,index)=>({ ...img,sort:index }))
         if (images.length && !images.some(img=>img.isCover === 1)) images[0].isCover = 1
-        const params = { ...formData,title:formData.title?.trim(),images }
-        if (isEditing.value) {
-            await updateProductApi({ ...params,clearOriginalPrice:formData.originalPrice == null } as ProductUpdateDTO)
+        const params = { ...formData,title:formData.title?.trim(),images,clearOriginalPrice:formData.originalPrice == null }
+        if (isRelisting.value) {
+            await upProductApi(formData.id!,params as ProductUpdateDTO, { silentError: true })
+            ElMessage.success('信息已确认并提交，等待审核')
+        } else if (isEditing.value) {
+            await updateProductApi({ ...params,clearOriginalPrice:formData.originalPrice == null } as ProductUpdateDTO, { silentError: true })
             ElMessage.success('修改已保存；上架中的商品需重新审核')
-        } else { await addProductApi(params); ElMessage.success('发布成功，请等待审核') }
+        } else { await addProductApi(params, { silentError: true }); ElMessage.success('发布成功，请等待审核') }
         finishClose(); await fetchData()
     } catch (e) { ElMessage.error(productErrorMessage(e,'保存失败，请重试；输入已保留')) }
     finally { submitLoading.value = false }

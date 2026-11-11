@@ -75,8 +75,11 @@ public class ProductVO {
     /** 平均评分 */
     private BigDecimal rating;
 
-    /** 库存数量（0表示不限库存） */
+    /** 有限库存剩余数量；0为售罄，不限库存由stockMode单独表示 */
     private Integer stock;
+
+    /** 0有限库存，1不限库存，null历史待确认 */
+    private Integer stockMode;
 
     /** 乐观锁版本号 */
     private Integer version;

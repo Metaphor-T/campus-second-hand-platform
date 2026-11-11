@@ -42,6 +42,7 @@ export interface ProductVO {
   /** 原价 */
   originalPrice?: number
   /** 库存 */
+  stockMode?: 0 | 1 | null
   stock?: number
   /** 新旧程度：1-全新，2-几乎全新，3-有使用痕迹，4-老旧 */
   condition?: number

@@ -46,6 +46,7 @@
                         {{ conditionLabel(row.condition) }}
                     </template>
                 </el-table-column>
+                <el-table-column label="库存" width="115"><template #default="{ row }">{{ stockLabel(row) }}</template></el-table-column>
                 <el-table-column prop="status" label="状态" width="100" align="center">
                     <template #default="{ row }">
                         <el-tag :type="statusTagType(row.status)" effect="plain" size="small">
@@ -121,6 +122,7 @@
 </template>
 
 <script lang="ts" setup>
+import { stockLabel } from '@/utils/product-stock'
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, RefreshLeft, View, Select, CloseBold, Delete } from '@element-plus/icons-vue'

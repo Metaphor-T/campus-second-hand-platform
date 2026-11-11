@@ -6,14 +6,16 @@
         EXISTS (SELECT 1 FROM `user` u WHERE u.base_user_id = b.id)
         AND NOT EXISTS (SELECT 1 FROM admin a WHERE a.base_user_id = b.id)
     </sql>
+    <sql id="activeAfterSale">EXISTS (SELECT 1 FROM order_after_sale ars WHERE ars.order_id=o.id AND ars.state IN ('WAIT_SELLER','WAIT_ADMIN','WAIT_RETURN'))</sql>
+    <sql id="completedOrder">o.order_status=3 AND NOT <include refid="activeAfterSale"/></sql>
     <select id="selectTotals" resultType="java.util.Map">
         SELECT
             (SELECT COUNT(*) FROM base_user b WHERE <include refid="ordinaryUser"/>) AS users,
             (SELECT COUNT(*) FROM product) AS products,
             (SELECT COUNT(*) FROM `order`) AS orders,
-            (SELECT COALESCE(SUM(pay_amount),0) FROM `order` WHERE order_status=3) AS completedAmount,
+            (SELECT COALESCE(SUM(pay_amount),0) FROM `order` o WHERE <include refid="completedOrder"/>) AS completedAmount,
             (SELECT COUNT(*) FROM product WHERE status=0) AS pendingProducts,
-            (SELECT COUNT(*) FROM `order` WHERE order_status=5) AS refundOrders
+            (SELECT COUNT(*) FROM `order` o WHERE (o.order_status=5 OR <include refid="activeAfterSale"/>)) AS refundOrders
     </select>
     <select id="selectPeriod" resultType="java.util.Map">
         SELECT
@@ -21,10 +23,10 @@
                 AND b.create_time &gt;= #{start} AND b.create_time &lt; #{end}) AS users,
             (SELECT COUNT(*) FROM product WHERE create_time &gt;= #{start} AND create_time &lt; #{end}) AS products,
             COUNT(*) AS orders,
-            COALESCE(SUM(CASE WHEN order_status=3 THEN 1 ELSE 0 END),0) AS completedOrders,
-            COALESCE(SUM(CASE WHEN order_status=3 THEN quantity ELSE 0 END),0) AS completedQuantity,
-            COALESCE(SUM(CASE WHEN order_status=3 THEN pay_amount ELSE 0 END),0) AS completedAmount
-        FROM `order` WHERE create_time &gt;= #{start} AND create_time &lt; #{end}
+            COALESCE(SUM(CASE WHEN <include refid="completedOrder"/> THEN 1 ELSE 0 END),0) AS completedOrders,
+            COALESCE(SUM(CASE WHEN <include refid="completedOrder"/> THEN quantity ELSE 0 END),0) AS completedQuantity,
+            COALESCE(SUM(CASE WHEN <include refid="completedOrder"/> THEN pay_amount ELSE 0 END),0) AS completedAmount
+        FROM `order` o WHERE o.create_time &gt;= #{start} AND o.create_time &lt; #{end}
     </select>
     <select id="selectDailyActivity" resultType="java.util.Map">
         SELECT date, SUM(users) AS users, SUM(products) AS products, SUM(orders) AS orders
@@ -53,13 +55,13 @@
             SELECT COALESCE(c.id,0),COALESCE(c.name,'未分类 / 商品已删除'),0,COUNT(*),
                 COALESCE(SUM(o.quantity),0),COALESCE(SUM(o.pay_amount),0)
             FROM `order` o LEFT JOIN product p ON o.product_id=p.id LEFT JOIN category c ON p.category_id=c.id
-            WHERE o.create_time &gt;= #{start} AND o.create_time &lt; #{end} AND o.order_status=3
+            WHERE o.create_time &gt;= #{start} AND o.create_time &lt; #{end} AND <include refid="completedOrder"/>
             GROUP BY c.id,c.name
         ) category_activity GROUP BY id,name ORDER BY completedQuantity DESC,products DESC,id ASC
     </select>
     <select id="selectOrderStatuses" resultType="java.util.Map">
-        SELECT COALESCE(CAST(order_status AS SIGNED),-1) AS status,COUNT(*) AS count FROM `order`
-        WHERE create_time &gt;= #{start} AND create_time &lt; #{end} GROUP BY order_status ORDER BY status
+        SELECT CASE WHEN <include refid="activeAfterSale"/> THEN 5 ELSE COALESCE(CAST(o.order_status AS SIGNED),-1) END AS status,COUNT(*) AS count FROM `order` o
+        WHERE o.create_time &gt;= #{start} AND o.create_time &lt; #{end} GROUP BY status ORDER BY status
     </select>
     <select id="selectParticipation" resultType="java.util.Map">
         SELECT COUNT(*) AS eligibleUsers,
@@ -73,7 +75,7 @@
                 AND create_time &gt;= #{start} AND create_time &lt; #{end}) AS visibleReviews,
             (SELECT COUNT(*) FROM product_review WHERE status=1 AND rating BETWEEN 4 AND 5
                 AND create_time &gt;= #{start} AND create_time &lt; #{end}) AS positiveReviews,
-            (SELECT COUNT(*) FROM `order` o WHERE o.order_status=3 AND o.create_time &gt;= #{start} AND o.create_time &lt; #{end}
+            (SELECT COUNT(*) FROM `order` o WHERE <include refid="completedOrder"/> AND o.create_time &gt;= #{start} AND o.create_time &lt; #{end}
                 AND EXISTS (SELECT 1 FROM product_review r WHERE r.order_id=o.id AND r.status=1 AND r.rating BETWEEN 1 AND 5)) AS reviewedCompletedOrders
     </select>
 </mapper>

@@ -36,7 +36,8 @@ export function getGuestMarketData(
  * @returns 商品详情（含图册、发布者信息）
  */
 export function getGuestProductDetail(id: number): Promise<Result<ProductVO>> {
-  return request.get(`/guest/product/detail/${id}`)
+  // 商品详情页在页面内集中显示失败原因和重试入口。
+  return request.get(`/guest/product/detail/${id}`, undefined, { silentError: true })
 }
 
 /**

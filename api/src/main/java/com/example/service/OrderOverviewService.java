@@ -43,11 +43,34 @@ public class OrderOverviewService {
         timeline.add(stage("completed","确认交易完成",order.getReceiveTime(),"买家",
             Objects.equals(status,3),ended||Objects.equals(status,5)||!known,
             "买家实际收到商品后，再确认收货完成交易。"));
-        if(Objects.equals(status,5))timeline.add(new Node("after-sale","售后处理中",null,"UNRECORDED","买卖双方",
+        if(Objects.equals(status,5) && order.getAfterSale()==null)timeline.add(new Node("after-sale","售后处理中",null,"UNRECORDED","买卖双方",
             "当前订单处于退款/售后状态，申请时间及完整过程未单独记录；平台仅记录协商结果。"));
         if(ended||order.getCancelTime()!=null)timeline.add(new Node("cancelled","订单取消或结束",order.getCancelTime(),order.getCancelTime()==null?"UNRECORDED":"RECORDED","具体操作人未单独记录",
             order.getCancelReason()==null||order.getCancelReason().isBlank()?"取消原因暂无记录。":"原因："+order.getCancelReason()));
-        return new OrderOverviewVO(order,role,label,next(status,role,inconsistent),List.copyOf(timeline),List.copyOf(notices));
+        NextStep step=next(status,role,inconsistent);
+        if(order.getAfterSaleHistory()!=null) {
+            var history=new ArrayList<>(order.getAfterSaleHistory());Collections.reverse(history);
+            for(var r:history) {
+                String prefix="after-sale-"+r.getId();
+                timeline.add(new Node(prefix+"-applied","提交售后申请",r.getCreatedAt(),r.getCreatedAt()==null?"UNRECORDED":"RECORDED","买家 #"+r.getApplicantId(),r.getReason()));
+                if(r.getSellerRespondedAt()!=null)timeline.add(new Node(prefix+"-seller",Boolean.TRUE.equals(r.getSellerAgree())?"卖家同意申请":"卖家拒绝申请",r.getSellerRespondedAt(),"RECORDED","卖家 #"+r.getSellerId(),r.getSellerNote()));
+                if(r.getAdminReviewedAt()!=null)timeline.add(new Node(prefix+"-admin","管理员审核售后",r.getAdminReviewedAt(),"RECORDED","管理员 #"+r.getAdminId(),r.getAdminNote()));
+                if(r.getReturnConfirmedAt()!=null)timeline.add(new Node(prefix+"-returned","确认收回退回商品",r.getReturnConfirmedAt(),"RECORDED","确认人 #"+r.getReturnConfirmedBy(),r.getReturnNote()+"；退回数量："+r.getReturnQuantity()+"，可售库存增加："+r.getStockCreditedQuantity()));
+                if("WITHDRAWN".equals(r.getState()))timeline.add(new Node(prefix+"-withdrawn","买家撤回售后申请",r.getUpdatedAt(),"RECORDED","买家 #"+r.getApplicantId(),"申请已撤回，原交易状态保留。"));
+            }
+        }
+        var afterSale=order.getAfterSale();
+        if(afterSale!=null) {
+            if(AfterSalePolicy.ACTIVE.contains(afterSale.getState())) {
+                String owner="WAIT_SELLER".equals(afterSale.getState())||"WAIT_RETURN".equals(afterSale.getState())?"SELLER":"ADMIN";
+                step=new NextStep(owner,AfterSalePolicy.label(afterSale.getState()),"WAIT_RETURN".equals(afterSale.getState())?"买家与卖家约定退回方式；实际收回商品后，由卖家确认完成售后。":"请在售后窗口查看申请、双方意见和管理员处理进度。",owner.equals(role));
+                label=label+" · 售后处理中";
+            } else if("APPROVED".equals(afterSale.getState())) {
+                label="售后已完成";
+                step=new NextStep("NONE","售后已完成","申请及处理结果已保留，可在售后窗口查看。",false);
+            }
+        }
+        return new OrderOverviewVO(order,role,label,step,List.copyOf(timeline),List.copyOf(notices));
     }
     private Node stage(String key,String title,LocalDateTime time,String participant,boolean reached,boolean uncertain,String pending) {
         String state=time!=null?"RECORDED":reached?"UNRECORDED":uncertain?"UNKNOWN":"WAITING";

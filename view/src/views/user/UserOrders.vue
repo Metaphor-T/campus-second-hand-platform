@@ -77,7 +77,7 @@
                             effect="dark"
                             size="small"
                         >
-                            {{ statusLabel(order.orderStatus) }}
+                            {{ order.afterSale?.state === 'APPROVED' ? '售后已完成' : statusLabel(order.orderStatus) }}
                         </el-tag>
                         <el-tag class="create-time-tag" size="small" type="info" effect="plain">
                             {{ formatTime(order.createTime) }}
@@ -85,6 +85,8 @@
                     </div>
                     <div class="product-info">
                         <div class="product-title">{{ order.productTitle }}</div>
+                        <p v-if="order.afterSale" class="after-sale-summary">{{ afterSaleLabel(order.afterSale.state) }}</p>
+                        <p v-if="order.orderStatus === 3 && !activeAfterSale(order.afterSale)" class="after-sale-summary">{{ order.afterSaleMessage }}<span v-if="order.afterSaleEligibility === 'REGULAR' && order.afterSaleDeadline"> · 截止 {{ order.afterSaleDeadline }}</span></p>
                         <div class="product-meta">
                             <span class="price">¥{{ order.unitPrice }}</span>
                             <span class="quantity">× {{ order.quantity }}</span>
@@ -105,8 +107,9 @@
                         </div>
                         <div class="order-actions">
                             <RouterLink v-if="order.id" class="order-detail-button" :to="{ path: '/user-home/order-detail/' + order.id, query: { role: activeRole } }">查看详情</RouterLink>
+                            <el-button v-if="order.afterSale || order.orderStatus === 5 || (activeRole === 'buyer' && ['REGULAR','ADMIN_ONLY'].includes(order.afterSaleEligibility || ''))" size="small" @click="openAfterSale(order)">{{ afterSaleEntry(order) }}</el-button>
                             <!-- 买家操作 -->
-                            <template v-if="activeRole === 'buyer'">
+                            <template v-if="activeRole === 'buyer' && !activeAfterSale(order.afterSale)">
                                 <template v-if="order.orderStatus === 0">
                                     <el-button type="primary" size="small" @click="handlePay(order)">立即支付</el-button>
                                     <el-button size="small" @click="handleCancel(order)">取消订单</el-button>
@@ -116,7 +119,6 @@
                                 </template>
                                 <template v-if="order.orderStatus === 2">
                                     <el-button type="success" size="small" @click="handleReceive(order)">确认收货</el-button>
-                                    <el-button size="small" @click="handleRefund(order)">申请退款</el-button>
                                 </template>
                                 <template v-if="order.orderStatus === 3">
                                     <el-button
@@ -134,15 +136,14 @@
                                     >
                                         去评价
                                     </el-button>
-                                    <el-button size="small" @click="handleRefund(order)">申请售后</el-button>
                                 </template>
-                                <template v-if="order.orderStatus === 4 || order.orderStatus === 5">
-                                    <el-button size="small" disabled>已完成</el-button>
+                                <template v-if="order.orderStatus === 4">
+                                    <el-button size="small" disabled>{{ order.afterSale?.state === 'APPROVED' ? '售后已完成' : '订单已结束' }}</el-button>
                                 </template>
                             </template>
 
                             <!-- 卖家操作 -->
-                            <template v-if="activeRole === 'seller'">
+                            <template v-if="activeRole === 'seller' && !activeAfterSale(order.afterSale)">
                                 <template v-if="order.orderStatus === 0">
                                     <el-button size="small" disabled>等待买家付款</el-button>
                                 </template>
@@ -156,11 +157,9 @@
                                     <el-button size="small" type="primary" @click="handleViewReview(order)">查看评价</el-button>
                                 </template>
                                 <template v-if="order.orderStatus === 4">
-                                    <el-button size="small" disabled>买家已取消</el-button>
+                                    <el-button size="small" disabled>{{ order.afterSale?.state === 'APPROVED' ? '售后已完成' : '订单已结束' }}</el-button>
                                 </template>
-                                <template v-if="order.orderStatus === 5">
-                                    <el-button type="warning" size="small" @click="handleRefundAgree(order)">同意退款</el-button>
-                                </template>
+
                             </template>
                         </div>
                     </div>
@@ -276,15 +275,19 @@
                 <el-button type="primary" :loading="payLoading" @click="confirmPay">确认支付</el-button>
             </template>
         </el-dialog>
+        <OrderAfterSaleDialog v-model="afterSaleVisible" :order-id="afterSaleOrderId" @changed="loadOrders" />
     </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
+import OrderAfterSaleDialog from '@/components/OrderAfterSaleDialog.vue'
+import { productErrorMessage } from '@/utils/product-experience'
+import { afterSaleLabel, activeAfterSale, afterSaleEntry } from '@/utils/after-sale'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Picture, CircleCheck } from '@element-plus/icons-vue'
-import { listBuyerOrdersApi, listSellerOrdersApi, cancelOrderApi, payOrderApi, receiveOrderApi, refundOrderApi, shipOrderApi, agreeRefundOrderApi, countBuyerOrdersByStatusApi, countSellerOrdersByStatusApi } from '@/api/order-api'
+import { listBuyerOrdersApi, listSellerOrdersApi, cancelOrderApi, payOrderApi, receiveOrderApi, shipOrderApi, countBuyerOrdersByStatusApi, countSellerOrdersByStatusApi } from '@/api/order-api'
 import { checkReviewedApi, publicReviewListApi, replyReviewApi } from '@/api/review-api'
 import type { OrderVO, OrderQueryDTO } from '@/types/order'
 import type { ProductReviewVO } from '@/types/review'
@@ -292,6 +295,8 @@ import type { ProductReviewVO } from '@/types/review'
 // ====== 状态 ======
 const router = useRouter()
 const route = useRoute()
+const afterSaleVisible = ref(false), afterSaleOrderId = ref<number>()
+const openAfterSale = (order: OrderVO) => { afterSaleOrderId.value = order.id; afterSaleVisible.value = true }
 const loading = ref(false)
 const activeRole = ref<'buyer' | 'seller'>(route.query.role === 'seller' ? 'seller' : 'buyer')
 const activeStatus = ref<number | undefined>(undefined)
@@ -342,7 +347,7 @@ const statusTabs = [
     { label: '待发货', value: 1, name: '1' },
     { label: '待收货', value: 2, name: '2' },
     { label: '已完成', value: 3, name: '3' },
-    { label: '已取消', value: 4, name: '4' },
+    { label: '已结束', value: 4, name: '4' },
     { label: '退款/售后', value: 5, name: '5' }
 ]
 
@@ -465,16 +470,16 @@ const loadOrders = async () => {
         }
         let res
         if (activeRole.value === 'buyer') {
-            res = await listBuyerOrdersApi(params)
+            res = await listBuyerOrdersApi(params, { silentError: true })
         } else {
-            res = await listSellerOrdersApi(params)
+            res = await listSellerOrdersApi(params, { silentError: true })
         }
         orderList.value = res?.data ?? []
         totalCount.value = res?.count ?? 0
         // 加载完成后检查已完成订单的评价状态
         checkReviewStatus()
     } catch (e: any) {
-        ElMessage.error(e.message || '加载订单失败')
+        ElMessage.error(productErrorMessage(e, '加载订单失败，请重试'))
     } finally {
         loading.value = false
     }
@@ -493,12 +498,12 @@ const confirmPay = async () => {
     if (!currentOrderId.value) return
     payLoading.value = true
     try {
-        await payOrderApi(currentOrderId.value, selectedPayMethod.value)
+        await payOrderApi(currentOrderId.value, selectedPayMethod.value, { silentError: true })
         ElMessage.success('支付成功！')
         dialogPayVisible.value = false
         loadOrders()
     } catch (e: any) {
-        ElMessage.error(e.message || '支付失败')
+        ElMessage.error(productErrorMessage(e, '付款记录保存失败，请重试'))
     } finally {
         payLoading.value = false
     }
@@ -538,22 +543,6 @@ const handleReview = (order: OrderVO) => {
     router.push(`/user-home/add-review/${order.id}`)
 }
 
-const handleRefund = async (order: OrderVO) => {
-    try {
-        await ElMessageBox.confirm('确定要申请退款/售后吗？', '退款申请', {
-            confirmButtonText: '确认申请',
-            cancelButtonText: '取消',
-            type: 'warning'
-        })
-        await refundOrderApi(order.id!)
-        ElMessage.success('退款申请已提交，请等待卖家处理')
-        loadOrders()
-    } catch {
-        // 用户取消操作
-    }
-}
-
-// ====== 卖家操作 - 查看/回复评价 ======
 const handleViewReview = async (order: OrderVO) => {
     if (!order.productId) return
     currentSellerProductId.value = order.productId
@@ -608,27 +597,12 @@ const handleShip = async (order: OrderVO) => {
     }
 }
 
-const handleRefundAgree = async (order: OrderVO) => {
-    try {
-        await ElMessageBox.confirm('确定同意退款吗？', '同意退款', {
-            confirmButtonText: '同意退款',
-            cancelButtonText: '拒绝',
-            type: 'warning'
-        })
-        await agreeRefundOrderApi(order.id!)
-        ElMessage.success('已同意退款，订单已取消')
-        loadOrders()
-    } catch {
-        // 用户取消操作
-    }
-}
 
-onMounted(() => {
-    loadOrders()
-})
+onMounted(() => { loadOrders() })
 </script>
 
 <style scoped lang="scss">
+.after-sale-summary { margin:8px 0; line-height:1.6; color:#853416; overflow-wrap:anywhere; }
 // =====================================================
 // 📦 我的订单 — 与我的商品风格统一
 // =====================================================

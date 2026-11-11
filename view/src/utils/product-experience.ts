@@ -17,7 +17,12 @@ export const imageFallback = (event: Event) => {
 }
 export const productErrorMessage = (error: unknown, fallback: string): string => {
     const e = error as { response?: { data?: { message?: string } }; message?: string }
-    return e?.response?.data?.message || e?.message || fallback
+    const serverMessage = e?.response?.data?.message
+    if (serverMessage) return serverMessage
+    const message = e?.message
+    // Axios 的 HTTP/网络错误使用页面提供的中文提示，避免显示技术报错。
+    if (!message || /^(Request failed with status code \d+|Network Error|timeout of \d+ms exceeded)$/i.test(message)) return fallback
+    return message
 }
 export const validateProductFilters = (filters: ProductFilterValues): string => {
     if ((filters.title || '').trim().length > 200) return '关键词最多200字'

@@ -5,24 +5,24 @@ import type {
     OrderCreateDTO,
     OrderQueryDTO
 } from "@/types/order"
-import request from "@/utils/request"
+import request, { type RequestOptions } from "@/utils/request"
 import type { OrderOverview } from '@/types/order'
 
-export const getOrderOverviewApi = (orderId: number) => request.get<Result<OrderOverview>>(`/order/detail/${orderId}/overview`)
+export const getOrderOverviewApi = (orderId: number) => request.get<Result<OrderOverview>>(`/order/detail/${orderId}/overview`, undefined, { silentError: true })
 
 /** 创建订单 */
-export const createOrderApi = (params: OrderCreateDTO) => {
-    return request.post<Result<OrderVO>>("/order/create", params)
+export const createOrderApi = (params: OrderCreateDTO, options?: RequestOptions) => {
+    return request.post<Result<OrderVO>>("/order/create", params, options)
 }
 
 /** 买家查询自己的订单列表（分页） */
-export const listBuyerOrdersApi = (params: OrderQueryDTO) => {
-    return request.post<Result<OrderVO[]>>("/order/buyer/list", params)
+export const listBuyerOrdersApi = (params: OrderQueryDTO, options?: RequestOptions) => {
+    return request.post<Result<OrderVO[]>>("/order/buyer/list", params, options)
 }
 
 /** 卖家查询自己的订单列表（分页） */
-export const listSellerOrdersApi = (params: OrderQueryDTO) => {
-    return request.post<Result<OrderVO[]>>("/order/seller/list", params)
+export const listSellerOrdersApi = (params: OrderQueryDTO, options?: RequestOptions) => {
+    return request.post<Result<OrderVO[]>>("/order/seller/list", params, options)
 }
 
 /** 买家取消订单 */
@@ -35,8 +35,8 @@ export const cancelOrderApi = (orderId: number, reason?: string) => {
 }
 
 /** 买家模拟支付 */
-export const payOrderApi = (orderId: number, payMethod: number) => {
-    return request.put<Result<void>>(`/order/pay/${orderId}?payMethod=${payMethod}`)
+export const payOrderApi = (orderId: number, payMethod: number, options?: RequestOptions) => {
+    return request.put<Result<void>>(`/order/pay/${orderId}?payMethod=${payMethod}`, undefined, options)
 }
 
 /** 买家确认收货 */
@@ -67,8 +67,8 @@ export const getOrderDetailApi = (orderId: number) => {
 // ==================== 管理员端 ====================
 
 /** 管理员分页查询全部订单 */
-export const listAllOrdersApi = (params: OrderQueryDTO) => {
-    return request.post<Result<OrderVO[]>>("/order/admin/list", params)
+export const listAllOrdersApi = (params: OrderQueryDTO, options?: RequestOptions) => {
+    return request.post<Result<OrderVO[]>>("/order/admin/list", params, options)
 }
 
 /** 管理员同意退款审核 */
@@ -78,10 +78,10 @@ export const adminAgreeRefundApi = (orderId: number) => {
 
 /** 查询买家各状态订单数量 */
 export const countBuyerOrdersByStatusApi = () => {
-    return request.get<Result<Record<number, number>>>("/order/buyer/count-by-status")
+    return request.get<Result<Record<number, number>>>("/order/buyer/count-by-status", undefined, { silentError: true })
 }
 
 /** 查询卖家各状态订单数量 */
 export const countSellerOrdersByStatusApi = () => {
-    return request.get<Result<Record<number, number>>>("/order/seller/count-by-status")
+    return request.get<Result<Record<number, number>>>("/order/seller/count-by-status", undefined, { silentError: true })
 }

@@ -70,8 +70,11 @@ public class Product {
     /** 平均评分（冗余字段，保留一位小数） */
     private java.math.BigDecimal rating;
 
-    /** 库存数量（0表示不限库存） */
+    /** 有限库存剩余数量；0为售罄，不限库存由stockMode单独表示 */
     private Integer stock;
+
+    /** 0有限库存，1不限库存，null历史待确认 */
+    private Integer stockMode;
 
     /** 乐观锁版本号（防止超卖） */
     @TableField(value = "`version`")

@@ -38,7 +38,7 @@ class ProductDtoValidationTest {
         dto.setPrice(new BigDecimal("15.50"));
         dto.setCondition(2);
         dto.setTradeType(1);
-        dto.setStock(1);
+        dto.setStock(1);dto.setStockMode(0);
         dto.setImages(List.of(image()));
         return dto;
     }

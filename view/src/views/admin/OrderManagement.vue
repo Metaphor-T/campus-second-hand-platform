@@ -9,7 +9,7 @@
                         <el-option label="待发货" :value="1" />
                         <el-option label="待收货" :value="2" />
                         <el-option label="已完成" :value="3" />
-                        <el-option label="已取消" :value="4" />
+                        <el-option label="已结束" :value="4" />
                         <el-option label="退款/售后" :value="5" />
                     </el-select>
                 </el-form-item>
@@ -39,24 +39,17 @@
                 <el-table-column prop="orderStatus" label="状态" width="100" align="center">
                     <template #default="{ row }">
                         <el-tag :type="statusTagType(row.orderStatus)" effect="plain" size="small">
-                            {{ statusLabel(row.orderStatus) }}
+                            {{ row.afterSale?.state === 'APPROVED' ? '售后已完成' : statusLabel(row.orderStatus) }}
                         </el-tag>
                     </template>
                 </el-table-column>
+                <el-table-column label="售后进度" min-width="180"><template #default="{ row }">{{ afterSaleLabel(row.afterSale?.state) }}</template></el-table-column>
                 <el-table-column prop="createTime" label="下单时间" width="160" align="center" />
                 <el-table-column label="操作" width="200" align="center" fixed="right">
                     <template #default="{ row }">
                         <div class="action-btns">
                             <el-button type="primary" size="small" @click="handleDetail(row)" :icon="View">详情</el-button>
-                            <el-button
-                                v-if="row.orderStatus === 5"
-                                type="success"
-                                size="small"
-                                @click="handleAgreeRefund(row)"
-                                :icon="Select"
-                            >
-                                同意退款
-                            </el-button>
+                            <el-button v-if="row.afterSale || row.orderStatus === 5" type="warning" size="small" @click="openAfterSale(row)">售后处理</el-button>
                         </div>
                     </template>
                 </el-table-column>
@@ -121,16 +114,22 @@
                 </div>
             </div>
         </el-dialog>
+        <OrderAfterSaleDialog v-model="afterSaleVisible" :order-id="afterSaleOrderId" @changed="fetchData" />
     </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, RefreshLeft, View, Select } from '@element-plus/icons-vue'
-import { listAllOrdersApi, adminAgreeRefundApi } from '@/api/order-api'
+import OrderAfterSaleDialog from '@/components/OrderAfterSaleDialog.vue'
+import { afterSaleLabel } from '@/utils/after-sale'
+import { productErrorMessage } from '@/utils/product-experience'
+import { ElMessage } from 'element-plus'
+import { Search, RefreshLeft, View } from '@element-plus/icons-vue'
+import { listAllOrdersApi } from '@/api/order-api'
 import type { OrderVO, OrderQueryDTO } from '@/types/order'
 
+const afterSaleVisible = ref(false), afterSaleOrderId = ref<number>()
+const openAfterSale = (row: OrderVO) => { afterSaleOrderId.value = row.id; afterSaleVisible.value = true }
 const loading = ref(false)
 const tableData = ref<OrderVO[]>([])
 const total = ref(0)
@@ -156,11 +155,11 @@ const statusTagType = (v?: number) =>
 const fetchData = async () => {
     try {
         loading.value = true
-        const res = await listAllOrdersApi(queryDTO)
+        const res = await listAllOrdersApi(queryDTO, { silentError: true })
         tableData.value = res?.data ?? []
         total.value = res?.count ?? 0
     } catch (e: any) {
-        ElMessage.error(e.message || '获取数据失败')
+        ElMessage.error(productErrorMessage(e, '获取订单失败，请重试'))
     } finally {
         loading.value = false
     }
@@ -178,30 +177,6 @@ const handleReset = () => {
 const handleDetail = (row: OrderVO) => {
     detailRow.value = { ...row }
     detailVisible.value = true
-}
-
-// 同意退款
-const handleAgreeRefund = (row: OrderVO) => {
-    ElMessageBox.confirm(
-        `确定同意订单 "${row.orderNo}" 的退款申请吗？`,
-        '退款审核确认',
-        {
-            confirmButtonText: '同意退款',
-            cancelButtonText: '取消',
-            type: 'warning'
-        }
-    ).then(async () => {
-        try {
-            loading.value = true
-            await adminAgreeRefundApi(row.id!)
-            ElMessage.success('已同意退款')
-            fetchData()
-        } catch (e: any) {
-            ElMessage.error(e.message || '操作失败')
-        } finally {
-            loading.value = false
-        }
-    }).catch(() => {})
 }
 
 onMounted(() => { fetchData() })

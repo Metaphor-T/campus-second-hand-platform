@@ -23,7 +23,7 @@
 
                         <!-- 商品信息：底部左悬浮 -->
                         <div class="hot-main-overlay">
-                            <h3 class="hot-overlay-title">{{ currentHotProduct?.title }}</h3>
+                            <h3 class="hot-overlay-title">{{ currentHotProduct?.title }}</h3><el-tag v-if="currentHotProduct && stockNotice(currentHotProduct)" type="info">{{ stockNotice(currentHotProduct) }}</el-tag>
                             <div class="hot-overlay-price">
                                 <span class="hop-symbol">¥</span>
                                 <span class="hop-value">{{ currentHotProduct?.price }}</span>
@@ -69,7 +69,7 @@
 
                         <!-- 商品信息：底部左悬浮 -->
                         <div class="hot-main-overlay">
-                            <h3 class="hot-overlay-title">{{ currentRecommendProduct?.title }}</h3>
+                            <h3 class="hot-overlay-title">{{ currentRecommendProduct?.title }}</h3><el-tag v-if="currentRecommendProduct && stockNotice(currentRecommendProduct)" type="info">{{ stockNotice(currentRecommendProduct) }}</el-tag>
                             <div class="hot-overlay-price">
                                 <span class="hop-symbol">¥</span>
                                 <span class="hop-value">{{ currentRecommendProduct?.price }}</span>
@@ -183,6 +183,7 @@
                         <!-- 商品信息 -->
                         <div class="card-body">
                             <h4 class="card-title">{{ item.title }}</h4>
+                            <el-tag v-if="stockNotice(item)" size="small" type="info">{{ stockNotice(item) }}</el-tag>
                             <div class="card-price">
                                 <span class="price-symbol">¥</span>
                                 <span class="price">{{ item.price }}</span>
@@ -233,6 +234,7 @@
 </template>
 
 <script lang="ts" setup>
+import { stockNotice } from '@/utils/product-stock'
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import ProductFilters from '@/components/ProductFilters.vue'

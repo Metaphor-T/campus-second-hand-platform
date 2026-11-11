@@ -97,6 +97,17 @@ class StatisticsDatabaseTest {
                 var reviews=mapper.selectReviews(start,end); assertEquals(2,n(reviews,"visibleReviews")); assertEquals(1,n(reviews,"positiveReviews")); assertEquals(3,n(reviews,"reviewedCompletedOrders"));
                 var statuses=mapper.selectOrderStatuses(start,end); assertEquals(20,statuses.stream().mapToLong(r -> n(r,"count")).sum()); assertTrue(statuses.stream().anyMatch(r -> n(r,"status")==99));
                 assertEquals(n(before,"users")+4,n(mapper.selectTotals(),"users"));
+                // 独立售后状态不改变原交易字段，但仪表盘优先归类为售后处理中，避免漏计或重复。
+                long request=insert("INSERT INTO order_after_sale(order_id,request_type,state,reason,return_required,applicant_id) VALUES(?,'REGULAR','WAIT_ADMIN','统计售后验收',1,?)",first,buyer);
+                session.clearCache();
+                var pending=mapper.selectPeriod(start,end);assertEquals(13,n(pending,"completedOrders"));
+                assertEquals(17,n(pending,"completedQuantity"));assertEquals(0,new BigDecimal("71.05").compareTo((BigDecimal)pending.get("completedAmount")));
+                assertEquals(n(before,"refundOrders")+2,n(mapper.selectTotals(),"refundOrders"));
+                assertEquals(2,mapper.selectOrderStatuses(start,end).stream().filter(r->n(r,"status")==5).mapToLong(r->n(r,"count")).sum());
+                assertEquals(2,n(mapper.selectReviews(start,end),"reviewedCompletedOrders"));
+                try(var change=connection.prepareStatement("UPDATE order_after_sale SET state='WITHDRAWN' WHERE id=?")){change.setLong(1,request);change.executeUpdate();}
+                session.clearCache();assertEquals(14,n(mapper.selectPeriod(start,end),"completedOrders"));
+
             } finally { session.rollback(true); }
         }
         try(var session=factory.openSession()) { assertEquals(before,session.getMapper(StatisticsMapper.class).selectTotals(),"rollback must restore all business counts and amounts"); }

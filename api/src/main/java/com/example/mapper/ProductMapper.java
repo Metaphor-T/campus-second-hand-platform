@@ -17,6 +17,8 @@ import org.apache.ibatis.annotations.Param;
  */
 @Mapper
 public interface ProductMapper extends BaseMapper<Product> {
+    @org.apache.ibatis.annotations.Select("SELECT * FROM product WHERE id=#{id} FOR UPDATE")
+    Product lockForStockReturn(@Param("id") Integer id);
 
     /**
      * 分页查询商品列表（联表 user、category）

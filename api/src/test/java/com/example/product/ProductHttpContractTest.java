@@ -41,7 +41,7 @@ class ProductHttpContractTest {
     private String publishJson(String price) {
         return """
                 {"title":"教材","categoryId":1,"price":%s,"condition":2,"tradeType":1,
-                 "stock":0,"images":[{"imageUrl":"/files/a.png","isCover":1,"sort":0}]}
+                 "stock":0,"stockMode":1,"images":[{"imageUrl":"/files/a.png","isCover":1,"sort":0}]}
                 """.formatted(price);
     }
 

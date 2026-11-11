@@ -213,6 +213,7 @@ public class UserInteractionServiceImpl implements UserInteractionService {
                     .condition(product.getCondition())
                     .tradeType(product.getTradeType())
                     .status(product.getStatus())
+                    .stock(product.getStock()).stockMode(product.getStockMode())
                     .viewCount(product.getViewCount())
                     .wantCount(product.getWantCount())
                     .favoriteCount(product.getFavoriteCount())

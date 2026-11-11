@@ -39,6 +39,7 @@
                     <div class="stat-item"><el-icon><ChatDotSquare /></el-icon><span>{{ product.wantCount ?? 0 }} 想要</span></div>
                 </div>
 
+                <el-tag type="info">{{ stockLabel(product) }}</el-tag>
                 <div class="meta-row">
                     <span class="meta-label">发布时间</span>
                     <span class="meta-value">{{ formatTime(product.createTime) }}</span>
@@ -147,6 +148,7 @@
 </template>
 
 <script lang="ts" setup>
+import { stockLabel } from '@/utils/product-stock'
 /**
  * 游客端 - 商品详情页
  * <p>展示商品信息、图册、描述、评价。无需登录即可浏览。</p>

@@ -8,7 +8,7 @@
     <section v-if="error" class="detail-error" role="alert"><h2>{{ errorTitle }}</h2><p>{{ error }}</p><button v-if="retryable" type="button" class="detail-button" @click="load">重新加载</button></section>
     <template v-if="overview">
       <section class="next-step" :class="{ 'your-turn': overview.nextStep.yours }" aria-labelledby="next-step-title">
-        <div class="status-line"><span class="status-tag" data-order-status>{{ overview.statusLabel }}</span><span>你是{{ overview.viewerRole === 'BUYER' ? '买家' : '卖家' }}</span><span v-if="overview.nextStep.responsibleRole !== 'NONE'" class="turn-tag">{{ overview.nextStep.yours ? '轮到你处理' : '等待对方处理' }}</span></div>
+        <div class="status-line"><span class="status-tag" data-order-status>{{ overview.statusLabel }}</span><span>你是{{ overview.viewerRole === 'BUYER' ? '买家' : '卖家' }}</span><span v-if="overview.nextStep.responsibleRole !== 'NONE'" class="turn-tag">{{ overview.nextStep.yours ? '轮到你处理' : overview.nextStep.responsibleRole === 'ADMIN' ? '等待管理员处理' : '等待对方处理' }}</span></div>
         <h2 id="next-step-title">{{ overview.nextStep.title }}</h2><p>{{ overview.nextStep.description }}</p>
         <RouterLink class="detail-button primary" :to="actionLink">{{ overview.nextStep.responsibleRole === 'NONE' ? '前往订单中心查看本单' : overview.nextStep.yours ? '前往订单中心处理本单' : '前往订单中心查看本单' }}</RouterLink>
       </section>
@@ -20,11 +20,12 @@
             <div class="product-summary">
               <img v-if="imageUrl && !imageFailed" :src="imageUrl" :alt="order.productTitle || '订单商品图片'" @error="imageFailed = true" />
               <div v-else class="product-image-fallback">暂无图片</div>
-              <div><h3>{{ order.productTitle || '商品资料暂无记录' }}</h3><p>购买数量：{{ order.quantity ?? '暂无记录' }}</p><RouterLink v-if="order.productId && order.productTitle" class="text-link" :to="'/user-home/product-detail/' + order.productId">查看商品当前详情</RouterLink></div>
+              <div><h3>{{ order.productTitle || '商品资料暂无记录' }}</h3><p>购买数量：{{ order.quantity ?? '暂无记录' }}</p><RouterLink v-if="order.productId && order.productTitle" class="text-link" :to="{ path: '/user-home/product-detail/' + order.productId, query: { from: 'order', orderId: order.id, role: roleQuery } }">查看商品当前详情</RouterLink></div>
             </div>
             <dl class="detail-fields"><div><dt>下单单价</dt><dd>{{ money(order.unitPrice) }}</dd></div><div><dt>商品金额</dt><dd>{{ money(order.totalAmount) }}</dd></div><div><dt>运费记录</dt><dd>{{ money(order.shippingFee) }}</dd></div><div><dt>订单合计</dt><dd class="amount">{{ money(order.payAmount) }}</dd></div></dl>
             <p class="muted">金额按本订单保存的记录展示，不代表平台已实际收款。</p>
           </section>
+          <section class="detail-card" aria-labelledby="order-after-sale-title"><h2 id="order-after-sale-title">售后进度</h2><p v-if="order.afterSale">{{ afterSaleLabel(order.afterSale.state) }}</p><p>{{ order.afterSaleMessage }}</p><p v-if="order.afterSaleDeadline">普通售后截止：{{ order.afterSaleDeadline }}（北京时间）</p><button class="detail-button" type="button" @click="afterSaleVisible = true">{{ afterSaleEntry(order) }}</button></section>
           <section class="detail-card" aria-labelledby="order-info-title"><h2 id="order-info-title">交易信息</h2>
             <dl class="detail-fields"><div><dt>订单编号</dt><dd data-order-number>{{ order.orderNo || '暂无记录' }}</dd></div><div><dt>当前状态</dt><dd>{{ overview.statusLabel }}</dd></div><div><dt>买家</dt><dd>{{ order.buyerName || '用户资料暂无记录' }}{{ overview.viewerRole === 'BUYER' ? '（我）' : '' }}</dd></div><div><dt>卖家</dt><dd>{{ order.sellerName || '用户资料暂无记录' }}{{ overview.viewerRole === 'SELLER' ? '（我）' : '' }}</dd></div><div><dt>下单时间</dt><dd>{{ time(order.createTime) }}</dd></div><div><dt>最近更新时间</dt><dd>{{ time(order.updateTime) }}</dd></div><div><dt>付款方式记录</dt><dd>{{ paymentLabel }}</dd></div><div><dt>商品当前支持的交付方式</dt><dd>{{ deliveryLabel }}</dd></div></dl>
             <p class="muted">商品交付方式可能调整，历史交易的实际安排请按双方约定核对。</p>
@@ -48,16 +49,20 @@
         </section>
       </div>
     </template>
+    <OrderAfterSaleDialog v-model="afterSaleVisible" :order-id="overview?.order.id" @changed="load" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import OrderAfterSaleDialog from '@/components/OrderAfterSaleDialog.vue'
+import { afterSaleLabel, afterSaleEntry } from '@/utils/after-sale'
 import { useRoute } from 'vue-router'
 import { getOrderOverviewApi } from '@/api/order-api'
 import type { OrderOverview } from '@/types/order'
 import { productImageUrl } from '@/utils/product-experience'
 
+const afterSaleVisible = ref(false)
 const route = useRoute(), overview = ref<OrderOverview>(), loading = ref(false), error = ref(''), errorTitle = ref('暂时无法查看订单'), retryable = ref(false), imageFailed = ref(false)
 const order = computed(() => overview.value!.order)
 const imageUrl = computed(() => overview.value?.order.productImage ? productImageUrl(overview.value.order.productImage) : '')

@@ -50,7 +50,7 @@ class ProductServiceTest {
 
     private Product product(int status) {
         return Product.builder().id(10).userId(2).categoryId(1).title("教材").description("")
-                .price(BigDecimal.TEN).condition(2).tradeType(1).stock(7).version(3).status(status)
+                .price(BigDecimal.TEN).condition(2).tradeType(1).stock(7).stockMode(0).version(3).status(status)
                 .auditRemark("旧备注").auditTime(LocalDateTime.now()).auditorId(1).build();
     }
 
@@ -73,8 +73,81 @@ class ProductServiceTest {
         dto.setPrice(BigDecimal.TEN);
         dto.setCondition(2);
         dto.setTradeType(1);
+        dto.setStockMode(1);dto.setStock(0);
         dto.setImages(album);
         return dto;
+    }
+
+    private ProductUpdateDTO relistConfirmation(int mode, int stock) {
+        var dto = update();
+        dto.setCategoryId(1); dto.setPrice(BigDecimal.TEN); dto.setCondition(2); dto.setTradeType(1);
+        dto.setStockMode(mode); dto.setStock(stock); dto.setImages(List.of(image("/files/a.png",1)));
+        return dto;
+    }
+
+    @Test void relistRequiresConfirmationAndAvailableStock() {
+        assertEquals(400,assertThrows(BusinessException.class,()->service.up(2,10,null)).getCode());
+        assertEquals(400,assertThrows(BusinessException.class,()->service.up(2,10,update())).getCode());
+        enabledCategory(); doReturn(product(3)).when(service).getById(10);
+        assertEquals(400,assertThrows(BusinessException.class,()->service.up(2,10,relistConfirmation(0,0))).getCode());
+        verify(service,never()).update(any(Wrapper.class));
+    }
+
+    @Test void relistSavesInventoryAndReviewStateAtomically() {
+        enabledCategory(); doReturn(product(3)).when(service).getById(10);
+        doReturn(true).when(service).update(any(Wrapper.class));
+        service.up(2,10,relistConfirmation(0,9));
+        var wrapper=savedUpdate();String set=wrapper.getSqlSet();
+        assertEquals(0,boundValue(wrapper,set,"stock_mode"));
+        assertEquals(9,boundValue(wrapper,set,"stock"));
+        assertEquals(0,boundValue(wrapper,set,"status"));
+        assertEquals(4,boundValue(wrapper,set,"version"));
+        assertEquals(3,boundValue(wrapper,wrapper.getSqlSegment(),"status"));
+        verify(images).delete(any(Wrapper.class));
+    }
+
+    @Test void approvalRejectsEmptyAndUnconfirmedInventory() {
+        var pending=product(0);pending.setStock(0);doReturn(pending).when(service).getById(10);
+        var dto=new ProductAuditDTO();dto.setId(10);dto.setStatus(1);
+        assertEquals(400,assertThrows(BusinessException.class,()->service.audit(1,dto)).getCode());
+        pending.setStockMode(null);
+        assertEquals(409,assertThrows(BusinessException.class,()->service.audit(1,dto)).getCode());
+        verify(service,never()).update(any(Wrapper.class));
+    }
+
+    @Test void finiteRestockReservesRoomForCancellationReturns() {
+        doReturn(product(3)).when(service).getById(10);
+        when(orders.restorableStockQuantity(10)).thenReturn(1L);
+        var dto=update();dto.setStock(999999);
+        assertEquals(409,assertThrows(BusinessException.class,()->service.update(2,dto)).getCode());
+        verify(service,never()).update(any(Wrapper.class));
+    }
+
+    @Test void oldOrdersDoNotPermanentlyBlockNewUnlimitedListing() {
+        doReturn(product(3)).when(service).getById(10);
+        doReturn(true).when(service).update(any(Wrapper.class));
+        var dto=update();dto.setStockMode(1);dto.setStock(0);
+        service.update(2,dto);
+        var wrapper=savedUpdate();assertEquals(1,boundValue(wrapper,wrapper.getSqlSet(),"stock_mode"));
+        assertEquals(3,boundValue(wrapper,wrapper.getSqlSet(),"status"));
+    }
+
+    @Test void downDetailsOnlyAllowOwnerAdminOrOrderParticipant() {
+        var down=com.example.pojo.vo.ProductVO.builder().id(10).userId(2).status(3).build();
+        assertFalse(service.canViewDetail(down,null,null));
+        assertTrue(service.canViewDetail(down,2,"USER"));
+        assertTrue(service.canViewDetail(down,99,"ADMIN"));
+        when(orders.selectCount(any(Wrapper.class))).thenReturn(0L,1L);
+        assertFalse(service.canViewDetail(down,3,"USER"));
+        assertTrue(service.canViewDetail(down,4,"USER"));
+        down.setStatus(0);assertFalse(service.canViewDetail(down,4,"USER"));
+        down.setStatus(2);assertFalse(service.canViewDetail(down,4,"USER"));
+        down.setStatus(1);assertTrue(service.canViewDetail(down,null,null));
+    }
+
+    @Test void restorationFailureCannotSilentlyLoseInventory() {
+        when(products.restoreStock(10,1)).thenReturn(0);
+        assertEquals(409,assertThrows(BusinessException.class,()->service.restoreStock(10,1)).getCode());
     }
 
     private void enabledCategory() {

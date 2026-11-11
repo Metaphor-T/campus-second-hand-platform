@@ -378,6 +378,8 @@ public class RecommendServiceImpl implements RecommendService {
                         .condition(p.getCondition())
                         .tradeType(p.getTradeType())
                         .status(p.getStatus())
+                        .stock(p.getStock())
+                        .stockMode(p.getStockMode())
                         .viewCount(p.getViewCount())
                         .wantCount(p.getWantCount())
                         .favoriteCount(p.getFavoriteCount())

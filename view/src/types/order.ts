@@ -1,9 +1,18 @@
+import type { AfterSaleRequest } from './after-sale'
 // src/types/order.ts 订单类型文件
 
 /**
  * 订单视图对象
  */
 export interface OrderVO {
+    afterSale?: AfterSaleRequest
+    afterSaleHistory?: AfterSaleRequest[]
+    afterSaleEligibility?: 'REGULAR' | 'ADMIN_ONLY' | 'PROCESSING' | 'UNAVAILABLE'
+    afterSaleMessage?: string
+    afterSaleDeadline?: string
+    stockModeSnapshot?: number
+    stockReleasedQuantity?: number
+    stockReleaseDisposition?: string
     id?: number                // 订单主键ID
     orderNo?: string           // 订单编号
     productId?: number         // 商品ID
@@ -39,7 +48,7 @@ export interface OrderOverview {
     order: OrderVO
     viewerRole: 'BUYER' | 'SELLER'
     statusLabel: string
-    nextStep: { responsibleRole: 'BUYER' | 'SELLER' | 'NONE'; title: string; description: string; yours: boolean }
+    nextStep: { responsibleRole: 'BUYER' | 'SELLER' | 'ADMIN' | 'NONE'; title: string; description: string; yours: boolean }
     timeline: Array<{ key: string; title: string; time: string | null; state: 'RECORDED' | 'UNRECORDED' | 'UNKNOWN' | 'WAITING'; participant: string; description: string }>
     notices: string[]
 }

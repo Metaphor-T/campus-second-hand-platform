@@ -3,9 +3,9 @@
         <ProductExperienceToolbar />
         <div v-if="detailError" class="product-request-error" role="alert">{{ detailError }}<el-button @click="loadProductData">重试加载</el-button></div>
         <!-- 返回按钮 -->
-        <div class="back-bar" @click="goBack" role="button" tabindex="0" aria-label="返回商品列表" @keydown.enter="goBack" @keydown.space.prevent="goBack">
+        <div class="back-bar" @click="goBack" role="button" tabindex="0" :aria-label="returnLabel" @keydown.enter="goBack" @keydown.space.prevent="goBack">
             <el-icon :size="20"><ArrowLeft /></el-icon>
-            <span>{{ product?.title ?? '商品' }}详情</span>
+            <span>{{ returnLabel }}</span>
         </div>
 
         <template v-if="product">
@@ -56,7 +56,7 @@
 
                 <!-- 库存指标 -->
                 <div class="stock-indicator">
-                    <template v-if="product.stock != null && product.stock > 0">
+                    <template v-if="product.status === 1 && product.stockMode === 0 && product.stock != null && product.stock > 0">
                         <div class="stock-inner" :class="{ 'stock-warning': product.stock <= 5 }">
                             <el-icon :size="18" v-if="product.stock <= 5"><WarningFilled /></el-icon>
                             <el-icon :size="18" v-else><CircleCheckFilled /></el-icon>
@@ -77,9 +77,9 @@
                             class="stock-bar"
                         />
                     </template>
-                    <div class="stock-inner stock-unlimited" v-else>
-                        <el-icon :size="18"><CircleCheckFilled /></el-icon>
-                        <span class="stock-text">无限量供应</span>
+                    <div class="stock-inner" :class="purchaseBlockReason(product) ? 'stock-unavailable' : 'stock-unlimited'" v-else>
+                        <el-icon :size="18"><WarningFilled v-if="purchaseBlockReason(product)" /><CircleCheckFilled v-else /></el-icon>
+                        <span class="stock-text">{{ stockLabel(product) }}</span>
                     </div>
                 </div>
 
@@ -108,7 +108,7 @@
                     </el-button>
                     <el-button
                         type="warning"
-                        :disabled="wanted"
+                        :disabled="wanted || product?.status !== 1"
                         @click="handleWant"
                         :loading="actionLoading"
                         round
@@ -118,15 +118,15 @@
                         <span class="btn-badge">{{ product?.wantCount ?? 0 }}</span>
                     </el-button>
                     <el-button
-                        type="primary"
+                        :type="purchaseBlockReason(product) ? 'info' : 'primary'"
                         @click="goCreateOrder"
                         :disabled="isOwnProduct"
                         round
                         size="default"
-                        class="btn-buy"
+                        class="btn-buy" :class="{ 'is-unavailable': !!purchaseBlockReason(product) }"
                     >
                         <el-icon :size="16" style="margin-right: 4px;"><ShoppingCart /></el-icon>
-                        {{ isOwnProduct ? '自己的商品' : '立即下单' }}
+                        {{ isOwnProduct ? '自己的商品' : purchaseBlockReason(product) ? stockLabel(product) : '立即下单' }}
                     </el-button>
                 </div>
             </div>
@@ -364,6 +364,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import ProductExperienceToolbar from '@/components/ProductExperienceToolbar.vue'
+import { stockLabel, purchaseBlockReason } from '@/utils/product-stock'
 import { useProductReadability, productImageUrl, productErrorMessage } from '@/utils/product-experience'
 import { ArrowLeft, ArrowUp, Picture, View, Star, ChatDotSquare, ChatLineSquare, ShoppingCart, WarningFilled, CircleCheckFilled, Medal, Van, Collection, Document } from '@element-plus/icons-vue'
 import { userTokenAuthApi } from '@/api/user-api'
@@ -519,14 +520,19 @@ const switchPreviewImage = (index: number) => {
     dialogImageUrl.value = getImageUrl(imageList.value[index].imageUrl)
 }
 
+const orderOrigin = computed(() => route.query.from === 'order' && /^[1-9]\d*$/.test(String(route.query.orderId ?? '')) && Number(route.query.orderId)<=2147483647)
+const returnLabel = computed(() => orderOrigin.value ? '返回订单详情' : route.query.from === 'favorites' ? '返回我的收藏' : route.query.from === 'products' ? '返回我的商品' : '返回商品列表')
 const goBack = () => {
-    router.back()
+    if(orderOrigin.value)router.push({path:'/user-home/order-detail/'+String(route.query.orderId),query:{role:route.query.role==='seller'?'seller':'buyer'}})
+    else router.push(route.query.from==='favorites'?'/user-home/favorites':route.query.from==='products'?'/user-home/products':'/user-home/market')
 }
 
 // ====== 跳转下单 ======
 const goCreateOrder = () => {
     const id = Number(route.params.id)
     if (!id || isOwnProduct.value) return
+    const reason=purchaseBlockReason(product.value)
+    if(reason){ElMessage.warning(reason);return}
     router.push(`/user-home/create-order/${id}`)
 }
 
@@ -542,7 +548,7 @@ const toggleFavorite = async () => {
     if (!id) return
     actionLoading.value = true
     try {
-        const res = await toggleFavoriteApi(id)
+        const res = await toggleFavoriteApi(id, { silentError: true })
         favorited.value = res?.data?.favorited ?? !favorited.value
         // 更新本地的收藏数
         if (product.value) {
@@ -550,7 +556,7 @@ const toggleFavorite = async () => {
             if (product.value.favoriteCount < 0) product.value.favoriteCount = 0
         }
     } catch (e: any) {
-        ElMessage.error(e.message || '操作失败')
+        ElMessage.error(productErrorMessage(e, '操作失败，请稍后重试'))
     } finally {
         actionLoading.value = false
     }
@@ -562,7 +568,7 @@ const handleWant = async () => {
     if (!id) return
     actionLoading.value = true
     try {
-        await addWantApi(id)
+        await addWantApi(id, { silentError: true })
         wanted.value = true
         // 更新本地的想要数
         if (product.value) {
@@ -570,7 +576,7 @@ const handleWant = async () => {
         }
         ElMessage.success('已标记想要')
     } catch (e: any) {
-        ElMessage.error(e.message || '操作失败')
+        ElMessage.error(productErrorMessage(e, '操作失败，请稍后重试'))
     } finally {
         actionLoading.value = false
     }
@@ -653,7 +659,7 @@ const loadProductData = async () => {
     reviewStats.value = null
     sellerProducts.value = []
     try {
-        const res = await getProductDetailApi(id)
+        const res = await getProductDetailApi(id, { silentError: true })
         if (generation !== detailGeneration) return
         product.value = res?.data ?? null
         // 找到封面图的索引
@@ -695,7 +701,7 @@ const loadProductData = async () => {
         loadSellerProducts()
 
         // 记录浏览（不阻塞主流程）
-        recordViewApi(id).then(() => {
+        if (product.value?.status === 1) recordViewApi(id).then(() => {
             if (generation === detailGeneration && product.value?.id === id) {
                 product.value.viewCount = (product.value.viewCount ?? 0) + 1
             }
@@ -726,6 +732,7 @@ onBeforeUnmount(() => {
 
 <style scoped lang="scss">
 @use '../../styles/variables' as *;
+.product-detail .btn-buy.is-unavailable { background:#e5e7eb; color:#4b5563; border-color:#cbd0d6; }
 .product-detail {
     max-width: 860px;
     margin: 0 auto;
@@ -1079,12 +1086,17 @@ onBeforeUnmount(() => {
 // ====== 操作按钮行 ======
 .action-row {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     gap: 16px;
     margin-top: $spacing-xl;
     padding-top: $spacing-lg;
 
     .el-button {
+        margin-left: 0;
+        max-width: 100%;
+        min-width: 0;
+        white-space: normal;
         height: 40px;
         font-size: 1.071429rem;
         font-weight: 600;
@@ -1234,6 +1246,10 @@ onBeforeUnmount(() => {
 
         &.stock-unlimited {
             color: #67c23a;
+        }
+
+        &.stock-unavailable {
+            color: #9a3412;
         }
 
         .stock-text {

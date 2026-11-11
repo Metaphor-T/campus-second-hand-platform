@@ -7,7 +7,7 @@ import type {
     ProductUpdateDTO,
     ProductAuditDTO
 } from "@/types/product"
-import request from "@/utils/request"
+import request, { type RequestOptions } from "@/utils/request"
 
 // ==================== 管理员端 ====================
 
@@ -34,28 +34,28 @@ export const myProductListApi = (params: ProductQueryDTO) => {
 }
 
 /** 用户发布商品 */
-export const addProductApi = (params: ProductAddDTO) => {
-    return request.post<Result<void>>("/product/add", params)
+export const addProductApi = (params: ProductAddDTO, options?: RequestOptions) => {
+    return request.post<Result<void>>("/product/add", params, options)
 }
 
 /** 用户修改商品 */
-export const updateProductApi = (params: ProductUpdateDTO) => {
-    return request.put<Result<void>>("/product/update", params)
+export const updateProductApi = (params: ProductUpdateDTO, options?: RequestOptions) => {
+    return request.put<Result<void>>("/product/update", params, options)
 }
 
 /** 用户下架商品 */
-export const downProductApi = (id: number) => {
-    return request.put<Result<void>>(`/product/down/${id}`)
+export const downProductApi = (id: number, options?: RequestOptions) => {
+    return request.put<Result<void>>(`/product/down/${id}`, undefined, options)
 }
 
 /** 用户重新上架商品 */
-export const upProductApi = (id: number) => {
-    return request.put<Result<void>>(`/product/up/${id}`)
+export const upProductApi = (id: number, confirmation: ProductUpdateDTO, options?: RequestOptions) => {
+    return request.put<Result<void>>(`/product/up/${id}`, confirmation, options)
 }
 
 /** 用户删除商品 */
-export const deleteMyProductApi = (id: number) => {
-    return request.delete<Result<void>>(`/product/my/${id}`)
+export const deleteMyProductApi = (id: number, options?: RequestOptions) => {
+    return request.delete<Result<void>>(`/product/my/${id}`, undefined, options)
 }
 
 // ==================== 公开端 ====================
@@ -66,20 +66,20 @@ export const publicProductListApi = (params: ProductQueryDTO) => {
 }
 
 /** 查询单个商品详情（联表 user、category，含图册） */
-export const getProductDetailApi = (id: number) => {
-    return request.get<Result<ProductVO>>(`/product/public/detail/${id}`)
+export const getProductDetailApi = (id: number, options?: RequestOptions) => {
+    return request.get<Result<ProductVO>>(`/product/public/detail/${id}`, undefined, options)
 }
 
 // ==================== 收藏/想要 ====================
 
 /** 切换收藏状态 */
-export const toggleFavoriteApi = (productId: number) => {
-    return request.post<Result<{ favorited: boolean }>>(`/product/favorite/toggle/${productId}`)
+export const toggleFavoriteApi = (productId: number, options?: RequestOptions) => {
+    return request.post<Result<{ favorited: boolean }>>(`/product/favorite/toggle/${productId}`, undefined, options)
 }
 
 /** 添加"想要"记录 */
-export const addWantApi = (productId: number) => {
-    return request.post<Result<void>>(`/product/want/${productId}`)
+export const addWantApi = (productId: number, options?: RequestOptions) => {
+    return request.post<Result<void>>(`/product/want/${productId}`, undefined, options)
 }
 
 /** 查询当前用户对指定商品的交互状态（收藏/想要） */
@@ -107,8 +107,8 @@ export const recordViewApi = (productId: number) => {
 }
 
 /** 商品图片专用上传，复用请求拦截器传递当前登录凭证。 */
-export const uploadProductImageApi = (file: File) => {
+export const uploadProductImageApi = (file: File, options?: RequestOptions) => {
     const form = new FormData()
     form.append('file', file)
-    return request.post<Result<{ filePath: string }>>('/product/images/upload', form)
+    return request.post<Result<{ filePath: string }>>('/product/images/upload', form, options)
 }

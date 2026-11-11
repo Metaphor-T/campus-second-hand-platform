@@ -17,7 +17,7 @@
                         </el-carousel>
                         <span class="hot-main-rank" :class="'rank-' + (activeHotIndex + 1)">{{ activeHotIndex + 1 }}</span>
                         <div class="hot-main-overlay">
-                            <h3 class="hot-overlay-title">{{ hotProducts[activeHotIndex]?.title }}</h3>
+                            <h3 class="hot-overlay-title">{{ hotProducts[activeHotIndex]?.title }}</h3><el-tag v-if="hotProducts[activeHotIndex] && stockNotice(hotProducts[activeHotIndex])" type="info">{{ stockNotice(hotProducts[activeHotIndex]) }}</el-tag>
                             <div class="hot-overlay-price">
                                 <span class="hop-symbol">¥</span>
                                 <span class="hop-value">{{ hotProducts[activeHotIndex]?.price }}</span>
@@ -95,6 +95,7 @@
                         </div>
                         <div class="card-body">
                             <h4 class="card-title">{{ item.title }}</h4>
+                            <el-tag v-if="stockNotice(item)" size="small" type="info">{{ stockNotice(item) }}</el-tag>
                             <div class="card-price">
                                 <span class="price-symbol">¥</span>
                                 <span class="price">{{ item.price }}</span>
@@ -133,6 +134,7 @@
 </template>
 
 <script lang="ts" setup>
+import { stockNotice } from '@/utils/product-stock'
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import ProductFilters from '@/components/ProductFilters.vue'

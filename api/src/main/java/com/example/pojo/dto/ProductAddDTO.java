@@ -50,7 +50,14 @@ public class ProductAddDTO {
     @Max(value = 3, message = "交易方式无效")
     private Integer tradeType;
 
-    /** 库存数量（0表示不限库存，默认0） */
+    /** 库存模式：0有限库存，1不限库存 */
+    @NotNull(message = "请选择库存模式")
+    @Min(value = 0, message = "库存模式无效")
+    @Max(value = 1, message = "库存模式无效")
+    private Integer stockMode;
+
+    /** 库存数量；不限库存时为0 */
+    @NotNull(message = "请填写库存数量")
     @Min(value = 0, message = "库存不能为负数")
     @Max(value = 999999, message = "库存最多999999件")
     private Integer stock;

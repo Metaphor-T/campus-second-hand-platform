@@ -34,14 +34,14 @@
                         <div class="product-price">¥{{ product.price }}</div>
                         <!-- 库存指标 -->
                         <div class="order-stock" v-if="product.stock != null">
-                            <template v-if="product.stock > 0">
+                            <template v-if="product.stockMode === 0 && product.stock != null && product.stock > 0">
                                 <el-tag size="small" :type="product.stock <= 5 ? 'warning' : 'success'" effect="plain">
                                     {{ product.stock <= 5 ? '库存紧张' : '有货' }}
                                 </el-tag>
                                 <span class="stock-count">库存 {{ product.stock }} 件</span>
                             </template>
                             <template v-else>
-                                <el-tag size="small" type="info" effect="plain">无限量</el-tag>
+                                <el-tag size="small" type="info" effect="plain">{{ stockLabel(product) }}</el-tag>
                             </template>
                         </div>
                     </div>
@@ -212,11 +212,13 @@
 </template>
 
 <script lang="ts" setup>
+import { stockLabel, purchaseBlockReason } from '@/utils/product-stock'
 import { ref, computed, watch, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowRight, Picture, Plus, SuccessFilled, CircleCheck, TakeawayBox, Van } from '@element-plus/icons-vue'
 import { getProductDetailApi } from '@/api/product-api'
+import { productErrorMessage } from '@/utils/product-experience'
 import { listAddressApi } from '@/api/address-api'
 import { createOrderApi } from '@/api/order-api'
 import type { ProductVO } from '@/types/product'
@@ -280,7 +282,7 @@ const payAmount = computed(() => {
 // 最大可购买数量（限库存时取库存数，不限时取99）
 const maxQuantity = computed(() => {
     const stock = product.value?.stock
-    if (stock != null && stock > 0) return stock
+    if (product.value?.stockMode === 0) return Math.max(1,stock ?? 0)
     return 99
 })
 
@@ -288,6 +290,8 @@ const maxQuantity = computed(() => {
 const stockWarning = computed(() => {
     const stock = product.value?.stock
     const qty = form.quantity ?? 1
+    const blocked=purchaseBlockReason(product.value)
+    if(blocked)return blocked
     if (stock != null && stock > 0 && qty > stock) {
         return `当前数量超出库存（仅剩 ${stock} 件），请调整`
     }
@@ -299,7 +303,7 @@ const stockWarning = computed(() => {
 
 // 能否提交
 const canSubmit = computed(() => {
-    if (!product.value) return false
+    if (!product.value || purchaseBlockReason(product.value) || !Number.isInteger(form.quantity) || (form.quantity ?? 0)<1 || (form.quantity ?? 0)>maxQuantity.value) return false
     const tradeType = product.value?.tradeType
     // 邮寄或两者皆可选邮寄需要选择地址
     if (tradeType === 2) {
@@ -371,6 +375,8 @@ const confirmAddress = () => {
 
 // 提交订单
 const handleSubmit = async () => {
+    const blocked=purchaseBlockReason(product.value)
+    if(blocked){ElMessage.warning(blocked);return}
     form.productId = product.value?.id
     if (!form.productId) return
 
@@ -384,7 +390,7 @@ const handleSubmit = async () => {
             addressId: addrId,
             quantity: form.quantity,
             buyerRemark: form.buyerRemark || undefined
-        })
+        }, { silentError: true })
         ElMessage.success('下单成功！')
         // 跳转到订单详情页
         const orderId = res?.data?.id
@@ -394,7 +400,7 @@ const handleSubmit = async () => {
             router.push('/user-home/orders')
         }
     } catch (e: any) {
-        ElMessage.error(e.message || '下单失败')
+        ElMessage.error(productErrorMessage(e, '下单失败，请稍后重试'))
     } finally {
         submitting.value = false
     }
@@ -409,11 +415,11 @@ onMounted(async () => {
     }
     loading.value = true
     try {
-        const res = await getProductDetailApi(id)
+        const res = await getProductDetailApi(id, { silentError: true })
         product.value = res?.data ?? null
         form.productId = id
     } catch (e: any) {
-        ElMessage.error(e.message || '加载商品信息失败')
+        ElMessage.error(productErrorMessage(e, '加载商品信息失败，请返回商品列表重试'))
     } finally {
         loading.value = false
     }

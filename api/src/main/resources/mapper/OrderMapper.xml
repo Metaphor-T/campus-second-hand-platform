@@ -28,6 +28,10 @@
         <result property="payMethod" column="pay_method"/>
         <result property="payTime" column="pay_time"/>
         <result property="orderStatus" column="order_status"/>
+        <result property="afterSaleDeadline" column="after_sale_deadline"/>
+        <result property="stockModeSnapshot" column="stock_mode_snapshot"/>
+        <result property="stockReleasedQuantity" column="stock_released_quantity"/>
+        <result property="stockReleaseDisposition" column="stock_release_disposition"/>
         <result property="shipTime" column="ship_time"/>
         <result property="receiveTime" column="receive_time"/>
         <result property="cancelTime" column="cancel_time"/>
@@ -37,6 +41,8 @@
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <!-- 交易状态保持原值；订单中心按处理中售后优先分组，避免计数重复。 -->
+    <sql id="orderBucket">CASE WHEN EXISTS (SELECT 1 FROM order_after_sale ars WHERE ars.order_id=o.id AND ars.state IN ('WAIT_SELLER','WAIT_ADMIN','WAIT_RETURN')) THEN 5 ELSE o.order_status END</sql>
     <!-- 公共查询字段片段 -->
     <sql id="baseColumns">
         o.id,
@@ -61,6 +67,10 @@
         o.pay_method,
         o.pay_time,
         o.order_status,
+        o.after_sale_deadline,
+        o.stock_mode_snapshot,
+        o.stock_released_quantity,
+        o.stock_release_disposition,
         o.ship_time,
         o.receive_time,
         o.cancel_time,
@@ -82,7 +92,7 @@
         <where>
             o.buyer_id = #{buyerId}
             <if test="query.orderStatus != null">
-                AND o.order_status = #{query.orderStatus}
+                AND <include refid="orderBucket"/> = #{query.orderStatus}
             </if>
             <if test="query.keyword != null and query.keyword != ''">
                 AND o.order_no LIKE concat('%', #{query.keyword}, '%')
@@ -101,7 +111,7 @@
         <where>
             o.buyer_id = #{buyerId}
             <if test="query.orderStatus != null">
-                AND o.order_status = #{query.orderStatus}
+                AND <include refid="orderBucket"/> = #{query.orderStatus}
             </if>
             <if test="query.keyword != null and query.keyword != ''">
                 AND o.order_no LIKE concat('%', #{query.keyword}, '%')
@@ -121,7 +131,7 @@
         <where>
             o.seller_id = #{sellerId}
             <if test="query.orderStatus != null">
-                AND o.order_status = #{query.orderStatus}
+                AND <include refid="orderBucket"/> = #{query.orderStatus}
             </if>
             <if test="query.keyword != null and query.keyword != ''">
                 AND o.order_no LIKE concat('%', #{query.keyword}, '%')
@@ -140,7 +150,7 @@
         <where>
             o.seller_id = #{sellerId}
             <if test="query.orderStatus != null">
-                AND o.order_status = #{query.orderStatus}
+                AND <include refid="orderBucket"/> = #{query.orderStatus}
             </if>
             <if test="query.keyword != null and query.keyword != ''">
                 AND o.order_no LIKE concat('%', #{query.keyword}, '%')
@@ -171,7 +181,7 @@
         LEFT JOIN address a ON o.address_id = a.id AND a.user_id = o.buyer_id
         <where>
             <if test="query.orderStatus != null">
-                AND o.order_status = #{query.orderStatus}
+                AND <include refid="orderBucket"/> = #{query.orderStatus}
             </if>
             <if test="query.keyword != null and query.keyword != ''">
                 AND (o.order_no LIKE concat('%', #{query.keyword}, '%')
@@ -195,7 +205,7 @@
         LEFT JOIN base_user su ON o.seller_id = su.id
         <where>
             <if test="query.orderStatus != null">
-                AND o.order_status = #{query.orderStatus}
+                AND <include refid="orderBucket"/> = #{query.orderStatus}
             </if>
             <if test="query.keyword != null and query.keyword != ''">
                 AND (o.order_no LIKE concat('%', #{query.keyword}, '%')
@@ -209,21 +219,26 @@
     <!-- 买家各状态订单数量统计（按 order_status 分组） -->
     <select id="countBuyerOrdersByStatus" resultType="java.util.Map">
         SELECT
-            CAST(order_status AS SIGNED) AS `status`,
+            CAST(<include refid="orderBucket"/> AS SIGNED) AS `status`,
             COUNT(*) AS `count`
         FROM `order` o
         WHERE o.buyer_id = #{buyerId}
-        GROUP BY o.order_status
+        GROUP BY `status`
     </select>
 
     <!-- 卖家各状态订单数量统计（按 order_status 分组） -->
     <select id="countSellerOrdersByStatus" resultType="java.util.Map">
         SELECT
-            CAST(order_status AS SIGNED) AS `status`,
+            CAST(<include refid="orderBucket"/> AS SIGNED) AS `status`,
             COUNT(*) AS `count`
         FROM `order` o
         WHERE o.seller_id = #{sellerId}
-        GROUP BY o.order_status
+        GROUP BY `status`
     </select>
 
+    <select id="restorableStockQuantity" resultType="long">
+        SELECT COALESCE(SUM(stock_deducted_quantity), 0)
+        FROM `order`
+        WHERE product_id = #{productId} AND order_status != 4 AND stock_deducted_quantity &gt; 0
+    </select>
 </mapper>

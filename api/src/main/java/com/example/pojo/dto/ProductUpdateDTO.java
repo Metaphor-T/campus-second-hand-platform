@@ -58,6 +58,11 @@ public class ProductUpdateDTO {
     @Max(value = 3, message = "交易方式无效")
     private Integer tradeType;
 
+    /** 库存模式：0有限库存，1不限库存 */
+    @Min(value = 0, message = "库存模式无效")
+    @Max(value = 1, message = "库存模式无效")
+    private Integer stockMode;
+
     /** 库存数量 */
     @Min(value = 0, message = "库存不能为负数")
     @Max(value = 999999, message = "库存最多999999件")

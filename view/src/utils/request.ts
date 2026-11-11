@@ -51,14 +51,14 @@ const request = {
   post: <T = any>(url: string, data?: any, options?: RequestOptions): Promise<T> => {
     return instance.post(url, data, options)
   },
-  get: <T = any>(url: string, params?: any): Promise<T> => {
-    return instance.get(url, { params })
+  get: <T = any>(url: string, params?: any, options?: RequestOptions): Promise<T> => {
+    return instance.get(url, { ...options, params })
   },
-  put: <T = any>(url: string, data?: any): Promise<T> => {
-    return instance.put(url, data)
+  put: <T = any>(url: string, data?: any, options?: RequestOptions): Promise<T> => {
+    return instance.put(url, data, options)
   },
-  delete: <T = any>(url: string, params?: any): Promise<T> => {
-    return instance.delete(url, { params })
+  delete: <T = any>(url: string, params?: any, options?: RequestOptions): Promise<T> => {
+    return instance.delete(url, { ...options, params })
   }
 }
 

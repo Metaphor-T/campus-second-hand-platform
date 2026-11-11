@@ -20,6 +20,7 @@ import com.example.pojo.entity.ProductImage;
 import com.example.pojo.vo.ProductImageVO;
 import com.example.pojo.vo.ProductVO;
 import com.example.service.ProductService;
+import com.example.service.ProductStock;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -124,7 +125,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .originalPrice(addDTO.getOriginalPrice())
                 .condition(addDTO.getCondition())
                 .tradeType(addDTO.getTradeType())
-                .stock(addDTO.getStock() != null ? addDTO.getStock() : 0) // 默认0（不限库存）
+                .stock(addDTO.getStock()).stockMode(addDTO.getStockMode())
                 .version(0) // 初始版本号
                 .status(STATUS_PENDING) // 默认待审核
                 .viewCount(0)
@@ -133,6 +134,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .createTime(LocalDateTime.now())
                 .build();
         if (userId == null) throw new BusinessException("请先登录再发布商品", 400);
+        ProductStock.validate(product.getStockMode(),product.getStock(),true);
         requireEnabledCategory(product.getCategoryId());
         List<ProductImageDTO> images = validateAndNormalizeImages(addDTO.getImages(), userId);
         product.setTitle(product.getTitle().trim());
@@ -149,6 +151,10 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void update(Integer userId, ProductUpdateDTO updateDTO) {
+        saveUpdate(userId,updateDTO,false);
+    }
+
+    private void saveUpdate(Integer userId, ProductUpdateDTO updateDTO, boolean relist) {
         Product product = this.getById(updateDTO.getId());
         if (product == null) {
             throw new BusinessException("商品不存在", 404);
@@ -157,7 +163,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             throw new BusinessException("只能修改自己发布的商品", 403);
         }
 
-        if (updateDTO.getVersion() != null && !Objects.equals(updateDTO.getVersion(), product.getVersion())) {
+        if (relist && !Objects.equals(product.getStatus(),STATUS_DOWN)) throw new BusinessException("只有已下架商品可以重新上架",409);
+        if (updateDTO.getVersion() != null && updateDTO.getVersion() != (product.getVersion()==null?0:product.getVersion())) {
             throw new BusinessException("商品已被其他操作更新，请刷新后重新编辑", 409);
         }
         if (updateDTO.getCategoryId() != null) {
@@ -171,21 +178,31 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         else if (updateDTO.getOriginalPrice() != null) product.setOriginalPrice(updateDTO.getOriginalPrice());
         if (updateDTO.getCondition() != null) product.setCondition(updateDTO.getCondition());
         if (updateDTO.getTradeType() != null) product.setTradeType(updateDTO.getTradeType());
+        if (updateDTO.getStockMode() != null) product.setStockMode(updateDTO.getStockMode());
         if (updateDTO.getStock() != null) product.setStock(updateDTO.getStock());
+        ProductStock.validate(product.getStockMode(),product.getStock(),relist);
+        if (Objects.equals(product.getStockMode(), ProductStock.LIMITED)
+                && (updateDTO.getStock() != null || updateDTO.getStockMode() != null)) {
+            long reservedReturns = orderMapper.restorableStockQuantity(product.getId());
+            if (product.getStock() + reservedReturns > ProductStock.MAX) {
+                throw new BusinessException("请为未结束订单的库存返还保留空间，当前可售数量最多"
+                        + Math.max(0, ProductStock.MAX - reservedReturns) + "件", 409);
+            }
+        }
         validateMergedProduct(product);
         List<ProductImageDTO> images = updateDTO.getImages() == null ? null : validateAndNormalizeImages(updateDTO.getImages(), userId);
 
         // 内容修改后重新审核；已下架商品保持下架，明确上架时再提交审核。
-        int nextStatus = Objects.equals(product.getStatus(), STATUS_DOWN) ? STATUS_DOWN : STATUS_PENDING;
+        int nextStatus = !relist && Objects.equals(product.getStatus(), STATUS_DOWN) ? STATUS_DOWN : STATUS_PENDING;
         int version = product.getVersion() == null ? 0 : product.getVersion();
         LambdaUpdateWrapper<Product> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(Product::getId, product.getId()).eq(Product::getUserId, userId)
-                .eq(Product::getVersion, version).eq(Product::getStatus, product.getStatus())
+                .eq(product.getVersion()!=null,Product::getVersion,version).isNull(product.getVersion()==null,Product::getVersion).eq(Product::getStatus,product.getStatus())
                 .set(Product::getCategoryId, product.getCategoryId())
                 .set(Product::getTitle, product.getTitle()).set(Product::getDescription, product.getDescription())
                 .set(Product::getPrice, product.getPrice()).set(Product::getOriginalPrice, product.getOriginalPrice())
                 .set(Product::getCondition, product.getCondition()).set(Product::getTradeType, product.getTradeType())
-                .set(Product::getStock, product.getStock()).set(Product::getStatus, nextStatus)
+                .set(Product::getStock, product.getStock()).set(Product::getStockMode, product.getStockMode()).set(Product::getStatus, nextStatus)
                 .set(Product::getAuditRemark, null).set(Product::getAuditTime, null).set(Product::getAuditorId, null)
                 .set(Product::getUpdateTime, LocalDateTime.now()).set(Product::getVersion, version + 1);
         if (!this.update(wrapper)) throw new BusinessException("商品已变化，请刷新后重新编辑", 409);
@@ -210,6 +227,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (auditDTO.getStatus() != STATUS_APPROVED && auditDTO.getStatus() != STATUS_REJECTED) {
             throw new BusinessException("审核结果只能是 1-通过 或 2-拒绝", 400);
         }
+
+        if (auditDTO.getStatus()==STATUS_APPROVED) ProductStock.validate(product.getStockMode(),product.getStock(),true);
 
         // 更新审核信息
         LambdaUpdateWrapper<Product> wrapper = new LambdaUpdateWrapper<>();
@@ -249,7 +268,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         LambdaUpdateWrapper<Product> wrapper = new LambdaUpdateWrapper<>();
         int version = product.getVersion() == null ? 0 : product.getVersion();
         wrapper.eq(Product::getId, productId).eq(Product::getUserId, userId)
-                .eq(Product::getVersion, version).eq(Product::getStatus, product.getStatus())
+                .eq(product.getVersion()!=null,Product::getVersion,version).isNull(product.getVersion()==null,Product::getVersion).eq(Product::getStatus,product.getStatus())
                 .set(Product::getStatus, STATUS_DOWN).set(Product::getVersion, version + 1)
                 .set(Product::getUpdateTime, LocalDateTime.now());
         if (!this.update(wrapper)) throw new BusinessException("商品状态已变化，请刷新后重试", 409);
@@ -260,28 +279,25 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * <p>状态回到「待审核」，需重新经过管理员审核</p>
      */
     @Override
-    public void up(Integer userId, Integer productId) {
-        Product product = this.getById(productId);
-        if (product == null) {
-            throw new BusinessException("商品不存在", 404);
+    @Transactional(rollbackFor = Exception.class)
+    public void up(Integer userId, Integer productId, ProductUpdateDTO confirmation) {
+        if (confirmation==null || !Objects.equals(productId,confirmation.getId()) || confirmation.getVersion()==null
+            || confirmation.getTitle()==null || confirmation.getCategoryId()==null || confirmation.getPrice()==null
+            || confirmation.getCondition()==null || confirmation.getTradeType()==null || confirmation.getStockMode()==null
+            || confirmation.getStock()==null || confirmation.getImages()==null || confirmation.getImages().isEmpty()) {
+            throw new BusinessException("请先确认完整商品信息、库存模式和数量，再提交上架审核",400);
         }
-        if (!Objects.equals(product.getUserId(), userId)) {
-            throw new BusinessException("只能操作自己发布的商品", 403);
-        }
-        if (product.getStatus() != STATUS_DOWN) {
-            throw new BusinessException("只有已下架的商品才能重新上架");
-        }
+        saveUpdate(userId,confirmation,true);
+    }
 
-        LambdaUpdateWrapper<Product> wrapper = new LambdaUpdateWrapper<>();
-        int version = product.getVersion() == null ? 0 : product.getVersion();
-        wrapper.eq(Product::getId, productId).eq(Product::getUserId, userId)
-                .eq(Product::getVersion, version).eq(Product::getStatus, STATUS_DOWN)
-                .set(Product::getVersion, version + 1).set(Product::getUpdateTime, LocalDateTime.now())
-                .set(Product::getStatus, STATUS_PENDING)
-                .set(Product::getAuditRemark, null)
-                .set(Product::getAuditTime, null)
-                .set(Product::getAuditorId, null);
-        if (!this.update(wrapper)) throw new BusinessException("商品状态已变化，请刷新后重试", 409);
+    @Override
+    public boolean canViewDetail(ProductVO product,Integer viewerId,String role) {
+        if(product==null)return false;
+        if(Objects.equals(product.getStatus(),1))return true;
+        if(viewerId==null)return false;
+        if(Objects.equals(product.getUserId(),viewerId)||"ADMIN".equalsIgnoreCase(role))return true;
+        return Objects.equals(product.getStatus(),3) && orderMapper.selectCount(new LambdaQueryWrapper<Order>()
+            .eq(Order::getProductId,product.getId()).and(w->w.eq(Order::getBuyerId,viewerId).or().eq(Order::getSellerId,viewerId)))>0;
     }
 
     /**
@@ -393,7 +409,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     /**
      * 扣减商品库存（乐观锁防超卖）
-     * <p>库存为0表示不限库存，不执行扣减逻辑</p>
+     * <p>库存模式独立；有限库存扣减，不限库存只校验并更新版本。</p>
      *
      * @param productId 商品ID
      * @param quantity  扣减数量
@@ -403,11 +419,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deductStock(Integer productId, Integer quantity, Integer version) {
-        // 不限库存的商品无需扣减
-        if (version == null) {
-            return true;
-        }
-        int affected = productMapper.deductStock(productId, quantity, version);
+        if(quantity==null||quantity<1||quantity>ProductStock.MAX)return false;
+        int affected = productMapper.deductStock(productId, quantity, version==null?0:version);
         return affected > 0;
     }
 
@@ -420,7 +433,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void restoreStock(Integer productId, Integer quantity) {
-        productMapper.restoreStock(productId, quantity);
+        if (quantity==null || quantity<1 || quantity>ProductStock.MAX || productMapper.restoreStock(productId, quantity)!=1)
+            throw new BusinessException("库存返还失败：库存模式已变化或将超过999999件，请先核对商品库存",409);
     }
 
     /** 请求字段约束由 Controller 的 @Valid 执行；这里仅整理搜索词。 */
@@ -438,6 +452,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         validateProductField("condition", product.getCondition());
         validateProductField("tradeType", product.getTradeType());
         validateProductField("stock", product.getStock());
+        validateProductField("stockMode", product.getStockMode());
     }
 
     private void validateProductField(String field, Object value) {

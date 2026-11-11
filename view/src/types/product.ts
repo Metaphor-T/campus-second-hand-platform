@@ -42,7 +42,8 @@ export interface ProductVO {
     viewCount?: number     // 浏览量
     wantCount?: number     // 想要数
     favoriteCount?: number // 收藏数
-    stock?: number         // 库存数量（0表示不限库存）
+    stockMode?: 0 | 1 | null // 0有限库存，1不限库存，null历史待确认
+    stock?: number         // 有限库存数量，0为售罄
     version?: number       // 乐观锁版本号
     auditRemark?: string   // 审核备注
     auditTime?: string     // 审核时间
@@ -78,7 +79,8 @@ export interface ProductAddDTO {
     originalPrice?: number         // 原价
     condition?: number             // 新旧程度
     tradeType?: number             // 交易方式
-    stock?: number            // 库存数量（0不限库存）
+    stockMode?: 0 | 1 | null // 0有限库存，1不限库存，null历史待确认
+    stock?: number            // 有限库存数量
     images?: ProductImageDTO[]     // 图片列表
 }
 
@@ -96,6 +98,7 @@ export interface ProductUpdateDTO {
     originalPrice?: number    // 原价
     condition?: number        // 新旧程度
     tradeType?: number        // 交易方式
+    stockMode?: 0 | 1 | null // 0有限库存，1不限库存，null历史待确认
     stock?: number            // 库存数量
     images?: ProductImageDTO[] // 图片列表
 }
