@@ -8,9 +8,11 @@ api/file/*
 *.log
 .env
 .env.*
+!view/.env.example
 .DS_Store
 Thumbs.db
-.local-backups/
+api/src/main/resources/application-local.yml
 view/*.tsbuildinfo
 view/vite.config.d.ts
-api/src/main/resources/application-local.yml
+
+.local-backups/

@@ -1,3 +1,4 @@
+const adminCredentials = require('./helpers/test-config.cjs').getAdminCredentials()
 const { chromium } = require('../../.local-backups/a11y-tools/node_modules/playwright')
 const { AxeBuilder } = require('../../.local-backups/a11y-tools/node_modules/@axe-core/playwright')
 const fs = require('node:fs')
@@ -35,8 +36,7 @@ function consistent(data) {
   const responseForStats = () => page.waitForResponse(r => new URL(r.url()).pathname === '/stats/dashboard')
   const settled = () => page.locator('.dashboard-container[aria-busy="false"]').waitFor()
   try {
-    const seed = fs.readFileSync('sql/db.sql', 'utf8').match(/INSERT INTO `base_user` VALUES \(1, '([^']+)', '([^']+)'/)
-    const login = await (await context.request.post('http://127.0.0.1:21090/admin/login', { data: { account: seed[1], password: seed[2] } })).json()
+    const login = await (await context.request.post('http://127.0.0.1:21090/admin/login', { data: { account: adminCredentials.account, password: adminCredentials.password } })).json()
     assert.equal(login.code, 200)
     await page.goto('http://127.0.0.1:21091/login')
     for (const width of [1440, 1024, 768, 320]) for (const scale of [1, 1.25, 1.5, 2]) {

@@ -1,3 +1,4 @@
+const adminCredentials = require('./helpers/test-config.cjs').getAdminCredentials()
 // 真实后端仅验证未接入状态；已接入的前端交互使用浏览器拦截夹具，不写入真实认证结果。
 const {chromium}=require('../../.local-backups/a11y-tools/node_modules/playwright')
 const {AxeBuilder}=require('../../.local-backups/a11y-tools/node_modules/@axe-core/playwright')
@@ -13,8 +14,7 @@ fs.mkdirSync(out,{recursive:true})
   const ready=async()=>{await card().waitFor();await card().locator('.verification-message').waitFor();await page.locator('.verification-card[aria-busy="false"]').waitFor()}
   page.on('pageerror',e=>errors.push(e.message))
   try {
-    const seed=fs.readFileSync('sql/db.sql','utf8').match(/INSERT INTO `base_user` VALUES \(1, '([^']+)', '([^']+)'/)
-    const admin=await(await context.request.post(api+'/admin/login',{data:{account:seed[1],password:seed[2]}})).json();assert.equal(admin.code,200);adminToken=admin.data.token
+    const admin=await(await context.request.post(api+'/admin/login',{data:{account:adminCredentials.account,password:adminCredentials.password}})).json();assert.equal(admin.code,200);adminToken=admin.data.token
     const account='campus_qa_'+Date.now().toString(36),password='CampusTest!2026'
     assert.equal((await(await context.request.post(api+'/user/register',{data:{account,password,username:'认证接口临时测试'}})).json()).code,200)
     const login=await(await context.request.post(api+'/user/login',{data:{account,password}})).json();assert.equal(login.code,200);token=login.data.token

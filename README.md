@@ -47,6 +47,10 @@ spring:
 
 后端在 `api` 目录运行 `mvn spring-boot:run`；前端在 `view` 目录安装项目依赖后运行 `npm run dev`。
 
+前端 API、图片和 WebSocket 默认统一使用 `http://localhost:21090`。如需更改，将 `view/.env.example` 复制为 `view/.env.local`，修改 `VITE_API_BASE_URL` 后重启前端；生产构建也读取该设置。示例不包含密码，本机 `.env.local` 不提交。
+
+运行 `mvn test` 时，未配置专用测试库密码会跳过数据库集成测试。浏览器验收通过环境变量显式提供独立测试环境的管理员登录身份，不再解析 SQL 文本中的账号密码。配置方法见[开发测试说明](docs/database-installation.md#开发测试配置)。
+
 ## 数据库统一导入
 
 仓库 SQL 入口为 [`sql/db.sql`](sql/db.sql)，包含 17 张表及稳定项目快照的 504 条记录。使用 MySQL 8.0，在自己新建的空数据库中完整执行；此前新增的订单字段、校园资料表、校园认证表已包括在内。

@@ -1,3 +1,4 @@
+const adminCredentials = require('./helpers/test-config.cjs').getAdminCredentials()
 const {chromium}=require('../../.local-backups/a11y-tools/node_modules/playwright')
 const {AxeBuilder}=require('../../.local-backups/a11y-tools/node_modules/@axe-core/playwright')
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict')
@@ -18,8 +19,7 @@ fs.mkdirSync(out,{recursive:true})
   const demo={username:'个人中心验收同学',phone:'13912345678',gender:2,school:'校园资料演示学校',college:'计算机学院',studentNumber:'DEMO_2026001'}
   page.on('pageerror',e=>errors.push(e.message))
   try{
-    const seed=fs.readFileSync('sql/db.sql','utf8').match(/INSERT INTO `base_user` VALUES \(1, '([^']+)', '([^']+)'/)
-    const admin=await(await context.request.post(api+'/admin/login',{data:{account:seed[1],password:seed[2]}})).json();assert.equal(admin.code,200);adminToken=admin.data.token
+    const admin=await(await context.request.post(api+'/admin/login',{data:{account:adminCredentials.account,password:adminCredentials.password}})).json();assert.equal(admin.code,200);adminToken=admin.data.token
     const account='profile_qa_'+Date.now().toString(36),oldPassword='ProfileTest!2026',newPassword='ProfileNew!2026'
     const registration=await(await context.request.post(api+'/user/register',{data:{account,password:oldPassword,username:'个人中心临时账号'}})).json();assert.equal(registration.code,200)
     const login=await(await context.request.post(api+'/user/login',{data:{account,password:oldPassword}})).json();assert.equal(login.code,200);userToken=login.data.token

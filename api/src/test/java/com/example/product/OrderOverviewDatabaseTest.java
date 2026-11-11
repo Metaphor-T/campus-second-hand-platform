@@ -8,10 +8,12 @@ import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.*;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import java.sql.*;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
+@EnabledIfEnvironmentVariable(named="CAMPUS_STATS_DB_PASSWORD",matches=".+")
 class OrderOverviewDatabaseTest {
     private int insert(Connection c,String sql,Object... values)throws SQLException {
         try(var s=c.prepareStatement(sql,Statement.RETURN_GENERATED_KEYS)) {

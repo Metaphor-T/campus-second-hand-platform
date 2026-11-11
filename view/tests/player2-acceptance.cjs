@@ -1,3 +1,4 @@
+const adminCredentials = require('./helpers/test-config.cjs').getAdminCredentials()
 const { chromium, request } = require('../../.local-backups/a11y-tools/node_modules/playwright')
 const fs = require('node:fs')
 const assert = require('node:assert/strict')
@@ -28,8 +29,7 @@ let seller,buyer,outsider,admin,base,image,categoryId,mainId
 ;(async()=>{
   api=await request.newContext({baseURL:'http://127.0.0.1:21090',timeout:15000})
   try {
-    const seed=fs.readFileSync('sql/db.sql','utf8').match(/INSERT INTO `base_user` VALUES \(1, '([^']+)', '([^']+)'/)
-    admin=ok(await call(null,'POST','/admin/login',{account:seed[1],password:seed[2]}))
+    admin=ok(await call(null,'POST','/admin/login',{account:adminCredentials.account,password:adminCredentials.password}))
     seller=await register('seller');buyer=await register('buyer');outsider=await register('other')
     const categories=ok(await call(null,'GET','/guest/category/list'));categoryId=categories[0].id
     const filename=fs.readdirSync('api/file').filter(x=>x.endsWith('.png')).sort((a,b)=>fs.statSync('api/file/'+a).size-fs.statSync('api/file/'+b).size)[0]

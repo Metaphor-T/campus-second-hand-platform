@@ -1,11 +1,16 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, import.meta.dirname, 'VITE_')
+  const apiBaseUrl = (env.VITE_API_BASE_URL?.trim() || 'http://localhost:21090').replace(/\/+$/, '')
+  return {
+  // API、图片和 WebSocket 统一使用同一地址；新克隆无需依赖忽略的环境文件。
+  define: { 'import.meta.env.VITE_API_BASE_URL': JSON.stringify(apiBaseUrl) },
   plugins: [
     vue(),
     AutoImport({
@@ -43,5 +48,6 @@ export default defineConfig({
       host: '0.0.0.0',  // HMR也允许外部访问
     },
     cors: true,
+  }
   }
 })

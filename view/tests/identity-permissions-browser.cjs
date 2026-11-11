@@ -1,3 +1,4 @@
+const adminCredentials = require('./helpers/test-config.cjs').getAdminCredentials()
 const {chromium}=require('../../.local-backups/a11y-tools/node_modules/playwright')
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict')
 const api='http://127.0.0.1:21090',site='http://127.0.0.1:21091',out='.local-backups/identity-permissions-results'
@@ -14,8 +15,7 @@ fs.mkdirSync(out,{recursive:true})
  const password='IdentityTest!2026',nextPassword='IdentityNext!2026'
  page.on('pageerror',error=>errors.push(error.message))
  try {
-  const seed=fs.readFileSync('sql/db.sql','utf8').match(/INSERT INTO `base_user` VALUES \(1, '([^']+)', '([^']+)'/)
-  rootToken=(await login('admin',seed[1],seed[2])).token
+  rootToken=(await login('admin',adminCredentials.account,adminCredentials.password)).token
   const rootBefore=await get('/admin/auth',rootToken),stamp=Date.now().toString(36)
   const register=async suffix=>{
    const account=`identity_${suffix}_${stamp}`
