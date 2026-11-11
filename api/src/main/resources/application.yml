@@ -29,4 +29,6 @@ file:
 
 security:
   jwt:
-    secret: ${CAMPUS_JWT_SECRET}
+    secret: ${CAMPUS_JWT_SECRET:}
+    # local 首次启动自动保存密钥；生产模式必须提供显式密钥或已有密钥文件。
+    key-file: ${CAMPUS_JWT_KEY_FILE:}

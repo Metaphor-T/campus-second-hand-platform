@@ -3,10 +3,11 @@ package com.example.utils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
+import com.example.security.JwtKeyProvider;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -19,14 +20,13 @@ import java.util.HexFormat;
 
 @Component
 public class JwtUtil {
-    @Value("${security.jwt.secret}") private String secret;
+    @Value("${security.jwt.secret:}") private String secret;
+    @Autowired private JwtKeyProvider keyProvider;
     private Key key;
     private byte[] secretBytes;
     private static final long EXPIRATION=7L*24*60*60*1000;
     @PostConstruct public void initialize() {
-        try { secretBytes=Decoders.BASE64.decode(secret); }
-        catch(Exception e) { throw new IllegalStateException("JWT密钥必须是独立配置的Base64随机密钥"); }
-        if(secretBytes.length<64) throw new IllegalStateException("JWT密钥至少需要64字节随机内容");
+        secretBytes=keyProvider==null?JwtKeyProvider.decode(secret):keyProvider.resolve(secret);
         key=Keys.hmacShaKeyFor(secretBytes);
     }
     public String generateToken(Integer id,String role,String password) {

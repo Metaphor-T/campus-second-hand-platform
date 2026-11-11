@@ -16,3 +16,4 @@ view/*.tsbuildinfo
 view/vite.config.d.ts
 
 .local-backups/
+.local-secrets/

@@ -2,6 +2,8 @@
 
 更新日期：2026-11-11。
 
+第一次运行请先看[成员本机运行教程：数据库连接到前后端启动](member-local-setup.md)，其中包含 DataGrip 字段、新建空库、账号授权、后端 YAML、IDEA/终端启动和常见报错。
+
 仓库只提供一个 SQL 入口：[`sql/db.sql`](../sql/db.sql)。它来自已验收稳定项目的数据库快照，包含 17 张表、504 条记录，以及订单库存记录字段、个人校园资料、校园认证预留表。不需要再执行旧迁移脚本。
 
 ## 首次安装
@@ -9,7 +11,7 @@
 1. 安装并启动 MySQL 8.0。本次还原验证使用 MySQL 8.0；未验证其他数据库版本。
 2. 在 DataGrip 中新建一个自己的空数据库，例如 `campus_demo`，字符集使用 `utf8mb4`。
 3. 打开 `sql/db.sql`，确认执行目标是这个空数据库，完整执行文件。
-4. 在自己的 `api/src/main/resources/application-local.yml` 中配置数据库 URL、账号、密码和独立 JWT 密钥。该文件被 Git 忽略，不要提交。
+4. 在自己的 `api/src/main/resources/application-local.yml` 中配置数据库 URL、账号、密码。该文件被 Git 忽略，不要提交。本地默认模式首次启动会自动生成并保存 JWT 密钥；已有独立密钥继续使用。正式部署和旧版本升级见[JWT 配置与升级说明](jwt-configuration-and-upgrade.md)。
 5. 在 `view` 目录运行 `npm ci` 安装依赖，再运行 `npm run dev`；在 `api` 目录运行 `mvn spring-boot:run`。后端需要 Java 21；前端此前使用 Node 24 验证。
 
 前端默认地址为 `http://localhost:21091`，API、图片和聊天 WebSocket 默认统一连接 `http://localhost:21090`，未创建前端环境文件也可使用这一默认值。若后端运行在其他地址，将 `view/.env.example` 复制为 `view/.env.local`，修改 `VITE_API_BASE_URL` 后重启前端。`npm run build` 同样使用这项配置；部署给其他电脑访问时，应填写它们能够访问的后端地址。
@@ -24,12 +26,13 @@ spring:
     url: jdbc:mysql://localhost:3306/campus_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
     username: "自己的数据库账号"
     password: "自己的数据库密码"
-security:
-  jwt:
-    secret: "自己生成的独立随机Base64密钥，原始随机内容至少64字节"
 ```
 
+本地无需复制 JWT 占位示例。正式部署时必须显式启用 `prod` 并提供独立密钥，不能依赖默认本地模式。
+
 ## 已经有数据库的成员
+
+更新项目并保留原库时，先按[已有项目更新步骤](member-local-setup.md#已有项目更新保留自己的数据库)迁移自己的连接配置、核对环境变量覆盖和数据库结构；无需套用首次安装的示例库名或账号。
 
 `db.sql` 是完整快照，不是可反复执行的增量升级脚本。已有数据库需要先备份；建议新建另一个空库导入，再修改自己的本机连接配置。原库保留，成员自己新增的用户、商品、订单不会自动合并到新库。
 

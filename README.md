@@ -33,6 +33,8 @@
 
 ## 本机配置与运行
 
+新成员请按[数据库连接与本机完整运行教程](docs/member-local-setup.md)逐步操作；已有部署更新时，同时参考[JWT 配置与升级说明](docs/jwt-configuration-and-upgrade.md)。
+
 后端使用 Java 21 和 Maven，前端验证环境为 Node 24。前端端口 21091，后端端口 21090。
 
 数据库密码不放在最新提交的公共配置中。后端默认使用 `local` 配置，可在本机新建 `api/src/main/resources/application-local.yml`（该文件被 Git 忽略）：
@@ -44,6 +46,8 @@ spring:
 ```
 
 也可以通过环境变量 `CAMPUS_DB_PASSWORD` 提供密码。数据库地址和账号按自己的本机环境配置，避免将本机凭据提交到仓库。
+
+本地默认 `local` 模式首次启动会自动生成并保存 JWT 密钥，后续启动复用同一文件；已有密钥配置不会被覆盖。密钥文件由 Git 忽略。正式服务器必须启用 `prod` 并显式提供密钥，旧部署更新方法见[JWT 配置与升级说明](docs/jwt-configuration-and-upgrade.md)。
 
 后端在 `api` 目录运行 `mvn spring-boot:run`；前端在 `view` 目录安装项目依赖后运行 `npm run dev`。
 
@@ -57,6 +61,6 @@ spring:
 
 已有数据库先备份，推荐导入另一个空库后切换连接，不直接覆盖自己的业务数据。SQL 中的账号和业务记录是快照，不会持续同步维护者电脑上的数据。图片上传文件需另行准备。
 
-本机配置还需要独立 JWT 密钥。完整配置示例和历史清理后成员同步方式见[数据库安装说明](docs/database-installation.md)。
+本地首次启动可自动准备 JWT 密钥，正式部署需显式配置。数据库配置和历史清理后成员同步方式见[数据库安装说明](docs/database-installation.md)。
 
 旧 SQL 已从发布分支历史移除。成员应保留自己的修改并重新克隆，不要合并旧分支以免带回旧 SQL 历史。历史报告中提到的迁移脚本仅用于描述当时的测试过程，当前无需单独执行。
